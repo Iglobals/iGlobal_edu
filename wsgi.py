@@ -1,5 +1,5 @@
 """
-WSGI entry point for Vercel deployment
+WSGI entry point for Vercel deployment updated
 """
 from app import app
 

@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iglobals Educational Services - Digital Library</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto+Condensed:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --ig-purple: #6B2D5C;
+            --ig-purple-light: #8B4A7A;
+            --ig-ash: #4A4A4A;
+            --ig-ash-light: #6B6B6B;
+            --ig-teal: #00A4B4;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .font-condensed {
+            font-family: 'Roboto Condensed', sans-serif;
+        }
+
+        /* Trapezoid Shapes */
+        .trapezoid-bottom {
+            clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+        }
+
+        .trapezoid-top {
+            clip-path: polygon(0 15%, 100% 0, 100% 100%, 0 100%);
+        }
+
+        /* Image Frame with Purple Bar */
+        .image-frame {
+            position: relative;
+            display: inline-block;
+        }
+
+        .image-frame::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            right: -30px;
+            width: 60%;
+            height: 40px;
+            background-color: var(--ig-purple);
+            z-index: -1;
+            transform: skewX(-15deg);
+            transition: all 0.3s ease;
+        }
+
+        .image-frame:hover::after {
+            transform: skewX(-15deg) translateY(-5px);
+            background-color: var(--ig-purple-light);
+        }
+
+        .image-frame-left::before {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: -30px;
+            width: 60%;
+            height: 40px;
+            background-color: var(--ig-purple);
+            z-index: -1;
+            transform: skewX(15deg);
+            transition: all 0.3s ease;
+        }
+
+        .image-frame-left:hover::before {
+            transform: skewX(15deg) translateY(-5px);
+            background-color: var(--ig-purple-light);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background-color: var(--ig-purple);
+            color: white;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--ig-purple-light);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(107, 45, 92, 0.3);
+        }
+
+        .btn-ash {
+            background-color: var(--ig-ash);
+            color: white;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+
+        .btn-ash:hover {
+            background-color: var(--ig-ash-light);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(74, 74, 74, 0.3);
+        }
+
+        /* Page Transitions */
+        .page {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Book Card */
+        .book-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .book-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(107, 45, 92, 0.2);
+        }
+
+        .book-card:hover .book-overlay {
+            opacity: 1;
+        }
+
+        .book-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(107, 45, 92, 0.9);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 1rem;
+        }
+
+        /* Ebook Reader */
+        .ebook-reader {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+            height: 600px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .page-content {
+            height: 100%;
+            padding: 3rem;
+            overflow-y: auto;
+            column-count: 2;
+            column-gap: 3rem;
+            text-align: justify;
+            line-height: 1.8;
+        }
+
+        @media (max-width: 768px) {
+            .page-content {
+                column-count: 1;
+                padding: 1.5rem;
+            }
+        }
+
+        /* Navigation Dots */
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ddd;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-dot.active {
+            background: var(--ig-purple);
+            transform: scale(1.2);
+        }
+
+        /* Timeline */
+        .timeline-line {
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #e5e7eb;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: 11px;
+            width: 20px;
+            height: 20px;
+            background-color: var(--ig-purple);
+            border-radius: 50%;
+            border: 4px solid white;
+            box-shadow: 0 0 0 2px var(--ig-purple);
+        }
+
+        /* Review Stars */
+        .star {
+            color: #ddd;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .star.active,
+        .star:hover {
+            color: #fbbf24;
+        }
+
+        /* Scroll Animations */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-50px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+
+        .reveal-left.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .reveal-right {
+            opacity: 0;
+            transform: translateX(50px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+        }
+
+        .reveal-right.active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* Form Inputs */
+        .input-field {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--ig-purple);
+            box-shadow: 0 0 0 3px rgba(107, 45, 92, 0.1);
+        }
+
+        /* Like/Dislike Buttons */
+        .reaction-btn {
+            transition: all 0.2s;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .reaction-btn:hover {
+            background: #f3f4f6;
+            transform: scale(1.05);
+        }
+
+        .reaction-btn.liked {
+            color: var(--ig-purple);
+            background: rgba(107, 45, 92, 0.1);
+        }
+
+        .reaction-btn.disliked {
+            color: var(--ig-ash);
+            background: rgba(74, 74, 74, 0.1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--ig-purple);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--ig-purple-light);
+        }
+
+        /* Search Bar */
+        .search-bar {
+            position: relative;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 1rem 3rem 1rem 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 9999px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--ig-purple);
+            box-shadow: 0 0 0 3px rgba(107, 45, 92, 0.1);
+        }
+
+        .search-bar button {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--ig-purple);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .search-bar button:hover {
+            background: var(--ig-purple-light);
+            transform: translateY(-50%) scale(1.1);
+        }
+    </style>
+</head>
+
+<body class="bg-white text-gray-800">
+
+    <!-- Header -->
+    <header class="fixed w-full top-0 z-50 bg-white shadow-sm transition-all duration-300" id="header">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="flex items-center space-x-3 group" onclick="navigateTo('home')">
+                <div
+                    class="w-12 h-12 bg-[#6B2D5C] rounded flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                    <i data-lucide="book-open" class="w-7 h-7 text-white"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-bold text-xl text-[#6B2D5C] tracking-wide font-condensed">IGLOBALS</span>
+                    <span class="text-xs text-gray-500 tracking-widest uppercase">Educational Services</span>
+                </div>
+            </a>
+
+            <nav class="hidden md:flex items-center space-x-8">
+                <button onclick="navigateTo('home')"
+                    class="nav-link text-gray-700 hover:text-[#6B2D5C] font-medium transition-colors">Home</button>
+                <button onclick="navigateTo('library')"
+                    class="nav-link text-gray-700 hover:text-[#6B2D5C] font-medium transition-colors">Library</button>
+                <button onclick="navigateTo('search')"
+                    class="nav-link text-gray-700 hover:text-[#6B2D5C] font-medium transition-colors">Search</button>
+                <button onclick="navigateTo('login')" id="authBtn"
+                    class="btn-primary px-6 py-2 rounded text-sm">Login</button>
+                <button onclick="logout()" id="logoutBtn"
+                    class="hidden btn-ash px-6 py-2 rounded text-sm">Logout</button>
+            </nav>
+
+            <button class="md:hidden text-[#6B2D5C]" onclick="toggleMenu()">
+                <i data-lucide="menu" class="w-8 h-8"></i>
+            </button>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden bg-[#6B2D5C] text-white absolute w-full top-full left-0 py-6 px-6 shadow-xl">
+            <nav class="flex flex-col space-y-4">
+                <button onclick="navigateTo('home')"
+                    class="text-left text-lg font-semibold hover:text-gray-200">Home</button>
+                <button onclick="navigateTo('library')"
+                    class="text-left text-lg font-semibold hover:text-gray-200">Library</button>
+                <button onclick="navigateTo('search')"
+                    class="text-left text-lg font-semibold hover:text-gray-200">Search</button>
+                <button onclick="navigateTo('login')"
+                    class="text-left text-lg font-semibold hover:text-gray-200">Login</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- HOME PAGE -->
+    <div id="home" class="page active">
+        <!-- Hero Section -->
+        <section class="pt-20 bg-[#6B2D5C] text-white relative overflow-hidden min-h-[80vh] flex items-center">
+            <div class="absolute inset-0 opacity-10">
+                <div class="absolute inset-0"
+                    style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 40px 40px;">
+                </div>
+            </div>
+
+            <div class="container mx-auto px-6 py-20 relative z-10">
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div class="reveal-left">
+                        <h1 class="font-condensed text-6xl md:text-8xl font-bold leading-none mb-8 tracking-tight">
+                            DIGITAL<br />
+                            <span
+                                class="text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-200">LIBRARY</span>
+                        </h1>
+                        <p class="text-purple-100 text-lg mb-8 max-w-md leading-relaxed">
+                            Access thousands of educational eBooks, textbooks, and resources. Learn anywhere, anytime
+                            with our comprehensive digital collection.
+                        </p>
+                        <div class="flex flex-wrap gap-4">
+                            <button onclick="navigateTo('library')"
+                                class="btn-primary px-8 py-4 rounded text-lg font-bold inline-flex items-center gap-3 group">
+                                Browse Library
+                                <i data-lucide="arrow-right"
+                                    class="w-5 h-5 transition-transform group-hover:translate-x-1"></i>
+                            </button>
+                            <button onclick="navigateTo('search')"
+                                class="bg-white text-[#6B2D5C] px-8 py-4 rounded text-lg font-bold hover:bg-gray-100 transition-colors">
+                                Search Books
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="reveal-right delay-200 relative">
+                        <div class="image-frame">
+                            <img src="https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=800&q=80"
+                                alt="Digital Library" class="w-full h-auto rounded-lg shadow-2xl">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trapezoid bottom -->
+            <div class="absolute bottom-0 left-0 right-0 h-32 bg-white"
+                style="clip-path: polygon(0 100%, 100% 100%, 100% 0, 0 100%);"></div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="py-20 bg-white relative">
+            <div class="container mx-auto px-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                    <div class="reveal delay-100">
+                        <div class="text-5xl font-bold text-[#6B2D5C] mb-2 font-condensed">10K+</div>
+                        <div class="text-gray-600 text-sm uppercase tracking-wider font-semibold">eBooks Available</div>
+                    </div>
+                    <div class="reveal delay-200">
+                        <div class="text-5xl font-bold text-[#6B2D5C] mb-2 font-condensed">50+</div>
+                        <div class="text-gray-600 text-sm uppercase tracking-wider font-semibold">Categories</div>
+                    </div>
+                    <div class="reveal delay-300">
+                        <div class="text-5xl font-bold text-[#6B2D5C] mb-2 font-condensed">100K+</div>
+                        <div class="text-gray-600 text-sm uppercase tracking-wider font-semibold">Active Readers</div>
+                    </div>
+                    <div class="reveal delay-400">
+                        <div class="text-5xl font-bold text-[#6B2D5C] mb-2 font-condensed">4.9</div>
+                        <div class="text-gray-600 text-sm uppercase tracking-wider font-semibold">User Rating</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Featured Books -->
+        <section class="py-20 bg-gray-50">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16 reveal">
+                    <h2 class="font-condensed text-4xl md:text-5xl font-bold text-[#6B2D5C] mb-4">FEATURED COLLECTION
+                    </h2>
+                    <p class="text-gray-600 max-w-2xl mx-auto">Handpicked educational resources for your learning
+                        journey</p>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Book 1 -->
+                    <div class="book-card bg-white rounded-lg overflow-hidden shadow-lg reveal delay-100"
+                        onclick="previewBook(1)">
+                        <div class="relative h-64 overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&q=80"
+                                alt="Book Cover" class="w-full h-full object-cover">
+                            <div class="book-overlay">
+                                <button class="btn-primary px-6 py-2 rounded text-sm mb-2">Preview</button>
+                                <span class="text-sm">Free Chapter</span>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <span class="text-[#00A4B4] text-xs font-bold uppercase tracking-wider">Business</span>
+                            <h3 class="font-bold text-xl text-gray-900 mt-2 mb-2">Digital Transformation Strategy</h3>
+                            <p class="text-gray-600 text-sm mb-4">Learn how to navigate the digital landscape and
+                                transform your business.</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[#6B2D5C] font-bold text-lg">$29.99</span>
+                                <div class="flex text-yellow-400 text-sm">
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Book 2 -->
+                    <div class="book-card bg-white rounded-lg overflow-hidden shadow-lg reveal delay-200"
+                        onclick="previewBook(2)">
+                        <div class="relative h-64 overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600&q=80"
+                                alt="Book Cover" class="w-full h-full object-cover">
+                            <div class="book-overlay">
+                                <button class="btn-primary px-6 py-2 rounded text-sm mb-2">Preview</button>
+                                <span class="text-sm">Free Chapter</span>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <span class="text-[#00A4B4] text-xs font-bold uppercase tracking-wider">Science</span>
+                            <h3 class="font-bold text-xl text-gray-900 mt-2 mb-2">Advanced Physics Simplified</h3>
+                            <p class="text-gray-600 text-sm mb-4">Comprehensive guide to modern physics concepts and
+                                applications.</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[#6B2D5C] font-bold text-lg">$34.99</span>
+                                <div class="flex text-yellow-400 text-sm">
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star-half" class="w-4 h-4 fill-current"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Book 3 -->
+                    <div class="book-card bg-white rounded-lg overflow-hidden shadow-lg reveal delay-300"
+                        onclick="previewBook(3)">
+                        <div class="relative h-64 overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1589998059171-988d887df646?w=600&q=80"
+                                alt="Book Cover" class="w-full h-full object-cover">
+                            <div class="book-overlay">
+                                <button class="btn-primary px-6 py-2 rounded text-sm mb-2">Preview</button>
+                                <span class="text-sm">Free Chapter</span>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <span class="text-[#00A4B4] text-xs font-bold uppercase tracking-wider">Technology</span>
+                            <h3 class="font-bold text-xl text-gray-900 mt-2 mb-2">AI & Machine Learning Basics</h3>
+                            <p class="text-gray-600 text-sm mb-4">Introduction to artificial intelligence for beginners
+                                and professionals.</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-[#6B2D5C] font-bold text-lg">$39.99</span>
+                                <div class="flex text-yellow-400 text-sm">
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-12 reveal">
+                    <button onclick="navigateTo('library')"
+                        class="btn-ash px-8 py-4 rounded text-lg font-bold inline-flex items-center gap-2 group">
+                        View All Books
+                        <i data-lucide="arrow-right" class="w-5 h-5 transition-transform group-hover:translate-x-1"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Why Choose Us -->
+        <section class="py-20 bg-[#6B2D5C] text-white relative overflow-hidden">
+            <div class="absolute inset-0 opacity-20">
+                <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=1200&q=80"
+                    class="w-full h-full object-cover" alt="Library">
+            </div>
+
+            <div class="container mx-auto px-6 relative z-10">
+                <h2 class="font-condensed text-4xl md:text-5xl font-bold mb-16 text-center reveal">WHY CHOOSE IGLOBALS
+                </h2>
+
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="bg-white/10 backdrop-blur p-8 rounded-lg reveal delay-100">
+                        <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center mb-6">
+                            <i data-lucide="smartphone" class="w-8 h-8 text-[#6B2D5C]"></i>
+                        </div>
+                        <h3 class="font-bold text-xl mb-4">Read Anywhere</h3>
+                        <p class="text-purple-100">Access your library on any device. Mobile, tablet, or desktop - your
+                            books follow you.</p>
+                    </div>
+
+                    <div class="bg-white/10 backdrop-blur p-8 rounded-lg reveal delay-200">
+                        <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center mb-6">
+                            <i data-lucide="bookmark" class="w-8 h-8 text-[#6B2D5C]"></i>
+                        </div>
+                        <h3 class="font-bold text-xl mb-4">Interactive Learning</h3>
+                        <p class="text-purple-100">Bookmark pages, take notes, and highlight important sections as you
+                            read.</p>
+                    </div>
+
+                    <div class="bg-white/10 backdrop-blur p-8 rounded-lg reveal delay-300">
+                        <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center mb-6">
+                            <i data-lucide="users" class="w-8 h-8 text-[#6B2D5C]"></i>
+                        </div>
+                        <h3 class="font-bold text-xl mb-4">Community Reviews</h3>
+                        <p class="text-purple-100">Join discussions, read reviews, and share your thoughts with other
+                            learners.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trapezoid bottom -->
+            <div class="absolute bottom-0 left-0 right-0 h-24 bg-white"
+                style="clip-path: polygon(0 100%, 100% 100%, 100% 0, 0 100%);"></div>
+        </section>
+    </div>
+
+    <!-- LOGIN PAGE -->
+    <div id="login" class="page">
+        <section class="pt-32 pb-20 bg-gray-50 min-h-screen flex items-center">
+            <div class="container mx-auto px-6">
+                <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden reveal">
+                    <div class="bg-[#6B2D5C] p-8 text-center">
+                        <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="book-open" class="w-10 h-10 text-[#6B2D5C]"></i>
+                        </div>
+                        <h2 class="font-condensed text-3xl font-bold text-white">WELCOME BACK</h2>
+                        <p class="text-purple-200 mt-2">Sign in to access your library</p>
+                    </div>
+
+                    <div class="p-8">
+                        <form onsubmit="handleLogin(event)">
+                            <div class="mb-6">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Email Address</label>
+                                <input type="email" class="input-field" placeholder="you@example.com" required>
+                            </div>
+
+                            <div class="mb-6">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                                <input type="password" class="input-field" placeholder="••••••••" required>
+                            </div>
+
+                            <div class="flex items-center justify-between mb-6">
+                                <label class="flex items-center text-sm text-gray-600">
+                                    <input type="checkbox" class="mr-2 text-[#6B2D5C]"> Remember me
+                                </label>
+                                <button type="button" onclick="navigateTo('forgot')"
+                                    class="text-sm text-[#6B2D5C] hover:underline">Forgot Password?</button>
+                            </div>
+
+                            <button type="submit" class="btn-primary w-full py-4 rounded-lg text-lg font-bold mb-6">
+                                SIGN IN
+                            </button>
+                        </form>
+
+                        <div class="text-center">
+                            <p class="text-gray-600">Don't have an account?
+                                <button onclick="navigateTo('signup')"
+                                    class="text-[#6B2D5C] font-bold hover:underline">Sign Up</button>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- SIGNUP PAGE -->
+    <div id="signup" class="page">
+        <section class="pt-32 pb-20 bg-gray-50 min-h-screen flex items-center">
+            <div class="container mx-auto px-6">
+                <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden reveal">
+                    <div class="bg-[#6B2D5C] p-8 text-center">
+                        <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="user-plus" class="w-10 h-10 text-[#6B2D5C]"></i>
+                        </div>
+                        <h2 class="font-condensed text-3xl font-bold text-white">CREATE ACCOUNT</h2>
+                        <p class="text-purple-200 mt-2">Start your learning journey today</p>
+                    </div>
+
+                    <div class="p-8">
+                        <form onsubmit="handleSignup(event)">
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Full Name</label>
+                                <input type="text" class="input-field" placeholder="John Doe" required>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Email Address</label>
+                                <input type="email" class="input-field" placeholder="you@example.com" required>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                                <input type="password" class="input-field" placeholder="••••••••" required>
+                            </div>
+
+                            <div class="mb-6">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Confirm Password</label>
+                                <input type="password" class="input-field" placeholder="••••••••" required>
+                            </div>
+
+                            <div class="mb-6">
+                                <label class="flex items-start text-sm text-gray-600">
+                                    <input type="checkbox" class="mr-2 mt-1 text-[#6B2D5C]" required>
+                                    <span>I agree to the <a href="#" class="text-[#6B2D5C] hover:underline">Terms of
+                                            Service</a> and <a href="#" class="text-[#6B2D5C] hover:underline">Privacy
+                                            Policy</a></span>
+                                </label>
+                            </div>
+
+                            <button type="submit" class="btn-primary w-full py-4 rounded-lg text-lg font-bold mb-6">
+                                CREATE ACCOUNT
+                            </button>
+                        </form>
+
+                        <div class="text-center">
+                            <p class="text-gray-600">Already have an account?
+                                <button onclick="navigateTo('login')"
+                                    class="text-[#6B2D5C] font-bold hover:underline">Sign In</button>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- FORGOT PASSWORD PAGE -->
+    <div id="forgot" class="page">
+        <section class="pt-32 pb-20 bg-gray-50 min-h-screen flex items-center">
+            <div class="container mx-auto px-6">
+                <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden reveal">
+                    <div class="bg-[#6B2D5C] p-8 text-center">
+                        <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="key" class="w-10 h-10 text-[#6B2D5C]"></i>
+                        </div>
+                        <h2 class="font-condensed text-3xl font-bold text-white">RESET PASSWORD</h2>
+                        <p class="text-purple-200 mt-2">We'll send you a reset link</p>
+                    </div>
+
+                    <div class="p-8">
+                        <form onsubmit="handleForgot(event)">
+                            <div class="mb-6">
+                                <label class="block text-gray-700 text-sm font-bold mb-2">Email Address</label>
+                                <input type="email" class="input-field" placeholder="you@example.com" required>
+                            </div>
+
+                            <button type="submit" class="btn-primary w-full py-4 rounded-lg text-lg font-bold mb-6">
+                                SEND RESET LINK
+                            </button>
+                        </form>
+
+                        <div class="text-center">
+                            <button onclick="navigateTo('login')"
+                                class="text-[#6B2D5C] font-bold hover:underline flex items-center justify-center gap-2">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Login
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- LIBRARY PAGE -->
+    <div id="library" class="page">
+        <section class="pt-32 pb-20 bg-gray-50 min-h-screen">
+            <div class="container mx-auto px-6">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-12 reveal">
+                    <div>
+                        <h1 class="font-condensed text-4xl md:text-5xl font-bold text-[#6B2D5C] mb-2">MY LIBRARY</h1>
+                        <p class="text-gray-600">Your personal collection of eBooks</p>
+                    </div>
+                    <button onclick="navigateTo('search')"
+                        class="mt-4 md:mt-0 btn-primary px-6 py-3 rounded-lg font-bold flex items-center gap-2">
+                        <i data-lucide="plus" class="w-5 h-5"></i> Add Books
+                    </button>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div class="flex flex-wrap gap-4 mb-8 reveal">
+                    <button class="px-6 py-2 rounded-full bg-[#6B2D5C] text-white font-semibold">All Books</button>
+                    <button
+                        class="px-6 py-2 rounded-full bg-white text-gray-700 font-semibold hover:bg-gray-100 transition-colors">Purchased</button>
+                    <button
+                        class="px-6 py-2 rounded-full bg-white text-gray-700 font-semibold hover:bg-gray-100 transition-colors">Free</button>
+                    <button
+                        class="px-6 py-2 rounded-full bg-white text-gray-700 font-semibold hover:bg-gray-100 transition-colors">Favorites</button>
+                </div>
+
+                <!-- Library Grid -->
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6" id="libraryGrid">
+                    <!-- Library Book 1 -->
+                    <div class="book-card bg-white rounded-lg overflow-hidden shadow-lg reveal">
+                        <div class="relative h-48 overflow-hidden cursor-pointer" onclick="readBook(1)">
+                            <img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&q=80" alt="Book"
+                                class="w-full h-full object-cover">
+                            <div
+                                class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                PURCHASED</div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg mb-1">Digital Transformation</h3>
+                            <p class="text-gray-500 text-sm mb-3">Business Strategy</p>
+                            <div class="flex justify-between items-center">
+                                <button onclick="readBook(1)"
+                                    class="text-[#6B2D5C] font-semibold text-sm hover:underline">Read Now</button>
+                                <button onclick="toggleFavorite(this)" class="text-gray-400 hover:text-[#6B2D5C]">
+                                    <i data-lucide="heart" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Library Book 2 -->
+                    <div class="book-card bg-white rounded-lg overflow-hidden shadow-lg reveal delay-100">
+                        <div class="relative h-48 overflow-hidden cursor-pointer" onclick="readBook(2)">
+                            <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&q=80"
+                                alt="Book" class="w-full h-full object-cover">
+                            <div
+                                class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                PURCHASED</div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg mb-1">Advanced Physics</h3>
+                            <p class="text-gray-500 text-sm mb-3">Science</p>
+                            <div class="flex justify-between items-center">
+                                <button onclick="readBook(2)"
+                                    class="text-[#6B2D5C] font-semibold text-sm hover:underline">Read Now</button>
+                                <button onclick="toggleFavorite(this)" class="text-gray-400 hover:text-[#6B2D5C]">
+                                    <i data-lucide="heart" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Library Book 3 -->
+                    <div class="book-card bg-white rounded-lg overflow-hidden shadow-lg reveal delay-200">
+                        <div class="relative h-48 overflow-hidden cursor-pointer" onclick="readBook(3)">
+                            <img src="https://images.unsplash.com/photo-1589998059171-988d887df646?w=400&q=80"
+                                alt="Book" class="w-full h-full object-cover">
+                            <div
+                                class="absolute top-2 right-2 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">
+                                FREE</div>
+                        </div>
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg mb-1">AI & Machine Learning</h3>
+                            <p class="text-gray-500 text-sm mb-3">Technology</p>
+                            <div class="flex justify-between items-center">
+                                <button onclick="readBook(3)"
+                                    class="text-[#6B2D5C] font-semibold text-sm hover:underline">Read Now</button>
+                                <button onclick="toggleFavorite(this)" class="text-gray-400 hover:text-[#6B2D5C]">
+                                    <i data-lucide="heart" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Empty State (shown when no books) -->
+                    <div id="emptyState" class="hidden col-span-full text-center py-20">
+                        <div class="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="book-x" class="w-12 h-12 text-gray-400"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-700 mb-2">Your library is empty</h3>
+                        <p class="text-gray-500 mb-4">Start building your collection today</p>
+                        <button onclick="navigateTo('search')" class="btn-primary px-6 py-3 rounded-lg font-bold">Browse
+                            Books</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- SEARCH PAGE -->
+    <div id="search" class="page">
+        <section class="pt-32 pb-20 bg-gray-50 min-h-screen">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12 reveal">
+                    <h1 class="font-condensed text-4xl md:text-5xl font-bold text-[#6B2D5C] mb-4">SEARCH LIBRARY</h1>
+                    <p class="text-gray-600 mb-8">Find your next learning adventure</p>
+
+                    <div class="search-bar reveal delay-100">
+                        <input type="text" id="searchInput" placeholder="Search by title, author, or category..."
+                            onkeyup="handleSearch(event)">
+                        <button onclick="performSearch()">
+                            <i data-lucide="search" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Categories -->
+                <div class="flex flex-wrap justify-center gap-4 mb-12 reveal delay-200">
+                    <button onclick="filterCategory('all')"
+                        class="px-6 py-2 rounded-full bg-[#6B2D5C] text-white font-semibold transition-transform hover:scale-105">All</button>
+                    <button onclick="filterCategory('business')"
+                        class="px-6 py-2 rounded-full bg-white text-gray-700 font-semibold hover:bg-gray-100 transition-all hover:scale-105">Business</button>
+                    <button onclick="filterCategory('technology')"
+                        class="px-6 py-2 rounded-full bg-white text-gray-700 font-semibold hover:bg-gray-100 transition-all hover:scale-105">Technology</button>
+                    <button onclick="filterCategory('science')"
+                        class="px-6 py-2 rounded-full bg-white text-gray-700 font-semibold hover:bg-gray-100 transition-all hover:scale-105">Science</button>
+                    <button onclick="filterCategory('arts')"
+                        class="px-6 py-2 rounded-full bg-white text-gray-700 font-semibold hover:bg-gray-100 transition-all hover:scale-105">Arts</button>
+                </div>
+
+                <!-- Search Results -->
+                <div class="grid md:grid-cols-3 lg:grid-cols-4 gap-6" id="searchResults">
+                    <!-- Search Result 1 -->
+                    <div class="book-card bg-white rounded-lg overflow-hidden shadow-lg reveal">
+                        <div class="relative h-56 overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&q=80" alt="Book"
+                                class="w-full h-full object-cover">
+                            <div class="book-overlay">
+                                <button onclick="previewBook(1)"
+                                    class="btn-primary px-4 py-2 rounded text-sm mb-2">Preview</button>
+                                <button onclick="addToLibrary(1)"
+                                    class="bg-white text-[#6B2D5C] px-4 py-2 rounded text-sm font-bold">Add to
+                                    Library</button>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <span class="text-xs font-bold text-[#00A4B4] uppercase">Business</span>
+                            <h3 class="font-bold text-lg mt-1 mb-1">Digital Transformation</h3>
+                            <p class="text-gray-500 text-sm">By Michael Chen</p>
+                            <div class="flex justify-between items-center mt-3">
+                                <span class="text-[#6B2D5C] font-bold">$29.99</span>
+                                <div class="flex text-yellow-400 text-xs">
+                                    <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                                    <span class="ml-1 text-gray-600">4.8</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Result 2 -->
+                    <div class="book-card bg-white rounded-lg overflow-hidden shadow-lg reveal delay-100">
+                        <div class="relative h-56 overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&q=80"
+                                alt="Book" class="w-full h-full object-cover">
+                            <div class="book-overlay">
+                                <button onclick="previewBook(2)"
+                                    class="btn-primary px-4 py-2 rounded text-sm mb-2">Preview</button>
+                                <button onclick="addToLibrary(2)"
+                                    class="bg-white text-[#6B2D5C] px-4 py-2 rounded text-sm font-bold">Add to
+                                    Library</button>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <span class="text-xs font-bold text-[#00A4B4] uppercase">Science</span>
+                            <h3 class="font-bold text-lg mt-1 mb-1">Advanced Physics</h3>
+                            <p class="text-gray-500 text-sm">By Dr. Sarah Johnson</p>
+                            <div class="flex justify-between items-center mt-3">
+                                <span class="text-[#6B2D5C] font-bold">$34.99</span>
+                                <div class="flex text-yellow-400 text-xs">
+                                    <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                                    <span class="ml-1 text-gray-600">4.6</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Result 3 -->
+                    <div class="book-card bg-white rounded-lg overflow-hidden shadow-lg reveal delay-200">
+                        <div class="relative h-56 overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1589998059171-988d887df646?w=400&q=80"
+                                alt="Book" class="w-full h-full object-cover">
+                            <div class="book-overlay">
+                                <button onclick="previewBook(3)"
+                                    class="btn-primary px-4 py-2 rounded text-sm mb-2">Preview</button>
+                                <button onclick="addToLibrary(3)"
+                                    class="bg-white text-[#6B2D5C] px-4 py-2 rounded text-sm font-bold">Add to
+                                    Library</button>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <span class="text-xs font-bold text-[#00A4B4] uppercase">Technology</span>
+                            <h3 class="font-bold text-lg mt-1 mb-1">AI & Machine Learning</h3>
+                            <p class="text-gray-500 text-sm">By Prof. Alan Turing</p>
+                            <div class="flex justify-between items-center mt-3">
+                                <span class="text-[#6B2D5C] font-bold">$39.99</span>
+                                <div class="flex text-yellow-400 text-xs">
+                                    <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                                    <span class="ml-1 text-gray-600">4.9</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Result 4 -->
+                    <div class="book-card bg-white rounded-lg overflow-hidden shadow-lg reveal delay-300">
+                        <div class="relative h-56 overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1532012197267-da84d127e765?w=400&q=80"
+                                alt="Book" class="w-full h-full object-cover">
+                            <div class="book-overlay">
+                                <button onclick="previewBook(4)"
+                                    class="btn-primary px-4 py-2 rounded text-sm mb-2">Preview</button>
+                                <button onclick="addToLibrary(4)"
+                                    class="bg-white text-[#6B2D5C] px-4 py-2 rounded text-sm font-bold">Add to
+                                    Library</button>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <span class="text-xs font-bold text-[#00A4B4] uppercase">Arts</span>
+                            <h3 class="font-bold text-lg mt-1 mb-1">Modern Art History</h3>
+                            <p class="text-gray-500 text-sm">By Emma Wilson</p>
+                            <div class="flex justify-between items-center mt-3">
+                                <span class="text-[#6B2D5C] font-bold">$24.99</span>
+                                <div class="flex text-yellow-400 text-xs">
+                                    <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                                    <span class="ml-1 text-gray-600">4.7</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- BOOK READER MODAL -->
+    <div id="readerModal" class="fixed inset-0 bg-black/80 z-50 hidden overflow-y-auto">
+        <div class="min-h-screen px-4 text-center">
+            <div class="fixed inset-0 transition-opacity" onclick="closeReader()"></div>
+
+            <div
+                class="inline-block w-full max-w-6xl my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-lg overflow-hidden">
+                <!-- Reader Header -->
+                <div class="bg-[#6B2D5C] text-white p-4 flex justify-between items-center">
+                    <div>
+                        <h2 id="readerTitle" class="font-bold text-xl">Digital Transformation Strategy</h2>
+                        <p id="readerAuthor" class="text-purple-200 text-sm">By Michael Chen</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button onclick="toggleFullscreen()" class="p-2 hover:bg-white/20 rounded">
+                            <i data-lucide="maximize" class="w-5 h-5"></i>
+                        </button>
+                        <button onclick="closeReader()" class="p-2 hover:bg-white/20 rounded">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-0">
+                    <!-- Reader Content -->
+                    <div class="md:col-span-2 bg-gray-100 p-4">
+                        <div class="ebook-reader bg-white rounded shadow-inner">
+                            <div class="page-content" id="pageContent">
+                                <h1 class="text-3xl font-bold mb-6 text-[#6B2D5C]">Chapter 1: The Digital Revolution
+                                </h1>
+                                <p class="mb-4">The digital transformation of businesses has become more than just a
+                                    trend—it's a fundamental shift in how organizations operate, compete, and deliver
+                                    value to customers. In this comprehensive guide, we explore the strategies,
+                                    technologies, and mindsets required to successfully navigate this transformation.
+                                </p>
+                                <p class="mb-4">The journey begins with understanding that digital transformation is not
+                                    merely about adopting new technologies. It's about reimagining business processes,
+                                    customer experiences, and organizational culture. Companies that thrive in the
+                                    digital age are those that embrace change as a constant and view technology as an
+                                    enabler of innovation rather than just a tool.</p>
+                                <p class="mb-4">Consider the case of traditional retail giants who have successfully
+                                    pivoted to omnichannel strategies. By integrating their physical stores with digital
+                                    platforms, they've created seamless customer experiences that bridge the gap between
+                                    online and offline worlds. This integration requires not just technological
+                                    investment, but a complete rethinking of inventory management, customer service, and
+                                    marketing approaches.</p>
+                                <p class="mb-4">The role of leadership in digital transformation cannot be overstated.
+                                    Executives must champion the digital agenda, allocate resources strategically, and
+                                    foster a culture of experimentation and learning. This means moving away from
+                                    hierarchical decision-making toward more agile, data-driven approaches that empower
+                                    teams to innovate rapidly.</p>
+                                <p class="mb-4">Data has emerged as the new currency of business. Organizations that
+                                    effectively collect, analyze, and act upon data insights gain significant
+                                    competitive advantages. However, with great data comes great responsibility. Privacy
+                                    concerns, security threats, and ethical considerations must be at the forefront of
+                                    any digital strategy.</p>
+                            </div>
+                        </div>
+
+                        <!-- Page Navigation -->
+                        <div class="flex justify-between items-center mt-4 px-4">
+                            <button onclick="prevPage()"
+                                class="flex items-center gap-2 text-[#6B2D5C] font-semibold hover:bg-white px-4 py-2 rounded transition-colors">
+                                <i data-lucide="chevron-left" class="w-5 h-5"></i> Previous
+                            </button>
+                            <span class="text-gray-600 font-medium">Page <span id="currentPage">1</span> of <span
+                                    id="totalPages">12</span></span>
+                            <button onclick="nextPage()"
+                                class="flex items-center gap-2 text-[#6B2D5C] font-semibold hover:bg-white px-4 py-2 rounded transition-colors">
+                                Next <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar -->
+                    <div class="bg-white border-l border-gray-200 p-6 max-h-[800px] overflow-y-auto">
+                        <!-- Tabs -->
+                        <div class="flex border-b border-gray-200 mb-6">
+                            <button onclick="switchTab('chapters')" id="tab-chapters"
+                                class="flex-1 pb-2 text-center font-semibold text-[#6B2D5C] border-b-2 border-[#6B2D5C]">Chapters</button>
+                            <button onclick="switchTab('reviews')" id="tab-reviews"
+                                class="flex-1 pb-2 text-center font-semibold text-gray-500 hover:text-[#6B2D5C]">Reviews</button>
+                            <button onclick="switchTab('notes')" id="tab-notes"
+                                class="flex-1 pb-2 text-center font-semibold text-gray-500 hover:text-[#6B2D5C]">Notes</button>
+                        </div>
+
+                        <!-- Chapters Tab -->
+                        <div id="content-chapters" class="space-y-2">
+                            <div class="p-3 bg-purple-50 rounded cursor-pointer text-[#6B2D5C] font-semibold">Chapter 1:
+                                The Digital Revolution</div>
+                            <div class="p-3 hover:bg-gray-50 rounded cursor-pointer text-gray-700">Chapter 2: Strategy
+                                Framework</div>
+                            <div class="p-3 hover:bg-gray-50 rounded cursor-pointer text-gray-700">Chapter 3: Technology
+                                Stack</div>
+                            <div class="p-3 hover:bg-gray-50 rounded cursor-pointer text-gray-700">Chapter 4: Change
+                                Management</div>
+                            <div class="p-3 hover:bg-gray-50 rounded cursor-pointer text-gray-700">Chapter 5: Case
+                                Studies</div>
+                        </div>
+
+                        <!-- Reviews Tab -->
+                        <div id="content-reviews" class="hidden space-y-4">
+                            <!-- Add Review -->
+                            <div class="mb-6">
+                                <h4 class="font-semibold mb-2">Write a Review</h4>
+                                <div class="flex gap-1 mb-2" id="starRating">
+                                    <i data-lucide="star" class="w-5 h-5 star cursor-pointer"
+                                        onclick="setRating(1)"></i>
+                                    <i data-lucide="star" class="w-5 h-5 star cursor-pointer"
+                                        onclick="setRating(2)"></i>
+                                    <i data-lucide="star" class="w-5 h-5 star cursor-pointer"
+                                        onclick="setRating(3)"></i>
+                                    <i data-lucide="star" class="w-5 h-5 star cursor-pointer"
+                                        onclick="setRating(4)"></i>
+                                    <i data-lucide="star" class="w-5 h-5 star cursor-pointer"
+                                        onclick="setRating(5)"></i>
+                                </div>
+                                <textarea class="input-field text-sm mb-2" rows="3"
+                                    placeholder="Share your thoughts..."></textarea>
+                                <button onclick="submitReview()" class="btn-primary w-full py-2 rounded text-sm">Post
+                                    Review</button>
+                            </div>
+
+                            <!-- Existing Reviews -->
+                            <div class="space-y-4" id="reviewsList">
+                                <div class="border-b border-gray-100 pb-4">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <span class="font-semibold text-sm">John Doe</span>
+                                        <span class="text-xs text-gray-500">2 days ago</span>
+                                    </div>
+                                    <div class="flex text-yellow-400 text-xs mb-2">
+                                        <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                                        <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                                        <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                                        <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                                        <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Excellent book! Very comprehensive and practical.
+                                    </p>
+                                    <div class="flex gap-4 mt-2">
+                                        <button onclick="likeReview(this)" class="reaction-btn text-xs text-gray-500">
+                                            <i data-lucide="thumbs-up" class="w-4 h-4"></i> <span>12</span>
+                                        </button>
+                                        <button onclick="dislikeReview(this)"
+                                            class="reaction-btn text-xs text-gray-500">
+                                            <i data-lucide="thumbs-down" class="w-4 h-4"></i> <span>0</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes Tab -->
+                        <div id="content-notes" class="hidden">
+                            <button onclick="addNote()"
+                                class="btn-ash w-full py-2 rounded text-sm mb-4 flex items-center justify-center gap-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Add Note
+                            </button>
+                            <div id="notesList" class="space-y-3">
+                                <div class="bg-yellow-50 p-3 rounded border-l-4 border-yellow-400">
+                                    <p class="text-sm text-gray-700">"Digital transformation is about reimagining
+                                        business processes..."</p>
+                                    <span class="text-xs text-gray-500 mt-1 block">Page 1</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PREVIEW MODAL -->
+    <div id="previewModal" class="fixed inset-0 bg-black/80 z-50 hidden overflow-y-auto">
+        <div class="min-h-screen px-4 text-center flex items-center justify-center">
+            <div class="fixed inset-0 transition-opacity" onclick="closePreview()"></div>
+
+            <div
+                class="inline-block w-full max-w-2xl my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-lg overflow-hidden relative">
+                <button onclick="closePreview()"
+                    class="absolute top-4 right-4 z-10 p-2 bg-white rounded-full shadow hover:bg-gray-100">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+
+                <div class="grid md:grid-cols-2">
+                    <div class="h-64 md:h-auto">
+                        <img id="previewImage" src="" alt="Book Cover" class="w-full h-full object-cover">
+                    </div>
+                    <div class="p-8">
+                        <span id="previewCategory"
+                            class="text-[#00A4B4] text-xs font-bold uppercase tracking-wider">Business</span>
+                        <h2 id="previewTitle" class="font-condensed text-3xl font-bold text-[#6B2D5C] mt-2 mb-2">Digital
+                            Transformation Strategy</h2>
+                        <p id="previewAuthor" class="text-gray-500 mb-4">By Michael Chen</p>
+
+                        <div class="flex items-center gap-4 mb-6">
+                            <span id="previewPrice" class="text-2xl font-bold text-[#6B2D5C]">$29.99</span>
+                            <div class="flex text-yellow-400">
+                                <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                                <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                                <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                                <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                                <i data-lucide="star" class="w-5 h-5 fill-current"></i>
+                            </div>
+                        </div>
+
+                        <p class="text-gray-600 mb-6 leading-relaxed">Learn how to navigate the digital landscape and
+                            transform your business with proven strategies and real-world case studies.</p>
+
+                        <div class="space-y-3">
+                            <button onclick="purchaseBook()"
+                                class="btn-primary w-full py-3 rounded-lg font-bold">Purchase Now</button>
+                            <button onclick="addToLibraryFromPreview()"
+                                class="btn-ash w-full py-3 rounded-lg font-bold">Add to Library</button>
+                        </div>
+
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                            <h4 class="font-semibold mb-2">Free Preview Includes:</h4>
+                            <ul class="text-sm text-gray-600 space-y-1">
+                                <li class="flex items-center gap-2"><i data-lucide="check"
+                                        class="w-4 h-4 text-green-500"></i> Introduction</li>
+                                <li class="flex items-center gap-2"><i data-lucide="check"
+                                        class="w-4 h-4 text-green-500"></i> Chapter 1 (Full)</li>
+                                <li class="flex items-center gap-2"><i data-lucide="check"
+                                        class="w-4 h-4 text-green-500"></i> Table of Contents</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-[#6B2D5C] text-white relative pt-20 pb-8">
+        <!-- Trapezoid top -->
+        <div class="absolute top-0 left-0 right-0 h-24 bg-white"
+            style="clip-path: polygon(0 0, 100% 0, 100% 100%, 0 0);"></div>
+
+        <div class="container mx-auto px-6 relative z-10 pt-12">
+            <div class="grid md:grid-cols-4 gap-12 mb-12">
+                <div class="reveal">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-10 h-10 bg-white rounded flex items-center justify-center">
+                            <i data-lucide="book-open" class="w-6 h-6 text-[#6B2D5C]"></i>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="font-bold text-lg tracking-wide font-condensed">IGLOBALS</span>
+                            <span class="text-xs tracking-widest opacity-80">EDUCATIONAL SERVICES</span>
+                        </div>
+                    </div>
+                    <p class="text-purple-200 text-sm leading-relaxed">
+                        Empowering learners worldwide with quality educational resources and innovative digital
+                        solutions.
+                    </p>
+                </div>
+
+                <div class="reveal delay-100">
+                    <h4 class="font-bold text-lg mb-6 uppercase tracking-wider">Quick Links</h4>
+                    <ul class="space-y-3 text-purple-200 text-sm">
+                        <li><button onclick="navigateTo('home')"
+                                class="hover:text-white transition-colors">Home</button></li>
+                        <li><button onclick="navigateTo('library')"
+                                class="hover:text-white transition-colors">Library</button></li>
+                        <li><button onclick="navigateTo('search')"
+                                class="hover:text-white transition-colors">Search</button></li>
+                        <li><button onclick="navigateTo('login')"
+                                class="hover:text-white transition-colors">Login</button></li>
+                    </ul>
+                </div>
+
+                <div class="reveal delay-200">
+                    <h4 class="font-bold text-lg mb-6 uppercase tracking-wider">Support</h4>
+                    <ul class="space-y-3 text-purple-200 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Contact Us</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+
+                <div class="reveal delay-300">
+                    <h4 class="font-bold text-lg mb-6 uppercase tracking-wider">Connect</h4>
+                    <div class="flex space-x-4">
+                        <a href="#"
+                            class="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-[#00A4B4] transition-colors group">
+                            <i data-lucide="twitter"
+                                class="w-5 h-5 text-[#6B2D5C] group-hover:text-white transition-colors"></i>
+                        </a>
+                        <a href="#"
+                            class="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-[#00A4B4] transition-colors group">
+                            <i data-lucide="facebook"
+                                class="w-5 h-5 text-[#6B2D5C] group-hover:text-white transition-colors"></i>
+                        </a>
+                        <a href="#"
+                            class="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:bg-[#00A4B4] transition-colors group">
+                            <i data-lucide="instagram"
+                                class="w-5 h-5 text-[#6B2D5C] group-hover:text-white transition-colors"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                class="border-t border-purple-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-purple-300 reveal">
+                <p>&copy; 2026 Iglobals Educational Services. All rights reserved.</p>
+                <p class="mt-2 md:mt-0">Empowering Education Worldwide</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // State Management
+        let currentUser = null;
+        let currentPage = 1;
+        let currentRating = 0;
+        let myLibrary = [1, 2, 3]; // Default books in library
+
+        // Navigation
+        function navigateTo(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            // Show target page
+            document.getElementById(pageId).classList.add('active');
+
+            // Close mobile menu
+            document.getElementById('mobileMenu').classList.add('hidden');
+
+            // Scroll to top
+            window.scrollTo(0, 0);
+
+            // Update auth buttons
+            updateAuthButtons();
+
+            // Re-initialize icons for new content
+            setTimeout(() => lucide.createIcons(), 100);
+        }
+
+        // Mobile menu toggle
+        function toggleMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Auth Functions
+        function handleLogin(e) {
+            e.preventDefault();
+            currentUser = { email: 'user@example.com', name: 'John Doe' };
+            alert('Welcome back, ' + currentUser.name + '!');
+            navigateTo('library');
+            updateAuthButtons();
+        }
+
+        function handleSignup(e) {
+            e.preventDefault();
+            currentUser = { email: 'newuser@example.com', name: 'New User' };
+            alert('Account created successfully! Welcome to Iglobals.');
+            navigateTo('library');
+            updateAuthButtons();
+        }
+
+        function handleForgot(e) {
+            e.preventDefault();
+            alert('Password reset link sent to your email!');
+            navigateTo('login');
+        }
+
+        function logout() {
+            currentUser = null;
+            alert('Logged out successfully');
+            navigateTo('home');
+            updateAuthButtons();
+        }
+
+        function updateAuthButtons() {
+            const authBtn = document.getElementById('authBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            if (currentUser) {
+                authBtn.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+            } else {
+                authBtn.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+            }
+        }
+
+        // Book Functions
+        function previewBook(id) {
+            const bookData = {
+                1: { title: 'Digital Transformation Strategy', author: 'Michael Chen', price: '$29.99', category: 'Business', image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&q=80' },
+                2: { title: 'Advanced Physics Simplified', author: 'Dr. Sarah Johnson', price: '$34.99', category: 'Science', image: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600&q=80' },
+                3: { title: 'AI & Machine Learning Basics', author: 'Prof. Alan Turing', price: '$39.99', category: 'Technology', image: 'https://images.unsplash.com/photo-1589998059171-988d887df646?w=600&q=80' },
+                4: { title: 'Modern Art History', author: 'Emma Wilson', price: '$24.99', category: 'Arts', image: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=600&q=80' }
+            };
+
+            const book = bookData[id];
+            document.getElementById('previewTitle').textContent = book.title;
+            document.getElementById('previewAuthor').textContent = 'By ' + book.author;
+            document.getElementById('previewPrice').textContent = book.price;
+            document.getElementById('previewCategory').textContent = book.category;
+            document.getElementById('previewImage').src = book.image;
+
+            document.getElementById('previewModal').classList.remove('hidden');
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').classList.add('hidden');
+        }
+
+        function addToLibrary(id) {
+            if (!currentUser) {
+                alert('Please login to add books to your library');
+                navigateTo('login');
+                return;
+            }
+
+            if (!myLibrary.includes(id)) {
+                myLibrary.push(id);
+                alert('Book added to your library!');
+            } else {
+                alert('This book is already in your library');
+            }
+        }
+
+        function addToLibraryFromPreview() {
+            closePreview();
+            addToLibrary(1); // Default to book 1 for demo
+        }
+
+        function purchaseBook() {
+            if (!currentUser) {
+                alert('Please login to purchase books');
+                navigateTo('login');
+                return;
+            }
+            addToLibrary(1);
+            closePreview();
+            navigateTo('library');
+        }
+
+        // Reader Functions
+        function readBook(id) {
+            if (!currentUser) {
+                alert('Please login to read books');
+                navigateTo('login');
+                return;
+            }
+
+            document.getElementById('readerModal').classList.remove('hidden');
+            currentPage = 1;
+            updatePageDisplay();
+        }
+
+        function closeReader() {
+            document.getElementById('readerModal').classList.add('hidden');
+        }
+
+        function nextPage() {
+            if (currentPage < 12) {
+                currentPage++;
+                updatePageDisplay();
+                // Simulate page content change
+                document.getElementById('pageContent').scrollTop = 0;
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updatePageDisplay();
+                document.getElementById('pageContent').scrollTop = 0;
+            }
+        }
+
+        function updatePageDisplay() {
+            document.getElementById('currentPage').textContent = currentPage;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Review Functions
+        function switchTab(tab) {
+            // Hide all tabs
+            document.getElementById('content-chapters').classList.add('hidden');
+            document.getElementById('content-reviews').classList.add('hidden');
+            document.getElementById('content-notes').classList.add('hidden');
+
+            // Reset tab styles
+            document.getElementById('tab-chapters').classList.remove('text-[#6B2D5C]', 'border-b-2', 'border-[#6B2D5C]');
+            document.getElementById('tab-reviews').classList.remove('text-[#6B2D5C]', 'border-b-2', 'border-[#6B2D5C]');
+            document.getElementById('tab-notes').classList.remove('text-[#6B2D5C]', 'border-b-2', 'border-[#6B2D5C]');
+
+            document.getElementById('tab-chapters').classList.add('text-gray-500');
+            document.getElementById('tab-reviews').classList.add('text-gray-500');
+            document.getElementById('tab-notes').classList.add('text-gray-500');
+
+            // Show selected tab
+            document.getElementById('content-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.remove('text-gray-500');
+            document.getElementById('tab-' + tab).classList.add('text-[#6B2D5C]', 'border-b-2', 'border-[#6B2D5C]');
+        }
+
+        function setRating(rating) {
+            currentRating = rating;
+            const stars = document.querySelectorAll('#starRating .star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        function submitReview() {
+            if (currentRating === 0) {
+                alert('Please select a rating');
+                return;
+            }
+
+            const reviewHTML = `
+                <div class="border-b border-gray-100 pb-4 animate-pulse">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="font-semibold text-sm">You</span>
+                        <span class="text-xs text-gray-500">Just now</span>
+                    </div>
+                    <div class="flex text-yellow-400 text-xs mb-2">
+                        ${Array(currentRating).fill('<i data-lucide="star" class="w-3 h-3 fill-current"></i>').join('')}
+                    </div>
+                    <p class="text-sm text-gray-600">Thanks for sharing your thoughts!</p>
+                </div>
+            `;
+
+            document.getElementById('reviewsList').insertAdjacentHTML('afterbegin', reviewHTML);
+            lucide.createIcons();
+
+            // Reset form
+            currentRating = 0;
+            setRating(0);
+            document.querySelector('#content-reviews textarea').value = '';
+
+            alert('Review submitted successfully!');
+        }
+
+        function likeReview(btn) {
+            btn.classList.toggle('liked');
+            const count = btn.querySelector('span');
+            const currentCount = parseInt(count.textContent);
+            if (btn.classList.contains('liked')) {
+                count.textContent = currentCount + 1;
+            } else {
+                count.textContent = currentCount - 1;
+            }
+        }
+
+        function dislikeReview(btn) {
+            btn.classList.toggle('disliked');
+        }
+
+        function addNote() {
+            const note = prompt('Enter your note:');
+            if (note) {
+                const noteHTML = `
+                    <div class="bg-yellow-50 p-3 rounded border-l-4 border-yellow-400 animate-pulse">
+                        <p class="text-sm text-gray-700">"${note}"</p>
+                        <span class="text-xs text-gray-500 mt-1 block">Page ${currentPage}</span>
+                    </div>
+                `;
+                document.getElementById('notesList').insertAdjacentHTML('afterbegin', noteHTML);
+            }
+        }
+
+        // Search Functions
+        function handleSearch(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        }
+
+        function performSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('#searchResults .book-card');
+
+            cards.forEach(card => {
+                const title = card.querySelector('h3').textContent.toLowerCase();
+                const author = card.querySelector('p').textContent.toLowerCase();
+
+                if (title.includes(query) || author.includes(query)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function filterCategory(category) {
+            // In a real app, this would filter by category
+            alert('Filtering by: ' + category);
+        }
+
+        // Library Functions
+        function toggleFavorite(btn) {
+            const icon = btn.querySelector('i');
+            if (btn.classList.contains('text-[#6B2D5C]')) {
+                btn.classList.remove('text-[#6B2D5C]');
+                btn.classList.add('text-gray-400');
+                icon.setAttribute('fill', 'none');
+            } else {
+                btn.classList.add('text-[#6B2D5C]');
+                btn.classList.remove('text-gray-400');
+                icon.setAttribute('fill', 'currentColor');
+            }
+        }
+
+        // Scroll Animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: "0px 0px -50px 0px"
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, observerOptions);
+
+        // Observe elements when page loads
+        function observeElements() {
+            document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach((el) => {
+                observer.observe(el);
+            });
+        }
+
+        // Re-observe on page change
+        const originalNavigateTo = navigateTo;
+        navigateTo = function (pageId) {
+            originalNavigateTo(pageId);
+            setTimeout(observeElements, 100);
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            observeElements();
+            updateAuthButtons();
+        });
+
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            if (window.scrollY > 100) {
+                header.classList.add('shadow-md');
+            } else {
+                header.classList.remove('shadow-md');
+            }
+        });
+    </script>
+</body>
+
+</html>

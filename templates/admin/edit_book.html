@@ -1,0 +1,234 @@
+{% extends "admin/layout.html" %}
+
+{% block title %}Edit Book{% endblock %}
+{% block page_title %}Edit Book: {{ book.title }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<style>
+    .ql-editor { min-height: 200px; }
+    .chapter-item { border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; }
+
+    /* Make the Quill editor look like a real document — body text, not tags */
+    .ql-editor p   { margin-bottom: 0.75em; font-size: 0.95rem; line-height: 1.7; color: #1f2937; }
+    .ql-editor h1  { font-size: 1.6rem; font-weight: 700; margin: 1rem 0 0.5rem; }
+    .ql-editor h2  { font-size: 1.3rem; font-weight: 700; margin: 0.9rem 0 0.4rem; }
+    .ql-editor h3  { font-size: 1.1rem; font-weight: 600; margin: 0.8rem 0 0.3rem; }
+    .ql-editor blockquote {
+        border-left: 4px solid #6B2D5C;
+        margin: 1rem 0;
+        padding: 0.5rem 1rem;
+        color: #4b5563;
+        background: #fdf4f8;
+        font-style: italic;
+    }
+    .ql-editor pre {
+        background: #1e1e2e;
+        color: #cdd6f4;
+        padding: 1rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        overflow-x: auto;
+    }
+    .ql-editor ul, .ql-editor ol { padding-left: 1.5rem; margin-bottom: 0.75em; }
+    .ql-editor img { max-width: 100%; border-radius: 4px; margin: 0.5rem 0; }
+
+    /* Toolbar label showing current block type */
+    .ql-container { border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+    .ql-toolbar { border-top-left-radius: 6px; border-top-right-radius: 6px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl">
+    <form method="POST" action="{{ url_for('admin_edit_book', book_id=book.id) }}" id="bookForm">
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-bold mb-4">Basic Information</h2>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Title *</label>
+                    <input type="text" name="title" value="{{ book.title }}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Author *</label>
+                    <input type="text" name="author" value="{{ book.author }}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
+                    <select name="category" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
+                        <option value="Science" {% if book.category == 'Science' %}selected{% endif %}>Science</option>
+                        <option value="Commercial" {% if book.category == 'Commercial' %}selected{% endif %}>Commercial</option>
+                        <option value="Arts & Humanities" {% if book.category == 'Arts & Humanities' %}selected{% endif %}>Arts & Humanities</option>
+                        <option value="JUPEB Mastery" {% if book.category == 'JUPEB Mastery' %}selected{% endif %}>JUPEB Mastery</option>
+                        <option value="Past Questions" {% if book.category == 'Past Questions' %}selected{% endif %}>Past Questions</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Image URL *</label>
+                    <input type="url" name="image_url" value="{{ book.image_url }}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                <textarea name="description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">{{ book.description }}</textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Price (Naira)</label>
+                    <input type="number" name="price_naira" step="0.01" value="{{ book.price_naira }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
+                </div>
+                <div class="flex items-center">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" name="is_free" {% if book.is_free %}checked{% endif %} class="w-5 h-5 text-[#6B2D5C] rounded">
+                        <span class="ml-2 text-sm font-semibold text-gray-700">Mark as Free</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-bold mb-4">Chapters</h2>
+            
+            <div id="chaptersContainer">
+                {% for i in range(book.chapters|length) %}
+                <div class="chapter-item">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="block text-sm font-semibold text-gray-700">Chapter {{ i + 1 }}</label>
+                        {% if i > 0 %}
+                        <button type="button" onclick="removeChapter(this)" class="text-red-600 hover:text-red-800">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                    <input type="text" name="chapter_titles[]" value="{{ book.chapters[i] }}" placeholder="Chapter Title" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Content</label>
+                        <div class="chapter-editor"></div>
+                        {# FIX 1 — |e keeps the textarea tag intact (no raw </textarea> in content).
+                           FIX 2 — JS uses dangerouslyPasteHTML() so Quill parses & renders the HTML
+                                   as real formatted content instead of raw tags. #}
+                        <textarea name="chapter_contents[]" class="hidden chapter-content">{{ book.content[i]|e if i < book.content|length else '' }}</textarea>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" onclick="addChapter()" class="text-[#6B2D5C] font-semibold hover:underline flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                Add Another Chapter
+            </button>
+        </div>
+
+        <div class="flex gap-4">
+            <button type="submit" class="bg-[#6B2D5C] text-white px-8 py-3 rounded-lg font-bold hover:bg-[#8B4A7A]">
+                Update Book
+            </button>
+            <a href="{{ url_for('admin_books') }}" class="bg-gray-300 text-gray-700 px-8 py-3 rounded-lg font-bold hover:bg-gray-400">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+<script>
+    let chapterEditors = [];
+
+    /* Toolbar config — block-level (H1-H3, blockquote, code) + inline + lists + link/image */
+    const TOOLBAR = [
+        [{ 'header': [1, 2, 3, false] }],
+        ['blockquote', 'code-block'],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+        [{ 'indent': '-1' }, { 'indent': '+1' }],
+        ['link', 'image'],
+        ['clean']
+    ];
+
+    function createQuill(el) {
+        return new Quill(el, {
+            theme: 'snow',
+            modules: { toolbar: TOOLBAR }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const editorElements   = document.querySelectorAll('.chapter-editor');
+        const contentTextareas = document.querySelectorAll('.chapter-content');
+
+        editorElements.forEach((editorEl, index) => {
+            const editor   = createQuill(editorEl);
+            const textarea = contentTextareas[index];
+
+            if (textarea) {
+                /* textarea.value gives the decoded string (browser strips entities),
+                   so this is clean HTML ready for Quill to parse as formatted content. */
+                const html = textarea.value.trim();
+
+                if (html) {
+                    /* KEY FIX: dangerouslyPasteHTML goes through Quill's internal Delta
+                       parser — the editor renders it as formatted text, not raw tags.
+                       editor.root.innerHTML bypasses the parser and often shows tags. */
+                    editor.clipboard.dangerouslyPasteHTML(html);
+                }
+            }
+
+            chapterEditors[index] = editor;
+        });
+
+        lucide.createIcons();
+    });
+
+    function addChapter() {
+        const container = document.getElementById('chaptersContainer');
+        const index     = chapterEditors.length;
+
+        const chapterHtml = `
+            <div class="chapter-item">
+                <div class="flex justify-between items-center mb-3">
+                    <label class="block text-sm font-semibold text-gray-700">Chapter ${index + 1}</label>
+                    <button type="button" onclick="removeChapter(this)" class="text-red-600 hover:text-red-800">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <input type="text" name="chapter_titles[]" placeholder="Chapter Title" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Content</label>
+                    <div class="chapter-editor"></div>
+                    <textarea name="chapter_contents[]" class="hidden chapter-content"></textarea>
+                </div>
+            </div>`;
+
+        container.insertAdjacentHTML('beforeend', chapterHtml);
+
+        const newEditor = createQuill(container.lastElementChild.querySelector('.chapter-editor'));
+        chapterEditors[index] = newEditor;
+        lucide.createIcons();
+    }
+
+    function removeChapter(btn) {
+        const item  = btn.closest('.chapter-item');
+        const index = Array.from(item.parentElement.children).indexOf(item);
+        item.remove();
+        chapterEditors.splice(index, 1);
+    }
+
+    document.getElementById('bookForm').addEventListener('submit', function () {
+        /* Before submit, copy each editor's HTML output back into its hidden textarea */
+        const contentTextareas = document.querySelectorAll('.chapter-content');
+        chapterEditors.forEach((editor, index) => {
+            if (editor && contentTextareas[index]) {
+                contentTextareas[index].value = editor.root.innerHTML;
+            }
+        });
+    });
+</script>
+{% endblock %}

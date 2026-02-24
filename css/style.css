@@ -1,0 +1,250 @@
+:root {
+    --ig-purple: #6B2D5C;
+    --ig-purple-light: #8B4A7A;
+    --ig-ash: #4A4A4A;
+    --ig-ash-light: #6B6B6B;
+    --ig-teal: #00A4B4; /* Staying for now, but will be used sparingly */
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+}
+
+.font-condensed {
+    font-family: 'Roboto Condensed', sans-serif;
+}
+
+/* Trapezoid Shapes */
+.trapezoid-bottom {
+    clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+}
+
+.trapezoid-top {
+    clip-path: polygon(0 15%, 100% 0, 100% 100%, 0 100%);
+}
+
+/* Image Frame with Purple Bar */
+.image-frame {
+    position: relative;
+    display: inline-block;
+}
+
+.image-frame::after {
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    right: -30px;
+    width: 60%;
+    height: 40px;
+    background-color: var(--ig-purple);
+    z-index: -1;
+    transform: skewX(-15deg);
+    transition: all 0.3s ease;
+}
+
+.image-frame:hover::after {
+    transform: skewX(-15deg) translateY(-5px);
+    background-color: var(--ig-purple-light);
+}
+
+.image-frame-left::before {
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    left: -30px;
+    width: 60%;
+    height: 40px;
+    background-color: var(--ig-purple);
+    z-index: -1;
+    transform: skewX(15deg);
+    transition: all 0.3s ease;
+}
+
+.image-frame-left:hover::before {
+    transform: skewX(15deg) translateY(-5px);
+    background-color: var(--ig-purple-light);
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--ig-purple);
+    color: white;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-primary:hover {
+    background-color: var(--ig-purple-light);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(107, 45, 92, 0.3);
+}
+
+.btn-ash {
+    background-color: var(--ig-ash);
+    color: white;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-ash:hover {
+    background-color: var(--ig-ash-light);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(74, 74, 74, 0.3);
+}
+
+/* Book Card */
+.book-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.book-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(107, 45, 92, 0.2);
+}
+
+.book-card:hover .book-overlay {
+    opacity: 1;
+}
+
+.book-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(107, 45, 92, 0.9);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    padding: 1rem;
+}
+
+/* Scroll Animations */
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+}
+
+.reveal.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.reveal-left {
+    opacity: 0;
+    transform: translateX(-50px);
+    transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+}
+
+.reveal-left.active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.reveal-right {
+    opacity: 0;
+    transform: translateX(50px);
+    transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+}
+
+.reveal-right.active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Delay classes */
+.delay-100 { transition-delay: 0.1s; }
+.delay-200 { transition-delay: 0.2s; }
+.delay-300 { transition-delay: 0.3s; }
+.delay-400 { transition-delay: 0.4s; }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--ig-purple);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--ig-purple-light);
+}
+
+/* Navigation - from 1.html style */
+.nav-link {
+    position: relative;
+    color: #4A4A4A;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav-link:hover {
+    color: var(--ig-purple);
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: -4px;
+    left: 0;
+    background-color: var(--ig-purple);
+    transition: width 0.3s;
+}
+
+.nav-link:hover::after {
+    width: 100%;
+}
+
+/* Feature/Service Card - from 1.html style but adapted */
+.feature-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 40px rgba(107, 45, 92, 0.15);
+}
+
+.project-overlay {
+    background: linear-gradient(to top, rgba(107, 45, 92, 0.9) 0%, transparent 100%);
+}
+
+/* Inputs */
+.input-field {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    transition: all 0.3s;
+    font-size: 1rem;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--ig-purple);
+    box-shadow: 0 0 0 3px rgba(107, 45, 92, 0.1);
+}

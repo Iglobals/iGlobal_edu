@@ -1,0 +1,375 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ book.title }} - Preview{% endblock %}
+
+{% block extra_css %}
+<style>
+    .preview-hero {
+        background: linear-gradient(135deg, #2F1341 0%, #4A1F5C 100%);
+        padding: 4rem 0 3rem;
+    }
+    
+    .preview-carousel {
+        position: relative;
+        overflow: hidden;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .carousel-content {
+        display: flex;
+        transition: transform 0.4s ease;
+    }
+    
+    .carousel-page {
+        min-width: 100%;
+        padding: 3rem;
+        box-sizing: border-box;
+    }
+    
+    .carousel-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(47, 19, 65, 0.9);
+        color: white;
+        border: none;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+        z-index: 10;
+    }
+    
+    .carousel-nav:hover {
+        background: #2F1341;
+        transform: translateY(-50%) scale(1.1);
+    }
+    
+    .carousel-nav.prev { left: 1rem; }
+    .carousel-nav.next { right: 1rem; }
+    
+    .carousel-indicators {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        padding: 1rem 0;
+    }
+    
+    .indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #ddd;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .indicator.active {
+        background: #2F1341;
+        width: 24px;
+        border-radius: 5px;
+    }
+    
+    .add-library-btn {
+        background: #B0522E;
+        color: white;
+        padding: 1rem 2.5rem;
+        border-radius: 8px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: all 0.3s;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .add-library-btn:hover {
+        background: #C86A3F;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(176, 82, 46, 0.3);
+    }
+    
+    .add-library-btn.added {
+        background: #2F1341;
+    }
+    
+    .book-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+    
+    .meta-item {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .meta-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #888;
+        margin-bottom: 0.5rem;
+    }
+    
+    .meta-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #2F1341;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="preview-hero">
+    <div class="container mx-auto px-6">
+        <div class="grid md:grid-cols-2 gap-8 items-center">
+            <div>
+                <img src="{{ book.image_url }}" alt="{{ book.title }}" class="w-full max-w-md mx-auto rounded-lg shadow-2xl">
+            </div>
+            <div class="text-white">
+                <span class="text-sm uppercase tracking-wider text-purple-300 font-semibold">{{ book.category }}</span>
+                <h1 class="font-condensed text-4xl md:text-5xl font-bold mt-2 mb-4">{{ book.title }}</h1>
+                <p class="text-xl text-purple-200 mb-2">By {{ book.author }}</p>
+                <div class="text-3xl font-bold mb-6">
+                    {% if book.is_free %}
+                        <span class="text-[#B0522E]">FREE</span>
+                    {% else %}
+                        ₦{{ "{:,.0f}".format(book.price_naira) }}
+                    {% endif %}
+                </div>
+                
+                {% if current_user.is_authenticated %}
+                    {% if in_library %}
+                        <button class="add-library-btn added" disabled>
+                            <i data-lucide="check-circle" class="w-5 h-5"></i>
+                            In Your Library
+                        </button>
+                    {% else %}
+                        <button class="add-library-btn" onclick="addToLibrary({{ book.id }})">
+                            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                            Add to Library
+                        </button>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="add-library-btn">
+                        <i data-lucide="log-in" class="w-5 h-5"></i>
+                        Login to Add
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="py-16 bg-white">
+    <div class="container mx-auto px-6 max-w-5xl">
+        <!-- Book Definition Banner -->
+        <div class="border-l-4 border-[#2F1341] pl-6 mb-12">
+            <div class="mb-4">
+                <h1 class="text-4xl md:text-5xl font-bold text-[#1a1a1a] mb-3 leading-tight">{{ book.title }}</h1>
+                <p class="text-gray-600">
+                    <span class="font-semibold">In category:</span> 
+                    <a href="{{ url_for('search', category=book.category.lower().replace(' & ', '-').replace(' ', '-')) }}" class="text-[#2F1341] hover:underline">{{ book.category }}</a>
+                </p>
+            </div>
+            <div class="mb-6">
+                <p class="text-lg leading-relaxed text-gray-700 max-w-3xl">{{ book.description }}</p>
+                <p class="text-sm text-gray-500 mt-3">
+                    <span class="font-semibold">By:</span> {{ book.author }} • 
+                    <span class="font-semibold">Chapters:</span> {{ book.chapters|length if book.chapters else 0 }} • 
+                    <span class="font-semibold">Price:</span> 
+                    <span class="text-[#2F1341] font-bold">
+                        {% if book.is_free %}FREE{% else %}₦{{ "{:,.0f}".format(book.price_naira) }}{% endif %}
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap gap-4 mb-12">
+            {% if current_user.is_authenticated %}
+                {% if in_library %}
+                    <button class="add-library-btn added" disabled>
+                        <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        In Your Library
+                    </button>
+                    <a href="{{ url_for('library', filter='added') }}" class="btn-primary px-8 py-4 rounded-lg font-bold text-lg">
+                        Go to Library
+                    </a>
+                {% else %}
+                    <button class="add-library-btn" onclick="addToLibrary({{ book.id }})">
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                        Add to Library
+                    </button>
+                {% endif %}
+            {% else %}
+                <a href="{{ url_for('login') }}" class="add-library-btn">
+                    <i data-lucide="log-in" class="w-5 h-5"></i>
+                    Login to Add
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Preview Content -->
+        <div class="mb-12">
+            <h2 class="font-condensed text-3xl font-bold text-[#2F1341] mb-6 text-center">Preview Content</h2>
+            <p class="text-center text-gray-600 mb-8">Swipe through the first {{ preview_content|length }} pages</p>
+            
+            <div class="preview-carousel">
+                <button class="carousel-nav prev" onclick="prevPage()" aria-label="Previous page">
+                    <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                </button>
+                
+                <div class="carousel-content" id="carouselContent">
+                    {% for i in range(preview_content|length) %}
+                    <div class="carousel-page">
+                        <h3 class="font-condensed text-2xl font-bold text-[#2F1341] mb-4">
+                            {{ preview_chapters[i] if i < preview_chapters|length else 'Chapter ' ~ (i+1) }}
+                        </h3>
+                        <div class="prose max-w-none">
+                            {{ preview_content[i]|safe }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <button class="carousel-nav next" onclick="nextPage()" aria-label="Next page">
+                    <i data-lucide="chevron-right" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="carousel-indicators">
+                {% for i in range(preview_content|length) %}
+                <div class="indicator {% if i == 0 %}active{% endif %}" onclick="goToPage({{ i }})"></div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="text-center bg-white rounded-lg shadow-md p-12">
+            <h3 class="font-condensed text-3xl font-bold text-[#2F1341] mb-4">Want to Read More?</h3>
+            <p class="text-gray-600 mb-6 text-lg">Add this book to your library to access the full content</p>
+            
+            {% if current_user.is_authenticated %}
+                {% if in_library %}
+                    <a href="{{ url_for('library', filter='added') }}" class="btn-primary px-8 py-4 rounded-lg font-bold text-lg">
+                        Go to Library
+                    </a>
+                {% else %}
+                    <button class="add-library-btn" onclick="addToLibrary({{ book.id }})">
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                        Add to Library
+                    </button>
+                {% endif %}
+            {% else %}
+                <a href="{{ url_for('login') }}" class="btn-primary px-8 py-4 rounded-lg font-bold text-lg">
+                    Login to Continue
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPage = 0;
+    const totalPages = {{ preview_content|length }};
+    
+    function updateCarousel() {
+        const content = document.getElementById('carouselContent');
+        content.style.transform = `translateX(-${currentPage * 100}%)`;
+        
+        // Update indicators
+        document.querySelectorAll('.indicator').forEach((ind, idx) => {
+            ind.classList.toggle('active', idx === currentPage);
+        });
+        
+        // Update button states
+        document.querySelector('.carousel-nav.prev').style.opacity = currentPage === 0 ? '0.5' : '1';
+        document.querySelector('.carousel-nav.next').style.opacity = currentPage === totalPages - 1 ? '0.5' : '1';
+    }
+    
+    function nextPage() {
+        if (currentPage < totalPages - 1) {
+            currentPage++;
+            updateCarousel();
+        }
+    }
+    
+    function prevPage() {
+        if (currentPage > 0) {
+            currentPage--;
+            updateCarousel();
+        }
+    }
+    
+    function goToPage(page) {
+        currentPage = page;
+        updateCarousel();
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') prevPage();
+        if (e.key === 'ArrowRight') nextPage();
+    });
+    
+    // Touch swipe support
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    document.querySelector('.preview-carousel').addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    });
+    
+    document.querySelector('.preview-carousel').addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    });
+    
+    function handleSwipe() {
+        if (touchEndX < touchStartX - 50) nextPage();
+        if (touchEndX > touchStartX + 50) prevPage();
+    }
+    
+    function addToLibrary(bookId) {
+        fetch(`/api/library/add/${bookId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'added' || data.status === 'already_added') {
+                // Update buttons
+                document.querySelectorAll('.add-library-btn').forEach(btn => {
+                    btn.classList.add('added');
+                    btn.disabled = true;
+                    btn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i> In Your Library';
+                    lucide.createIcons();
+                });
+                
+                if (data.status === 'added') {
+                    alert('Book added to your library!');
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+</script>
+{% endblock %}

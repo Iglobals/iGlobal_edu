@@ -1,0 +1,115 @@
+{% extends "layout.html" %}
+
+{% block title %}Payment - {{ book.title }}{% endblock %}
+
+{% block content %}
+<section class="py-20 bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-6">
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="bg-[#2F1341] text-white p-6">
+                    <h1 class="font-condensed text-3xl font-bold">Complete Your Purchase</h1>
+                    <p class="text-purple-200 mt-2">Secure payment powered by Paystack</p>
+                </div>
+                
+                <div class="p-8">
+                    <div class="flex gap-6 mb-8">
+                        <img src="{{ book.image_url }}" alt="{{ book.title }}" class="w-32 h-40 object-cover rounded-lg shadow-md">
+                        <div class="flex-1">
+                            <span class="text-xs font-bold text-[#00A4B4] uppercase tracking-wider">{{ book.category }}</span>
+                            <h2 class="font-bold text-2xl text-gray-900 mt-1 mb-2">{{ book.title }}</h2>
+                            <p class="text-gray-600 mb-3">By {{ book.author }}</p>
+                            <div class="text-3xl font-bold text-[#2F1341]">₦{{ "{:,.2f}".format(book.price_naira) }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-gray-200 pt-6 mb-6">
+                        <h3 class="font-bold text-lg mb-4">What you'll get:</h3>
+                        <ul class="space-y-3">
+                            <li class="flex items-start gap-3">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
+                                <span class="text-gray-700">Full access to all {{ book.chapters|length }} chapters</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
+                                <span class="text-gray-700">Lifetime access - read anytime, anywhere</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
+                                <span class="text-gray-700">Add notes and highlights</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
+                                <span class="text-gray-700">Secure, protected content</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <button onclick="payWithPaystack()" class="w-full btn-primary py-4 rounded-lg text-lg font-bold flex items-center justify-center gap-2">
+                        <i data-lucide="lock" class="w-5 h-5"></i>
+                        Pay ₦{{ "{:,.2f}".format(book.price_naira) }} Securely
+                    </button>
+                    
+                    <p class="text-center text-sm text-gray-500 mt-4">
+                        <i data-lucide="shield-check" class="w-4 h-4 inline"></i>
+                        Secure payment processed by Paystack
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script>
+    function payWithPaystack() {
+        // Initialize payment
+        fetch('/api/payment/initialize', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                book_id: {{ book.id }}
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const handler = PaystackPop.setup({
+                    key: '{{ paystack_public_key }}',
+                    email: '{{ current_user.email }}',
+                    amount: {{ book.price_naira * 100 }},
+                    ref: data.data.reference,
+                    onClose: function(){
+                        alert('Payment window closed.');
+                    },
+                    callback: function(response){
+                        // Verify payment
+                        fetch('/api/payment/verify/' + response.reference)
+                        .then(res => res.json())
+                        .then(result => {
+                            if (result.status === 'success') {
+                                alert('Payment successful! Redirecting to book...');
+                                window.location.href = '/reading/{{ book.id }}';
+                            } else {
+                                alert('Payment verification failed. Please contact support.');
+                            }
+                        });
+                    }
+                });
+                handler.openIframe();
+            } else {
+                alert('Payment initialization failed. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+    
+    lucide.createIcons();
+</script>
+{% endblock %}
+

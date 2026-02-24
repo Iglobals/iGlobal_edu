@@ -1,0 +1,375 @@
+{% extends "layout.html" %}
+
+{% block title %}My Library - iGlobals Educational Services{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+    /* Tab Navigation */
+    .tab-nav {
+        display: flex;
+        border-bottom: 2px solid #e2ddd8;
+        margin-bottom: 36px;
+        flex-wrap: wrap;
+    }
+    .tab-nav a {
+        font-family: 'Lato', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: #888;
+        text-decoration: none;
+        padding: 12px 28px 14px;
+        position: relative;
+        transition: color .2s;
+    }
+    .tab-nav a::after {
+        content: '';
+        position: absolute;
+        bottom: -2px; left: 0; right: 0;
+        height: 3px;
+        background: #2F1341;
+        transform: scaleX(0);
+        transition: transform .25s ease;
+        border-radius: 2px 2px 0 0;
+    }
+    .tab-nav a.active { color: #1a1a1a; }
+    .tab-nav a.active::after { transform: scaleX(1); }
+    .tab-nav a:hover { color: #1a1a1a; }
+
+    /* Book Grid */
+    .books-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 22px;
+    }
+
+    /* Book Card */
+    .book-card {
+        background: #fff;
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+        transition: box-shadow .25s ease, transform .25s ease;
+        display: flex;
+        flex-direction: column;
+    }
+    .book-card:hover {
+        box-shadow: 0 8px 32px rgba(0,0,0,.13);
+        transform: translateY(-3px);
+    }
+    .card-inner {
+        padding: 14px 14px 0;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .book-cats {
+        font-size: 11px;
+        color: #999;
+        letter-spacing: .03em;
+        margin-bottom: 7px;
+        line-height: 1.5;
+    }
+    .book-title {
+        font-family: 'Lato', sans-serif;
+        font-weight: 700;
+        font-size: 13.5px;
+        line-height: 1.45;
+        color: #1a1a1a;
+        margin-bottom: 10px;
+        text-decoration: none;
+        display: block;
+    }
+    .book-title:hover { color: #2F1341; }
+    
+    /* Image */
+    .book-thumb-wrap {
+        position: relative;
+        overflow: hidden;
+        background: transparent;
+        width: 65%;
+        margin-left: 0;
+        aspect-ratio: 2/3;
+    }
+    .book-thumb-wrap img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+        transition: transform .35s ease;
+    }
+    .book-card:hover .book-thumb-wrap img {
+        transform: scale(1.04);
+    }
+
+    /* Price Row */
+    .price-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px 6px;
+        margin-top: auto;
+    }
+    .book-price {
+        font-family: 'Lato', sans-serif;
+        font-weight: 700;
+        font-size: 17px;
+        color: #1a1a1a;
+    }
+    .book-price.free {
+        color: #2F1341;
+        font-size: 15px;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background .2s, transform .15s;
+        flex-shrink: 0;
+        text-decoration: none;
+    }
+    .action-btn.preview-btn {
+        background: #2F1341;
+    }
+    .action-btn.preview-btn:hover {
+        background: #4A1F5C;
+        transform: scale(1.1);
+    }
+    .action-btn.purchase-btn {
+        background: #B0522E;
+    }
+    .action-btn.purchase-btn:hover {
+        background: #C86A3F;
+        transform: scale(1.1);
+    }
+    .action-btn.read-btn {
+        background: #2F1341;
+    }
+    .action-btn.read-btn:hover {
+        background: #4A1F5C;
+        transform: scale(1.1);
+    }
+
+    /* Card Actions */
+    .card-actions {
+        border-top: 1px solid #f0ece8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        padding: 0 14px;
+        transition: max-height .25s ease, opacity .25s ease, padding .25s ease;
+    }
+    .book-card:hover .card-actions {
+        max-height: 48px;
+        opacity: 1;
+        padding: 9px 14px 11px;
+    }
+    .card-actions a, .card-actions button {
+        font-size: 12px;
+        color: #888;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: color .2s;
+        letter-spacing: .02em;
+        white-space: nowrap;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+    }
+    .card-actions a:hover, .card-actions button:hover { color: #2F1341; }
+    .card-actions .sep {
+        color: #d5d0cb;
+        font-size: 11px;
+    }
+
+    .page-hero {
+        background-color: #2F1341;
+        clip-path: polygon(0 0, 100% 0, 100% 78%, 0 100%);
+        padding: 7rem 0 6rem;
+        position: relative;
+    }
+    .page-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.15) 1px, transparent 0);
+        background-size: 40px 40px;
+    }
+
+    @media (max-width: 900px) {
+        .books-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 650px) {
+        .books-grid { grid-template-columns: 1fr; }
+        .tab-nav a { padding: 10px 16px 12px; font-size: 12px; }
+        .tab-nav {
+            overflow-x: auto;
+            overflow-y: hidden;
+            flex-wrap: nowrap;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding: 0 16px;
+        }
+        .tab-nav::-webkit-scrollbar {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+    <div class="container mx-auto px-6 relative z-10 text-center">
+        <span class="text-purple-300 text-sm uppercase tracking-widest font-semibold block mb-3">Your Personal Collection</span>
+        <h1 class="font-condensed text-4xl md:text-6xl font-bold text-white mb-4">MY LIBRARY</h1>
+        <p class="text-purple-200 text-lg max-w-xl mx-auto">Access your purchased and saved study resources — all in one place</p>
+    </div>
+</div>
+
+<section class="pb-24 -mt-4 relative z-10 bg-[#f7f5f2]">
+    <div class="container mx-auto px-6">
+        <!-- Top bar -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pt-8">
+            <div>
+                <p class="text-gray-500 text-sm mt-1">Showing {{ books|length }} resource{% if books|length != 1 %}s{% endif %}</p>
+            </div>
+            <a href="{{ url_for('search') }}" class="mt-4 md:mt-0 btn-primary px-6 py-3 rounded-lg font-bold flex items-center gap-2 text-sm">
+                <i data-lucide="plus" class="w-4 h-4"></i> Browse More Resources
+            </a>
+        </div>
+
+        <!-- Filter tabs -->
+        <nav class="tab-nav">
+            <a href="{{ url_for('library', filter='added') }}" class="{% if filter_type == 'added' or not filter_type %}active{% endif %}">Added Books</a>
+            <a href="{{ url_for('library', filter='your_books') }}" class="{% if filter_type == 'your_books' %}active{% endif %}">Your Books</a>
+            <a href="{{ url_for('library', filter='favorites') }}" class="{% if filter_type == 'favorites' %}active{% endif %}">Favorites</a>
+        </nav>
+
+        <!-- Library grid -->
+        <div class="books-grid">
+            {% for book in books %}
+            <div class="book-card">
+                <div class="card-inner">
+                    <span class="book-cats">{{ book.category }}</span>
+                    <a href="{{ url_for('preview', book_id=book.id) }}" class="book-title">{{ book.title }}</a>
+                    <div class="book-thumb-wrap">
+                        <img src="{{ book.image_url }}" alt="{{ book.title }}">
+                    </div>
+                </div>
+                <div class="price-row">
+                    <span class="book-price {% if book.is_free %}free{% endif %}">
+                        {% if book.is_free %}Free{% else %}₦{{ "{:,.0f}".format(book.price_naira) }}{% endif %}
+                    </span>
+                    
+                    {% if filter_type == 'added' or not filter_type %}
+                        <!-- Added Books: Preview + Purchase/View -->
+                        {% if book.is_purchased %}
+                            <a href="{{ url_for('reading', book_id=book.id) }}" class="action-btn read-btn" title="Read Now">
+                                <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('payment', book_id=book.id) }}" class="action-btn purchase-btn" title="Purchase">
+                                <i data-lucide="shopping-cart" class="w-5 h-5 text-white"></i>
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <!-- Your Books & Favorites: Continue Reading -->
+                        <a href="{{ url_for('reading', book_id=book.id) }}" class="action-btn read-btn" title="Continue Reading">
+                            <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
+                        </a>
+                    {% endif %}
+                </div>
+                <div class="card-actions">
+                    <a href="{{ url_for('preview', book_id=book.id) }}">
+                        <i data-lucide="eye" class="w-3.5 h-3.5"></i> Preview
+                    </a>
+                    <span class="sep">|</span>
+                    
+                    {% if filter_type == 'added' or not filter_type %}
+                        {% if book.is_purchased %}
+                            <a href="{{ url_for('reading', book_id=book.id) }}">
+                                <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Read
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('payment', book_id=book.id) }}">
+                                <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i> Purchase
+                            </a>
+                        {% endif %}
+                    {% else %}
+                        <button onclick="toggleFavorite({{ book.id }}, this)">
+                            <i data-lucide="heart" class="w-3.5 h-3.5"></i> 
+                            {% if filter_type == 'favorites' %}Remove{% else %}Favorite{% endif %}
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Empty state -->
+        {% if books|length == 0 %}
+        <div class="text-center py-24">
+            <div class="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="book-x" class="w-12 h-12 text-[#2F1341]"></i>
+            </div>
+            <h3 class="font-condensed text-2xl font-bold text-gray-700 mb-2">Nothing here yet</h3>
+            <p class="text-gray-500 mb-6">
+                {% if filter_type == 'favorites' %}
+                    You haven't added any favorites yet. Add books from "Your Books" to favorites.
+                {% elif filter_type == 'your_books' %}
+                    You don't have any accessible books yet. Add free books or purchase premium content.
+                {% else %}
+                    Add resources to your library by browsing available books.
+                {% endif %}
+            </p>
+            <a href="{{ url_for('search') }}" class="btn-primary px-6 py-3 rounded-lg font-bold">Browse Resources</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/security.js') }}"></script>
+<script>
+    function toggleFavorite(bookId, btn) {
+        fetch(`/api/favorite/${bookId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'removed') {
+                // Reload page to update the list
+                window.location.reload();
+            } else if (data.status === 'added') {
+                btn.innerHTML = '<i data-lucide="heart" class="w-3.5 h-3.5"></i> Remove';
+                lucide.createIcons();
+            } else if (data.status === 'error') {
+                alert(data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+</script>
+{% endblock %}

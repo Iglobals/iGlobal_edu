@@ -1,0 +1,428 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ book.title }} - Reading{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --ig-purple: #2F1341;
+        --ig-ash: #B0522E;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; font-family: 'Inter', sans-serif; background: #f3f4f6; overflow: hidden; }
+    .font-condensed { font-family: 'Roboto Condensed', sans-serif; }
+    
+    .reader-shell { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+    .reader-body  { display:flex; flex:1; overflow:hidden; }
+    
+    .reader-topbar {
+        background: var(--ig-purple); color:white;
+        padding: 0 1rem; height:54px;
+        display:flex; align-items:center; justify-content:space-between;
+        flex-shrink:0; z-index:10;
+    }
+    .topbar-btn {
+        display:flex; align-items:center; gap:0.35rem;
+        padding:0.35rem 0.7rem; border-radius:0.4rem;
+        font-size:0.78rem; font-weight:600;
+        cursor:pointer; transition:background 0.2s;
+        background:rgba(255,255,255,0.12); border:none; color:white; text-decoration:none;
+    }
+    .topbar-btn:hover { background:rgba(255,255,255,0.22); }
+    
+    .progress-bar-wrap { height:3px; background:#e5e7eb; }
+    .progress-bar-fill { height:100%; background:var(--ig-purple); transition:width 0.4s ease; }
+    
+    .reader-main { flex:1; display:flex; flex-direction:column; overflow:hidden; background:#f3f4f6; position:relative; }
+    
+    .chapter-panel-desktop {
+        position: absolute;
+        top:0; right:0; bottom:0;
+        width: 268px;
+        background: white;
+        border-left: 1px solid #ede9f0;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        box-shadow: -4px 0 20px rgba(0,0,0,0.08);
+    }
+    .chapter-panel-desktop.open { transform: translateX(0); }
+    
+    @media (max-width: 767px) {
+        .chapter-panel-desktop { display:none !important; }
+    }
+    
+    .chapter-drawer-mobile {
+        position: fixed;
+        top: 0; left: 0; bottom: 0;
+        width: 95vw;
+        max-width: 380px;
+        background: white;
+        transform: translateX(-100%);
+        transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 6px 0 30px rgba(0,0,0,0.18);
+    }
+    .chapter-drawer-mobile.open { transform: translateX(0); }
+    
+    .drawer-scrim {
+        position: fixed; inset:0;
+        background: rgba(0,0,0,0.45);
+        z-index: 99;
+        display:none;
+    }
+    .drawer-scrim.open { display:block; }
+    
+    @media (min-width: 768px) {
+        .chapter-drawer-mobile, .drawer-scrim { display:none !important; }
+    }
+    
+    .ch-item {
+        padding:0.6rem 0.9rem; border-radius:0.5rem;
+        cursor:pointer; font-size:0.82rem; line-height:1.4;
+        color:#6b7280; transition:all 0.15s;
+    }
+    .ch-item:hover  { background:#faf5ff; color:var(--ig-purple); }
+    .ch-item.active { background:#f3e8ff; color:var(--ig-purple); font-weight:700; }
+    
+    .reading-area { flex:1; overflow-y:auto; padding:2rem 1.25rem; }
+    @media(min-width:768px){ .reading-area { padding:2.5rem 2rem; } }
+    
+    .reading-area::-webkit-scrollbar { width:6px; }
+    .reading-area::-webkit-scrollbar-thumb { background:#c4b5c4; border-radius:3px; }
+    .reading-area::-webkit-scrollbar-thumb:hover { background:var(--ig-purple); }
+    
+    .book-page {
+        max-width: 720px; margin:0 auto;
+        background:white; border-radius:0.75rem;
+        box-shadow:0 2px 16px rgba(0,0,0,0.07);
+        padding:1.5rem; line-height:1.88; color:#374151; font-size:0.95rem;
+    }
+    @media(min-width:640px){ .book-page { padding:2.5rem 3rem; font-size:1rem; } }
+    
+    .section-card {
+        max-width:720px; margin: 1.5rem auto 0;
+        background:white; border-radius:0.75rem;
+        box-shadow:0 2px 12px rgba(0,0,0,0.06);
+        padding:1.5rem;
+    }
+    @media(min-width:640px){ .section-card { padding:2rem 2.5rem; } }
+    
+    .page-nav {
+        flex-shrink:0; background:white; border-top:1px solid #e5e7eb;
+        padding:0.65rem 1.25rem; display:flex; align-items:center; justify-content:space-between;
+    }
+    .nav-btn {
+        display:flex; align-items:center; gap:0.4rem;
+        padding:0.5rem 1rem; border-radius:0.5rem;
+        font-size:0.82rem; font-weight:600;
+        color:var(--ig-purple); background:none; border:none; cursor:pointer; transition:background 0.2s;
+    }
+    .nav-btn:hover { background:#f3e8ff; }
+    .nav-btn:disabled { opacity:0.3; cursor:not-allowed; }
+    
+    .star { color:#d1d5db; cursor:pointer; transition:color 0.2s; }
+    .star.active { color:#fbbf24; }
+    
+    .reaction-btn {
+        display:flex; align-items:center; gap:0.3rem;
+        padding:0.3rem 0.6rem; border-radius:0.4rem;
+        font-size:0.75rem; cursor:pointer; background:none; border:none;
+        color:#9ca3af; transition:all 0.2s;
+    }
+    .reaction-btn:hover { background:#f9fafb; }
+    .reaction-btn.liked { color:var(--ig-purple); background:rgba(107,45,92,0.07); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="drawerScrim" class="drawer-scrim" onclick="closeChapterDrawer()"></div>
+
+<div id="chapterDrawerMobile" class="chapter-drawer-mobile">
+    <div style="background:var(--ig-purple);flex-shrink:0;">
+        <div class="flex items-center justify-between px-5 py-4">
+            <div>
+                <div class="text-xs font-semibold uppercase tracking-wider" style="color:rgba(255,255,255,0.6);">Contents</div>
+                <div id="drawerTitle" class="font-condensed font-bold text-white text-lg leading-tight mt-0.5">{{ book.title }}</div>
+            </div>
+            <button onclick="closeChapterDrawer()" class="w-9 h-9 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,0.15);">
+                <i data-lucide="x" class="w-5 h-5 text-white"></i>
+            </button>
+        </div>
+    </div>
+    <div id="chapterListMobile" class="p-3 space-y-1 overflow-y-auto flex-1"></div>
+</div>
+
+<div class="reader-shell">
+    <div class="reader-topbar">
+        <div class="flex items-center gap-2 min-w-0">
+            <a href="{{ url_for('library') }}" class="topbar-btn flex-shrink-0">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">Library</span>
+            </a>
+            <div class="min-w-0">
+                <div id="topTitle" class="font-condensed font-bold text-sm md:text-base text-white leading-tight truncate" style="max-width:260px;">{{ book.title }}</div>
+                <div id="topAuthor" class="text-xs truncate" style="color:rgba(255,255,255,0.6);">{{ book.author }}</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+            <button class="topbar-btn" onclick="changeFontSize(-1)">A<i data-lucide="minus" class="w-3 h-3"></i></button>
+            <button class="topbar-btn" onclick="changeFontSize(1)">A<i data-lucide="plus" class="w-3 h-3"></i></button>
+            <button class="topbar-btn" onclick="toggleChapters()" id="chapterToggleBtn">
+                <i data-lucide="list" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">Chapters</span>
+            </button>
+            <button class="topbar-btn" onclick="toggleFullscreen()">
+                <i data-lucide="maximize" class="w-4 h-4" id="fsIcon"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressFill" style="width:{{ ((page-1)/(book.chapters|length-1)*96+4) if book.chapters|length > 1 else 100 }}%"></div>
+    </div>
+
+    <div class="reader-body">
+        <div class="reader-main">
+            <div id="chapterPanelDesktop" class="chapter-panel-desktop">
+                <div class="flex items-center justify-between px-4 py-3 flex-shrink-0" style="border-bottom:1px solid #f3e8ff;">
+                    <span class="font-semibold text-sm text-gray-700">Chapters</span>
+                    <button onclick="closePanelDesktop()" class="p-1 text-gray-400 hover:text-gray-600 rounded">
+                        <i data-lucide="panel-right-close" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div id="chapterListDesktop" class="p-3 space-y-1 overflow-y-auto flex-1"></div>
+            </div>
+
+            <div class="reading-area" id="readingArea">
+                <div class="book-page" id="pageContent" style="font-size:16px;">
+                    {{ book.content[page-1]|safe }}
+                </div>
+
+                <div class="section-card">
+                    <h3 class="font-condensed font-bold text-lg mb-4 flex items-center gap-2" style="color:var(--ig-purple);">
+                        <i data-lucide="message-square" class="w-5 h-5"></i> Reviews
+                    </h3>
+                    <div class="pb-4 mb-4" style="border-bottom:1px solid #f3f4f6;">
+                        <p class="text-xs text-gray-400 mb-2 font-medium">Rate this resource</p>
+                        <div class="flex gap-1.5 mb-3" id="starRating">
+                            <i data-lucide="star" class="w-5 h-5 star" onclick="setRating(1)"></i>
+                            <i data-lucide="star" class="w-5 h-5 star" onclick="setRating(2)"></i>
+                            <i data-lucide="star" class="w-5 h-5 star" onclick="setRating(3)"></i>
+                            <i data-lucide="star" class="w-5 h-5 star" onclick="setRating(4)"></i>
+                            <i data-lucide="star" class="w-5 h-5 star" onclick="setRating(5)"></i>
+                        </div>
+                        <textarea id="reviewText" rows="3" placeholder="Share your thoughts…"
+                            style="width:100%;padding:0.65rem 0.85rem;border:1.5px solid #e5e7eb;border-radius:0.5rem;font-family:'Inter',sans-serif;font-size:0.85rem;resize:vertical;outline:none;transition:border-color 0.2s;"
+                            onfocus="this.style.borderColor='#2F1341'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+                        <button onclick="submitReview()" class="mt-2 px-5 py-2 rounded-lg text-white text-xs font-bold uppercase tracking-wide" style="background:var(--ig-purple);">Post Review</button>
+                    </div>
+                    <div id="reviewsList" class="space-y-4">
+                        {% for review in reviews %}
+                        <div class="pb-4" style="border-bottom:1px solid #f3f4f6;">
+                            <div class="flex justify-between mb-1">
+                                <span class="font-semibold text-sm text-gray-800">{{ review.user.full_name }}</span>
+                                <span class="text-xs text-gray-400">{{ review.created_at.strftime('%b %d, %Y') }}</span>
+                            </div>
+                            <div class="flex text-yellow-400 gap-0.5 mb-2">
+                                {% for i in range(review.rating) %}
+                                <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+                                {% endfor %}
+                            </div>
+                            <p class="text-sm text-gray-600">{{ review.comment }}</p>
+                            <div class="flex gap-2 mt-2">
+                                <button onclick="likeReview({{ review.id }}, this)" class="reaction-btn"><i data-lucide="thumbs-up" class="w-3.5 h-3.5"></i><span>{{ review.likes }}</span></button>
+                                <button onclick="dislikeReview({{ review.id }}, this)" class="reaction-btn"><i data-lucide="thumbs-down" class="w-3.5 h-3.5"></i><span>{{ review.dislikes }}</span></button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="section-card" style="margin-bottom:2rem;">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-condensed font-bold text-lg flex items-center gap-2" style="color:var(--ig-purple);">
+                            <i data-lucide="pencil" class="w-5 h-5"></i> My Notes
+                        </h3>
+                        <button onclick="addNote()" class="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-white text-xs font-bold uppercase tracking-wide" style="background:#B0522E;">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add
+                        </button>
+                    </div>
+                    <div id="notesList" class="space-y-3">
+                        {% for note in notes %}
+                        <div class="p-3 rounded-lg border-l-4" style="background:#fefce8;border-color:#facc15;">
+                            <p class="text-sm text-gray-700">"{{ note.content }}"</p>
+                            <span class="text-xs text-gray-400 mt-1 block">Chapter {{ note.chapter_number }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-nav">
+                <button class="nav-btn" id="prevBtn" onclick="prevPage()" {% if page <= 1 %}disabled{% endif %}>
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Previous</span>
+                </button>
+                <div class="text-center">
+                    <div class="text-xs text-gray-400">Chapter</div>
+                    <div class="text-sm font-bold text-gray-700">
+                        <span id="currentPage">{{ page }}</span><span class="text-gray-300 mx-1">/</span><span id="totalPages">{{ book.chapters|length }}</span>
+                    </div>
+                </div>
+                <button class="nav-btn" id="nextBtn" onclick="nextPage()" {% if page >= book.chapters|length %}disabled{% endif %}>
+                    <span class="hidden sm:inline">Next</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/security.js') }}"></script>
+<script>
+    const bookData = {
+        id: {{ book.id }},
+        chapters: {{ book.chapters|tojson }},
+        content: {{ book.content|tojson }},
+        totalPages: {{ book.chapters|length }}
+    };
+    let currentPage = {{ page }};
+    let currentRating = 0;
+    let fontSize = 16;
+    let desktopPanelOpen = false;
+
+    window.addEventListener('DOMContentLoaded', () => {
+        renderChapters();
+        lucide.createIcons();
+    });
+
+    function renderChapters() {
+        const makeItem = (ch, i) =>
+            `<div class="ch-item ${i + 1 === currentPage ? 'active' : ''}" onclick="goToChapter(${i+1})">
+                <span style="opacity:0.35;font-size:0.72rem;font-weight:700;margin-right:0.4rem;">${String(i+1).padStart(2,'0')}</span>${ch}
+            </div>`;
+        const html = bookData.chapters.map(makeItem).join('');
+        document.getElementById('chapterListDesktop').innerHTML = html;
+        document.getElementById('chapterListMobile').innerHTML = html;
+        lucide.createIcons();
+    }
+
+    function goToChapter(n) {
+        window.location.href = `{{ url_for('reading', book_id=book.id) }}?page=${n}`;
+    }
+
+    function nextPage() { if (currentPage < bookData.totalPages) goToChapter(currentPage + 1); }
+    function prevPage() { if (currentPage > 1) goToChapter(currentPage - 1); }
+
+    function changeFontSize(dir) {
+        fontSize = Math.max(13, Math.min(22, fontSize + dir * 1.5));
+        document.getElementById('pageContent').style.fontSize = fontSize + 'px';
+    }
+
+    function toggleChapters() {
+        if (window.innerWidth < 768) {
+            openChapterDrawer();
+        } else {
+            desktopPanelOpen ? closePanelDesktop() : openPanelDesktop();
+        }
+    }
+    function openPanelDesktop() {
+        desktopPanelOpen = true;
+        document.getElementById('chapterPanelDesktop').classList.add('open');
+    }
+    function closePanelDesktop() {
+        desktopPanelOpen = false;
+        document.getElementById('chapterPanelDesktop').classList.remove('open');
+    }
+    function openChapterDrawer() {
+        document.getElementById('chapterDrawerMobile').classList.add('open');
+        document.getElementById('drawerScrim').classList.add('open');
+    }
+    function closeChapterDrawer() {
+        document.getElementById('chapterDrawerMobile').classList.remove('open');
+        document.getElementById('drawerScrim').classList.remove('open');
+    }
+
+    function toggleFullscreen() {
+        const icon = document.getElementById('fsIcon');
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+            icon.setAttribute('data-lucide','minimize');
+        } else {
+            document.exitFullscreen();
+            icon.setAttribute('data-lucide','maximize');
+        }
+        lucide.createIcons();
+    }
+
+    function setRating(n) {
+        currentRating = n;
+        document.querySelectorAll('#starRating .star').forEach((s, i) => s.classList.toggle('active', i < n));
+    }
+
+    function submitReview() {
+        if (!currentRating) { alert('Please select a star rating.'); return; }
+        const text = document.getElementById('reviewText').value.trim();
+        if (!text) { alert('Please write a review.'); return; }
+        
+        fetch('/api/review/{{ book.id }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rating: currentRating, comment: text })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            }
+        });
+    }
+
+    function likeReview(reviewId, btn) {
+        fetch(`/api/review/${reviewId}/like`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            btn.querySelector('span').textContent = data.likes;
+            btn.classList.add('liked');
+        });
+    }
+
+    function dislikeReview(reviewId, btn) {
+        fetch(`/api/review/${reviewId}/dislike`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            btn.querySelector('span').textContent = data.dislikes;
+        });
+    }
+
+    function addNote() {
+        const note = prompt('Enter your note:');
+        if (!note) return;
+        fetch('/api/note/{{ book.id }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: note, chapter: currentPage })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            }
+        });
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight') nextPage();
+        if (e.key === 'ArrowLeft')  prevPage();
+        if (e.key === 'Escape') { closePanelDesktop(); closeChapterDrawer(); }
+    });
+</script>
+{% endblock %}
+

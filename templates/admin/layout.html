@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Dashboard{% endblock %} - iGlobals</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --ig-purple: #6B2D5C;
+            --ig-purple-light: #8B4A7A;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .font-condensed { font-family: 'Roboto Condensed', sans-serif; }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            color: #6b7280;
+        }
+        .sidebar-link:hover {
+            background: #f3f4f6;
+            color: var(--ig-purple);
+        }
+        .sidebar-link.active {
+            background: var(--ig-purple);
+            color: white;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-[#6B2D5C] rounded flex items-center justify-center">
+                        <i data-lucide="shield-check" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="font-bold text-lg text-[#6B2D5C] font-condensed">ADMIN</div>
+                        <div class="text-xs text-gray-500">iGlobals Panel</div>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-1">
+                <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{{ url_for('admin_books') }}" class="sidebar-link {% if 'admin_books' in request.endpoint or 'admin_create_book' in request.endpoint or 'admin_edit_book' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="book" class="w-5 h-5"></i>
+                    <span>Books</span>
+                </a>
+                <a href="{{ url_for('admin_users') }}" class="sidebar-link {% if 'admin_users' in request.endpoint or 'admin_user_detail' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>Users</span>
+                </a>
+                <a href="{{ url_for('admin_reviews') }}" class="sidebar-link {% if 'admin_reviews' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="message-square" class="w-5 h-5"></i>
+                    <span>Reviews</span>
+                </a>
+                <a href="{{ url_for('admin_settings') }}" class="sidebar-link {% if 'admin_settings' in request.endpoint %}active{% endif %}">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="p-4 border-t border-gray-200">
+                <a href="{{ url_for('index') }}" class="sidebar-link">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    <span>Back to Site</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="sidebar-link text-red-600 hover:bg-red-50">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Top Bar -->
+            <header class="bg-white border-b border-gray-200 px-6 py-4">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-2xl font-bold text-gray-800 font-condensed">{% block page_title %}Dashboard{% endblock %}</h1>
+                    <div class="flex items-center gap-4">
+                        <span class="text-sm text-gray-600">Welcome, {{ current_user.full_name }}</span>
+                        <div class="w-10 h-10 bg-[#6B2D5C] rounded-full flex items-center justify-center text-white font-bold">
+                            {{ current_user.full_name[0].upper() }}
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="px-6 pt-4">
+                        {% for category, message in messages %}
+                        <div class="bg-{% if category == 'success' %}green{% elif category == 'danger' %}red{% elif category == 'warning' %}yellow{% else %}blue{% endif %}-100 border border-{% if category == 'success' %}green{% elif category == 'danger' %}red{% elif category == 'warning' %}yellow{% else %}blue{% endif %}-400 text-{% if category == 'success' %}green{% elif category == 'danger' %}red{% elif category == 'warning' %}yellow{% else %}blue{% endif %}-700 px-4 py-3 rounded relative mb-4" role="alert">
+                            <span class="block sm:inline">{{ message }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Page Content -->
+            <main class="flex-1 overflow-y-auto p-6">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

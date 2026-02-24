@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Julius Berger Nigeria Plc - Partner for Progress</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .jb-blue {
+            color: #003366;
+        }
+
+        .bg-jb-blue {
+            background-color: #003366;
+        }
+
+        .jb-light-blue {
+            color: #0066cc;
+        }
+
+        .bg-jb-light-blue {
+            background-color: #0066cc;
+        }
+
+        .hero-slide {
+            background-image: linear-gradient(rgba(0, 51, 102, 0.7), rgba(0, 51, 102, 0.7)), url('https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .nav-link {
+            position: relative;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: #003366;
+            transition: width 0.3s;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        .service-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 51, 102, 0.15);
+        }
+
+        .project-overlay {
+            background: linear-gradient(to top, rgba(0, 51, 102, 0.9) 0%, transparent 100%);
+        }
+    </style>
+</head>
+
+<body class="bg-white text-gray-800">
+
+    <!-- Top Bar -->
+    <div class="bg-gray-100 text-xs py-2 border-b border-gray-200">
+        <div class="container mx-auto px-6 flex justify-between items-center">
+            <div class="flex items-center space-x-6 text-gray-600">
+                <span class="flex items-center gap-2">
+                    <i data-lucide="phone" class="w-3 h-3"></i>
+                    +234 9 611 0000
+                </span>
+                <span class="flex items-center gap-2">
+                    <i data-lucide="mail" class="w-3 h-3"></i>
+                    info@julius-berger.com
+                </span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="#" class="text-gray-600 hover:text-[#003366] transition-colors">Careers</a>
+                <a href="#" class="text-gray-600 hover:text-[#003366] transition-colors">Media</a>
+                <a href="#" class="text-gray-600 hover:text-[#003366] transition-colors">Contact</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <!-- Logo -->
+                <a href="#" class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-[#003366] rounded flex items-center justify-center">
+                        <span class="text-white font-bold text-2xl">B</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-xl text-[#003366] tracking-wide">JULIUS BERGER</span>
+                        <span class="text-xs text-gray-500 tracking-widest">NIGERIA PLC</span>
+                    </div>
+                </a>
+
+                <!-- Desktop Menu -->
+                <div class="hidden lg:flex items-center space-x-8">
+                    <div class="relative group">
+                        <button
+                            class="nav-link text-gray-700 hover:text-[#003366] font-medium text-sm uppercase tracking-wider flex items-center gap-1">
+                            About Us <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <div class="relative group">
+                        <button
+                            class="nav-link text-gray-700 hover:text-[#003366] font-medium text-sm uppercase tracking-wider flex items-center gap-1">
+                            Construction Expertise <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <div class="relative group">
+                        <button
+                            class="nav-link text-gray-700 hover:text-[#003366] font-medium text-sm uppercase tracking-wider flex items-center gap-1">
+                            Group Products <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <a href="#"
+                        class="nav-link text-gray-700 hover:text-[#003366] font-medium text-sm uppercase tracking-wider">Projects</a>
+                    <a href="#"
+                        class="nav-link text-gray-700 hover:text-[#003366] font-medium text-sm uppercase tracking-wider">Sustainability</a>
+                    <a href="#"
+                        class="nav-link text-gray-700 hover:text-[#003366] font-medium text-sm uppercase tracking-wider">Investor
+                        Relations</a>
+                </div>
+
+                <!-- Search & Mobile Menu -->
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-600 hover:text-[#003366]">
+                        <i data-lucide="search" class="w-5 h-5"></i>
+                    </button>
+                    <button class="lg:hidden text-gray-600" onclick="toggleMobileMenu()">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden lg:hidden bg-white border-t border-gray-200">
+            <div class="container mx-auto px-6 py-4 space-y-4">
+                <a href="#" class="block text-gray-700 font-medium">About Us</a>
+                <a href="#" class="block text-gray-700 font-medium">Construction Expertise</a>
+                <a href="#" class="block text-gray-700 font-medium">Group Products</a>
+                <a href="#" class="block text-gray-700 font-medium">Projects</a>
+                <a href="#" class="block text-gray-700 font-medium">Sustainability</a>
+                <a href="#" class="block text-gray-700 font-medium">Investor Relations</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative h-[600px] hero-slide flex items-center">
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="max-w-3xl">
+                <h1 class="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+                    Innovative, value-driven solutions
+                </h1>
+                <p class="text-xl text-gray-200 mb-8 leading-relaxed">
+                    Julius Berger Nigeria Plc stands at the forefront of Nigeria's business landscape. We provide
+                    comprehensive services for the planning, design, engineering, construction, operation and
+                    maintenance of buildings, infrastructure and industrial projects.
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="#"
+                        class="bg-white text-[#003366] px-8 py-3 rounded font-semibold hover:bg-gray-100 transition-colors inline-flex items-center gap-2">
+                        Learn More <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+                    <a href="#"
+                        class="border-2 border-white text-white px-8 py-3 rounded font-semibold hover:bg-white hover:text-[#003366] transition-colors">
+                        Our Projects
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll Indicator -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <i data-lucide="chevron-down" class="w-8 h-8 text-white opacity-70"></i>
+        </div>
+    </section>
+
+    <!-- Features Bar -->
+    <section class="bg-[#003366] text-white py-12">
+        <div class="container mx-auto px-6">
+            <div class="grid md:grid-cols-3 gap-8 text-center">
+                <div class="border-r border-blue-400 last:border-0">
+                    <div class="text-4xl font-bold mb-2">59</div>
+                    <div class="text-blue-200 text-sm uppercase tracking-wider">Years in Nigeria</div>
+                </div>
+                <div class="border-r border-blue-400 last:border-0">
+                    <div class="text-4xl font-bold mb-2">18,000+</div>
+                    <div class="text-blue-200 text-sm uppercase tracking-wider">Employees</div>
+                </div>
+                <div>
+                    <div class="text-4xl font-bold mb-2">40</div>
+                    <div class="text-blue-200 text-sm uppercase tracking-wider">Nationalities</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Construction Expertise -->
+    <section class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#003366] mb-4">Construction Expertise</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    Our track record of success, coupled with the shared values embedded in our culture and ethos,
+                    instils confidence in our clients.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="service-card bg-white rounded-lg overflow-hidden shadow-md">
+                    <div class="h-48 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=800&q=80"
+                            alt="Buildings"
+                            class="w-full h-full object-cover hover:scale-105 transition-transform duration-500">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-[#003366] mb-3">Buildings</h3>
+                        <p class="text-gray-600 text-sm mb-4">
+                            Design and construction of hotels, hospitals, airport terminals, sports facilities, and
+                            residential areas with LEED certification standards.
+                        </p>
+                        <a href="#"
+                            class="text-[#003366] font-semibold text-sm flex items-center gap-2 hover:gap-3 transition-all">
+                            Read more <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="service-card bg-white rounded-lg overflow-hidden shadow-md">
+                    <div class="h-48 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1513828583688-c52646db42da?w=800&q=80"
+                            alt="Infrastructure"
+                            class="w-full h-full object-cover hover:scale-105 transition-transform duration-500">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-[#003366] mb-3">Infrastructure</h3>
+                        <p class="text-gray-600 text-sm mb-4">
+                            Essential traffic networks, bridges, airports, harbours, and urban development projects
+                            connecting major cities across Nigeria.
+                        </p>
+                        <a href="#"
+                            class="text-[#003366] font-semibold text-sm flex items-center gap-2 hover:gap-3 transition-all">
+                            Read more <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="service-card bg-white rounded-lg overflow-hidden shadow-md">
+                    <div class="h-48 overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800&q=80"
+                            alt="Industry"
+                            class="w-full h-full object-cover hover:scale-105 transition-transform duration-500">
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-[#003366] mb-3">Industry</h3>
+                        <p class="text-gray-600 text-sm mb-4">
+                            Oil and gas installations, processing plants, power plants, and industrial facilities
+                            meeting international safety standards.
+                        </p>
+                        <a href="#"
+                            class="text-[#003366] font-semibold text-sm flex items-center gap-2 hover:gap-3 transition-all">
+                            Read more <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Group Products & Services -->
+    <section class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#003366] mb-4">Group Products & Services</h2>
+                <p class="text-gray-600 max-w-3xl mx-auto">
+                    Progress is at the heart of our operations. Our subsidiaries serve as robust support for our
+                    construction business, offering clients a broad range of construction-related products and services
+                    from a single source.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="border border-gray-200 rounded-lg p-8 hover:border-[#003366] transition-colors group">
+                    <div
+                        class="w-16 h-16 bg-blue-50 rounded-lg flex items-center justify-center mb-6 group-hover:bg-[#003366] transition-colors">
+                        <i data-lucide="sofa"
+                            class="w-8 h-8 text-[#003366] group-hover:text-white transition-colors"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-[#003366] mb-3">AFP</h3>
+                    <p class="text-gray-600 text-sm mb-4">
+                        Award-winning made in Nigeria furniture for corporate offices, hospitality sector, and private
+                        residences including doors, wall paneling, and floors.
+                    </p>
+                    <a href="#" class="text-[#003366] font-semibold text-sm">Visit Website →</a>
+                </div>
+
+                <div class="border border-gray-200 rounded-lg p-8 hover:border-[#003366] transition-colors group">
+                    <div
+                        class="w-16 h-16 bg-blue-50 rounded-lg flex items-center justify-center mb-6 group-hover:bg-[#003366] transition-colors">
+                        <i data-lucide="layout-grid"
+                            class="w-8 h-8 text-[#003366] group-hover:text-white transition-colors"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-[#003366] mb-3">Abumet Nigeria Ltd.</h3>
+                    <p class="text-gray-600 text-sm mb-4">
+                        Leading solutions provider for aluminium and glass products, from standard windows to
+                        sophisticated facades and large-scale design masterpieces.
+                    </p>
+                    <a href="#" class="text-[#003366] font-semibold text-sm">Visit Website →</a>
+                </div>
+
+                <div class="border border-gray-200 rounded-lg p-8 hover:border-[#003366] transition-colors group">
+                    <div
+                        class="w-16 h-16 bg-blue-50 rounded-lg flex items-center justify-center mb-6 group-hover:bg-[#003366] transition-colors">
+                        <i data-lucide="drafting-compass"
+                            class="w-8 h-8 text-[#003366] group-hover:text-white transition-colors"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-[#003366] mb-3">PrimeTech Design</h3>
+                    <p class="text-gray-600 text-sm mb-4">
+                        Advanced design and engineering solutions from research to detailed construction design,
+                        specializing in oil and gas sector requirements.
+                    </p>
+                    <a href="#" class="text-[#003366] font-semibold text-sm">Visit Website →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Projects -->
+    <section class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="flex justify-between items-end mb-12">
+                <div>
+                    <h2 class="text-3xl md:text-4xl font-bold text-[#003366] mb-4">Reference Projects</h2>
+                    <p class="text-gray-600 max-w-2xl">
+                        From the Third Mainland Bridge to the Abuja National Stadium, we have shaped Nigeria's
+                        infrastructure landscape.
+                    </p>
+                </div>
+                <a href="#"
+                    class="hidden md:flex items-center gap-2 text-[#003366] font-semibold hover:gap-3 transition-all">
+                    View all projects <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="group relative overflow-hidden rounded-lg cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1517502884422-41eaead166d4?w=600&q=80"
+                        alt="Third Mainland Bridge"
+                        class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
+                    <div
+                        class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                        <span class="text-blue-200 text-xs uppercase tracking-wider mb-1">Bridge</span>
+                        <h3 class="text-white font-bold text-lg">Third Mainland Bridge</h3>
+                    </div>
+                </div>
+
+                <div class="group relative overflow-hidden rounded-lg cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?w=600&q=80"
+                        alt="Abuja Stadium"
+                        class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
+                    <div
+                        class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                        <span class="text-blue-200 text-xs uppercase tracking-wider mb-1">Sports</span>
+                        <h3 class="text-white font-bold text-lg">Abuja National Stadium</h3>
+                    </div>
+                </div>
+
+                <div class="group relative overflow-hidden rounded-lg cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=600&q=80" alt="CBN"
+                        class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
+                    <div
+                        class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                        <span class="text-blue-200 text-xs uppercase tracking-wider mb-1">Commercial</span>
+                        <h3 class="text-white font-bold text-lg">Central Bank of Nigeria</h3>
+                    </div>
+                </div>
+
+                <div class="group relative overflow-hidden rounded-lg cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=600&q=80" alt="Roads"
+                        class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
+                    <div
+                        class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                        <span class="text-blue-200 text-xs uppercase tracking-wider mb-1">Infrastructure</span>
+                        <h3 class="text-white font-bold text-lg">Lagos-Badagry Expressway</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 text-center md:hidden">
+                <a href="#" class="inline-flex items-center gap-2 text-[#003366] font-semibold">
+                    View all projects <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sustainability Teaser -->
+    <section class="py-20 bg-[#003366] text-white relative overflow-hidden">
+        <div class="absolute inset-0 opacity-10">
+            <img src="https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=1920&q=80"
+                class="w-full h-full object-cover" alt="Sustainability">
+        </div>
+        <div class="container mx-auto px-6 relative z-10">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <span
+                        class="text-blue-300 text-sm uppercase tracking-wider font-semibold mb-4 block">Sustainability</span>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-6">Partner for Progress</h2>
+                    <p class="text-blue-100 mb-6 leading-relaxed">
+                        Julius Berger is committed to sustainable construction practices. We design and build green
+                        buildings that comply with LEED requirements, ensuring environmental responsibility in every
+                        project we undertake.
+                    </p>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center gap-3">
+                            <i data-lucide="check-circle" class="w-5 h-5 text-blue-300"></i>
+                            <span>LEED certified building designs</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i data-lucide="check-circle" class="w-5 h-5 text-blue-300"></i>
+                            <span>Local material sourcing</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i data-lucide="check-circle" class="w-5 h-5 text-blue-300"></i>
+                            <span>Circular construction practices</span>
+                        </li>
+                    </ul>
+                    <a href="#"
+                        class="inline-flex items-center gap-2 bg-white text-[#003366] px-6 py-3 rounded font-semibold hover:bg-blue-50 transition-colors">
+                        Read our Sustainability Report <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </a>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white/10 backdrop-blur p-6 rounded-lg">
+                        <i data-lucide="leaf" class="w-8 h-8 mb-3 text-blue-300"></i>
+                        <div class="text-2xl font-bold">167,803</div>
+                        <div class="text-sm text-blue-200">Tonnes of sustainable materials used (2024)</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur p-6 rounded-lg mt-8">
+                        <i data-lucide="recycle" class="w-8 h-8 mb-3 text-blue-300"></i>
+                        <div class="text-2xl font-bold">Cold Recycling</div>
+                        <div class="text-sm text-blue-200">Methodology for road construction</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- News Section -->
+    <section class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-[#003366] mb-4">Latest News</h2>
+                <p class="text-gray-600">Stay updated with our latest projects and corporate developments</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <article class="border-b border-gray-200 pb-6">
+                    <div class="text-sm text-gray-500 mb-2">February 15, 2026</div>
+                    <h3 class="text-lg font-bold text-[#003366] mb-3 hover:text-blue-600 cursor-pointer">
+                        Port Harcourt Ring Road: Governor Fubara Commends Julius Berger
+                    </h3>
+                    <p class="text-gray-600 text-sm mb-4">
+                        Governor commends the pace and quality of work being delivered on the 50.15km project spanning
+                        five LGAs...
+                    </p>
+                    <a href="#" class="text-[#003366] font-semibold text-sm flex items-center gap-2">
+                        Read more <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                    </a>
+                </article>
+
+                <article class="border-b border-gray-200 pb-6">
+                    <div class="text-sm text-gray-500 mb-2">February 10, 2026</div>
+                    <h3 class="text-lg font-bold text-[#003366] mb-3 hover:text-blue-600 cursor-pointer">
+                        Julius Berger Represents at EuroCham 2026 Conference
+                    </h3>
+                    <p class="text-gray-600 text-sm mb-4">
+                        Head of Strategic Business Development discusses infrastructure partnerships at European
+                        Business Chamber event...
+                    </p>
+                    <a href="#" class="text-[#003366] font-semibold text-sm flex items-center gap-2">
+                        Read more <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                    </a>
+                </article>
+
+                <article class="border-b border-gray-200 pb-6">
+                    <div class="text-sm text-gray-500 mb-2">February 5, 2026</div>
+                    <h3 class="text-lg font-bold text-[#003366] mb-3 hover:text-blue-600 cursor-pointer">
+                        Hyatt Regency Ikeja Nearing Completion
+                    </h3>
+                    <p class="text-gray-600 text-sm mb-4">
+                        A new icon of luxury and architectural distinction is rising in the heart of Ikeja GRA, Lagos...
+                    </p>
+                    <a href="#" class="text-[#003366] font-semibold text-sm flex items-center gap-2">
+                        Read more <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                    </a>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-300 pt-16 pb-8">
+        <div class="container mx-auto px-6">
+            <div class="grid md:grid-cols-4 gap-12 mb-12">
+                <div>
+                    <div class="flex items-center space-x-3 mb-6">
+                        <div class="w-10 h-10 bg-white rounded flex items-center justify-center">
+                            <span class="text-[#003366] font-bold text-xl">B</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="font-bold text-white tracking-wide">JULIUS BERGER</span>
+                            <span class="text-xs tracking-widest text-gray-400">NIGERIA PLC</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-400 mb-6">
+                        Building Nigeria's infrastructure with German engineering excellence since 1965.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#"
+                            class="w-8 h-8 bg-gray-800 rounded flex items-center justify-center hover:bg-[#003366] transition-colors">
+                            <i data-lucide="linkedin" class="w-4 h-4"></i>
+                        </a>
+                        <a href="#"
+                            class="w-8 h-8 bg-gray-800 rounded flex items-center justify-center hover:bg-[#003366] transition-colors">
+                            <i data-lucide="twitter" class="w-4 h-4"></i>
+                        </a>
+                        <a href="#"
+                            class="w-8 h-8 bg-gray-800 rounded flex items-center justify-center hover:bg-[#003366] transition-colors">
+                            <i data-lucide="facebook" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold mb-6 uppercase text-sm tracking-wider">Quick Links</h4>
+                    <ul class="space-y-3 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Construction Expertise</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Group Products & Services</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Projects</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Sustainability</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold mb-6 uppercase text-sm tracking-wider">Investor Relations</h4>
+                    <ul class="space-y-3 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors">Annual Reports</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Financial Statements</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Share Information</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">AGM Information</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Dividend History</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold mb-6 uppercase text-sm tracking-wider">Contact</h4>
+                    <ul class="space-y-3 text-sm">
+                        <li class="flex items-start gap-3">
+                            <i data-lucide="map-pin" class="w-4 h-4 mt-1 text-[#003366]"></i>
+                            <span>10 Shettima A. Munguno Crescent,<br>Utako 900108, Abuja, Nigeria</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i data-lucide="phone" class="w-4 h-4 text-[#003366]"></i>
+                            <span>+234 9 611 0000</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i data-lucide="mail" class="w-4 h-4 text-[#003366]"></i>
+                            <span>info@julius-berger.com</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div
+                class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
+                <p>&copy; 2026 Julius Berger Nigeria Plc. All rights reserved. NGX: JBERGER</p>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
+                    <a href="#" class="hover:text-white transition-colors">Terms of Use</a>
+                    <a href="#" class="hover:text-white transition-colors">Imprint</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+    </script>
+</body>
+
+</html>

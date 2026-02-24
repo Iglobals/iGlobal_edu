@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Precise Alignment</title>
+
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f4f4f4;
+        }
+
+        .contact__img {
+            position: relative;
+            width: 450px;
+            height: 350px;
+            /* fixed container */
+            transform-style: preserve-3d;
+        }
+
+        .contact__img-bg {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            /* IMPORTANT */
+        }
+
+        /* Background image – SHORTER */
+        .bg-image {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 93%;
+            /* shorter than container */
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        /* Person image – TALLER */
+        .contact__img-person img {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) translateZ(40px);
+
+            height: 115%;
+            /* taller than background */
+            max-width: 97%;
+            width: auto;
+
+            object-fit: contain;
+            z-index: 2;
+            pointer-events: none;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="contact__img js-tilt">
+        <div class="contact__img-bg">
+
+            <!-- Background -->
+            <img src="images/bg.png" class="bg-image" alt="Background">
+
+            <!-- Person -->
+            <div class="contact__img-person">
+                <img src="images/person3.png" alt="Person">
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js"></script>
+    <script>
+        VanillaTilt.init(document.querySelector(".js-tilt"), {
+            max: 15,
+            speed: 400,
+            perspective: 300
+        });
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,351 @@
+{% extends "layout.html" %}
+
+{% block title %}iGlobals Educational Services - Success Blueprint{% endblock %}
+
+{% block extra_css %}
+<style>
+    .book-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .book-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 40px rgba(107, 45, 92, 0.2);
+    }
+    .book-card:hover .book-overlay {
+        opacity: 1;
+    }
+    .book-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(107, 45, 92, 0.9);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        padding: 1rem;
+    }
+    .reveal {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+    }
+    .reveal.active {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .reveal-left {
+        opacity: 0;
+        transform: translateX(-50px);
+        transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+    }
+    .reveal-left.active {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    .reveal-right {
+        opacity: 0;
+        transform: translateX(50px);
+        transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
+    }
+    .reveal-right.active {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    .delay-100 { transition-delay: 0.1s; }
+    .delay-200 { transition-delay: 0.2s; }
+    .delay-300 { transition-delay: 0.3s; }
+    
+    .hero-section {
+        background-color: #2F1341;
+        clip-path: polygon(0% 0%, 100% 0%, 100% 88%, 0% 100%);
+        padding-top: 5rem;
+        position: relative;
+        overflow: visible;
+        display: flex;
+        align-items: center;
+        color: white;
+    }
+    .hero-content {
+        padding-top: 1rem;
+        padding-bottom: 5rem;
+        width: 100%;
+    }
+    .hero-heading {
+        font-size: clamp(2.2rem, 9vw, 3.2rem);
+    }
+    .hero-body {
+        font-size: 0.95rem;
+    }
+    .hero-btn {
+        font-size: 0.85rem;
+        padding: 0.6rem 1.2rem;
+    }
+    .hero-img {
+        max-height: 220px;
+        width: 100%;
+        object-fit: cover;
+        border-radius: 0.5rem;
+    }
+    .hero-image-col {
+        margin-top: 1.5rem;
+    }
+    @media (min-width: 768px) {
+        .hero-section {
+            clip-path: polygon(0% 0%, 100% 0%, 100% 70%, 6% 100%, 0% 50%);
+            min-height: 85vh;
+            padding-top: 2.5rem;
+        }
+        .hero-content {
+            padding-top: 3rem;
+            padding-bottom: 14rem;
+        }
+        .hero-heading {
+            font-size: clamp(3rem, 5vw, 5rem);
+        }
+        .hero-body {
+            font-size: 1.125rem;
+        }
+        .hero-btn {
+            font-size: 1rem;
+            padding: 0.75rem 2rem;
+        }
+        .hero-img {
+            max-height: none;
+            object-fit: unset;
+        }
+        .hero-image-col {
+            margin-top: 0;
+        }
+    }
+    @media (min-width: 1024px) {
+        .hero-heading {
+            font-size: clamp(3.5rem, 5vw, 5.5rem);
+        }
+        .hero-content {
+            padding-bottom: 16rem;
+        }
+    }
+    .image-frame {
+        position: relative;
+        display: inline-block;
+    }
+    .image-frame::after {
+        content: '';
+        position: absolute;
+        bottom: -20px;
+        right: -30px;
+        width: 60%;
+        height: 40px;
+        background-color: var(--ig-purple);
+        z-index: -1;
+        transform: skewX(-15deg);
+        transition: all 0.3s ease;
+    }
+    .image-frame:hover::after {
+        transform: skewX(-15deg) translateY(-5px);
+        background-color: var(--ig-purple-light);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- HERO -->
+<section class="hero-section" id="heroSection">
+    <div style="position: absolute; inset: 0; opacity: 0.1; z-index: 0;">
+        <div style="position: absolute; inset: 0; background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 40px 40px;"></div>
+    </div>
+
+    <div class="container mx-auto px-6 relative z-10 hero-content">
+        <div class="grid md:grid-cols-2 gap-12 items-center">
+            <div class="reveal-left">
+                <div class="inline-block bg-white/10 backdrop-blur px-4 py-2 rounded-full mb-4 text-sm font-semibold tracking-wider text-purple-100 border border-white/20">
+                    JUPEB MASTERY SERIES 2026
+                </div>
+                <h1 class="font-condensed hero-heading font-bold leading-none mb-5 tracking-tight">
+                    YOUR SUCCESS <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-200">BLUEPRINT</span>
+                </h1>
+                <p class="text-purple-100 hero-body mb-6 max-w-md leading-relaxed">
+                    Navigate and conquer competitive examinations with confidence. Specialized resources for Science, Arts, and Commercial faculties.
+                </p>
+                <div class="flex flex-wrap gap-3">
+                    <a href="{{ url_for('search') }}" class="bg-white text-[#2F1341] hover:bg-gray-100 transition-colors px-6 py-3 rounded font-bold inline-flex items-center gap-3 group uppercase tracking-wider hero-btn">
+                        Start Reading
+                        <i data-lucide="arrow-right" class="w-5 h-5 transition-transform group-hover:translate-x-1"></i>
+                    </a>
+                    <a href="{{ url_for('about') }}" class="border-2 border-white text-white px-6 py-3 rounded font-bold hover:bg-white hover:text-[#2F1341] transition-colors uppercase tracking-wider hero-btn">
+                        Learn More
+                    </a>
+                </div>
+            </div>
+            <div class="reveal-right delay-200 relative hero-image-col">
+                <div class="image-frame">
+                    <img src="https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=800&q=80" alt="Digital Library" class="w-full h-auto rounded-lg shadow-2xl hero-img">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- BUILT FOR EXAM EXCELLENCE -->
+<section class="py-20 bg-white relative overflow-hidden">
+    <div class="container mx-auto px-6 relative z-10">
+        <div class="grid md:grid-cols-2 gap-16 items-center">
+            <div class="reveal">
+                <h2 class="font-condensed text-3xl md:text-5xl font-bold text-[#2F1341] mb-6">Built for Exam Excellence</h2>
+                <p class="text-gray-600 mb-6 leading-relaxed text-lg">
+                    Our curriculum is engineered around the specific demands of JUPEB and other competitive exams. Every resource is curated to maximise your score, minimize revision time, and build genuine subject mastery.
+                </p>
+                <div class="space-y-6">
+                    <div class="flex gap-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="target" class="w-6 h-6 text-[#2F1341]"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-[#2F1341]">Exam-Focused Content</h3>
+                            <p class="text-gray-500 text-sm">Every topic aligned directly to exam syllabi — no filler, no fluff, just what earns marks.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="layers" class="w-6 h-6 text-[#2F1341]"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-[#2F1341]">Structured Learning Paths</h3>
+                            <p class="text-gray-500 text-sm">Step-by-step progressions from foundational concepts to advanced techniques across all faculties.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="clock" class="w-6 h-6 text-[#2F1341]"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-[#2F1341]">Study at Your Own Pace</h3>
+                            <p class="text-gray-500 text-sm">Access resources anytime, anywhere. Our digital library fits your schedule, not the other way around.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="reveal delay-200 relative">
+                <div class="relative">
+                    <div class="absolute -top-10 -right-10 w-full h-full bg-[#2F1341]/10 rounded-lg transform rotate-6"></div>
+                    <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&q=80" alt="Student Success" class="rounded-lg shadow-xl relative z-10 w-full">
+                    <div class="absolute -bottom-6 -left-6 bg-white p-6 rounded-lg shadow-xl z-20 border-l-4 border-[#2F1341]">
+                        <div class="flex items-center gap-4">
+                            <div class="text-3xl font-bold text-[#2F1341]">98%</div>
+                            <div class="text-sm text-gray-500 font-semibold uppercase tracking-wider">Pass Rate<br>Recorded</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURED COLLECTION -->
+<section class="py-20 bg-gray-50">
+    <div class="container mx-auto px-6">
+        <div class="text-center mb-16 reveal">
+            <span class="text-[#2F1341] font-semibold tracking-wider uppercase text-sm">Library Preview</span>
+            <h2 class="font-condensed text-4xl md:text-5xl font-bold text-[#B0522E] mt-2 mb-4">FEATURED COLLECTION</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">Handpicked educational resources for your learning journey</p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8">
+            {% for book in featured_books %}
+            <div class="book-card bg-white rounded-lg overflow-hidden shadow-lg reveal delay-{{ loop.index }}00">
+                <div class="relative h-64 overflow-hidden">
+                    <img src="{{ book.image_url }}" alt="{{ book.title }}" class="w-full h-full object-cover">
+                    <div class="book-overlay">
+                        <a href="{{ url_for('preview', book_id=book.id) }}" class="btn-primary px-6 py-2 rounded text-sm mb-2">
+                            {% if book.is_free %}Free Preview{% else %}Preview{% endif %}
+                        </a>
+                        <span class="text-sm">{% if book.is_free %}Free Access{% else %}{% if current_user.is_authenticated %}View Details{% else %}Login to Access{% endif %}{% endif %}</span>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <span class="text-[#00A4B4] text-xs font-bold uppercase tracking-wider">{{ book.category }}</span>
+                    <h3 class="font-bold text-xl text-gray-900 mt-2 mb-2">{{ book.title }}</h3>
+                    <p class="text-gray-600 text-sm mb-4">{{ book.description[:80] }}...</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-[#2F1341] font-bold text-lg">{% if book.is_free %}Free{% else %}₦{{ "{:,.0f}".format(book.price_naira) }}{% endif %}</span>
+                        <div class="flex text-yellow-400 text-sm">
+                            <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                            <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                            <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                            <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                            <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="text-center mt-12 reveal">
+            <a href="{{ url_for('search') }}" class="btn-ash px-8 py-4 rounded text-lg font-bold inline-flex items-center gap-2 group">
+                View All Books
+                <i data-lucide="arrow-right" class="w-5 h-5 transition-transform group-hover:translate-x-1"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- WHY CHOOSE IGLOBALS -->
+<section class="py-20 mb-10 bg-[#2F1341] text-white relative overflow-hidden">
+    <div class="absolute inset-0 opacity-20">
+        <img src="https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=1200&q=80" class="w-full h-full object-cover" alt="Library">
+    </div>
+    <div class="container mx-auto px-6 relative z-10">
+        <h2 class="font-condensed text-4xl md:text-5xl font-bold mb-16 text-center reveal">WHY CHOOSE IGLOBALS</h2>
+        <div class="grid md:grid-cols-3 gap-8">
+            <div class="bg-white/10 backdrop-blur p-8 rounded-lg reveal delay-100">
+                <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center mb-6">
+                    <i data-lucide="trophy" class="w-8 h-8 text-[#2F1341]"></i>
+                </div>
+                <h3 class="font-bold text-xl mb-4">Proven Success Stories</h3>
+                <p class="text-purple-100">Learn from the real-life strategies of nationwide top scorers who have walked the path before you.</p>
+            </div>
+            <div class="bg-white/10 backdrop-blur p-8 rounded-lg reveal delay-200">
+                <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center mb-6">
+                    <i data-lucide="brain-circuit" class="w-8 h-8 text-[#2F1341]"></i>
+                </div>
+                <h3 class="font-bold text-xl mb-4">Pattern Recognition</h3>
+                <p class="text-purple-100">We decode recurring exam patterns so you walk in knowing exactly what to expect and how to respond.</p>
+            </div>
+            <div class="bg-white/10 backdrop-blur p-8 rounded-lg reveal delay-300">
+                <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center mb-6">
+                    <i data-lucide="list-checks" class="w-8 h-8 text-[#2F1341]"></i>
+                </div>
+                <h3 class="font-bold text-xl mb-4">Faculty-Wide Checklists</h3>
+                <p class="text-purple-100">Complete revision checklists for Science, Arts, and Commercial faculties — nothing left to chance.</p>
+            </div>
+        </div>
+    </div>
+    <div class="absolute bottom-0 left-0 right-0 h-24 bg-[#2F1341]" style="clip-path: polygon(0 100%, 100% 100%, 100% 0, 0 100%);"></div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Scroll reveal animation
+    function reveal() {
+        const reveals = document.querySelectorAll('.reveal, .reveal-left, .reveal-right');
+        reveals.forEach(element => {
+            const windowHeight = window.innerHeight;
+            const elementTop = element.getBoundingClientRect().top;
+            const elementVisible = 150;
+            if (elementTop < windowHeight - elementVisible) {
+                element.classList.add('active');
+            }
+        });
+    }
+    window.addEventListener('scroll', reveal);
+    reveal();
+</script>
+{% endblock %}
+

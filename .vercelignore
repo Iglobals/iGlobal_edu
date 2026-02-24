@@ -1,0 +1,17 @@
+__pycache__
+.env
+.git
+.gitignore
+node_modules
+.pytest_cache
+*.pyc
+.DS_Store
+venv/
+env/
+drafts/
+*.md
+testdb.py
+check_book_content.py
+reset.py
+seed_data.py
+migrate_library.py

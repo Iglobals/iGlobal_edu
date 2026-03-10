@@ -77,36 +77,69 @@
     .contact__bg-image {
         position: absolute;
         bottom: 0; left: 0;
-        width: 100%; height: 93%;
+        width: 100%; height: 100%;
         object-fit: cover;
         z-index: 1;
         border-radius: 0.75rem;
+        transition: transform 0.6s cubic-bezier(0.33, 1, 0.68, 1);
     }
     /* Purple tint overlay on bg */
     .contact__img-bg::before {
         content: '';
         position: absolute;
         bottom: 0; left: 0;
-        width: 100%; height: 93%;
-        background: linear-gradient(to top, rgba(107,45,92,0.55) 0%, rgba(107,45,92,0.1) 60%, transparent 100%);
+        width: 100%; height: 100%;
+        background: linear-gradient(to top, rgba(107,45,92,0.65) 0%, rgba(107,45,92,0.2) 60%, transparent 100%);
         z-index: 2;
         border-radius: 0.75rem;
         pointer-events: none;
+        transition: opacity 0.4s ease;
     }
     .contact__img-person img {
         position: absolute;
         bottom: 0;
         left: 50%;
         transform: translateX(-50%) translateZ(40px);
-        height: 112%;
-        max-width: 90%;
+        height: 120%;
+        max-width: 95%;
         width: auto;
         object-fit: cover;
         object-position: top center;
         z-index: 3;
         pointer-events: none;
         border-radius: 0.5rem;
-        box-shadow: 0 12px 32px rgba(107,45,92,0.28);
+        box-shadow: 0 15px 35px rgba(107,45,92,0.3);
+        transition: transform 0.6s cubic-bezier(0.33, 1, 0.68, 1), filter 0.4s ease;
+    }
+
+    /* ── Hover Effects ── */
+    article:hover .contact__bg-image {
+        transform: scale(1.05);
+    }
+    article:hover .contact__img-person img {
+        transform: translateX(-50%) translateZ(60px) scale(1.05);
+        filter: drop-shadow(0 20px 40px rgba(0,0,0,0.3));
+    }
+    article:hover .contact__img-bg::before {
+        opacity: 0.8;
+    }
+
+    /* ── Floating Animation ── */
+    @keyframes floating {
+        0% { transform: translateX(-50%) translateZ(40px) translateY(0px); }
+        50% { transform: translateX(-50%) translateZ(40px) translateY(-10px); }
+        100% { transform: translateX(-50%) translateZ(40px) translateY(0px); }
+    }
+    .contact__img-person img {
+        animation: floating 4s ease-in-out infinite;
+    }
+    article:hover .contact__img-person img {
+        animation-play-state: paused;
+    }
+
+    /* ── Section Scroll Reveal ── */
+    section {
+        overflow: hidden;
     }
 </style>
 {% endblock %}
@@ -153,20 +186,20 @@
 <section class="bg-[#2F1341] text-white py-12">
     <div class="container mx-auto px-6">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div class="border-r border-purple-400 last:border-0 reveal">
-                <div class="font-condensed text-4xl font-bold mb-2">98%</div>
+            <div class="border-r border-purple-400 last:border-0 reveal hover:scale-105 transition-transform duration-300">
+                <div class="font-condensed text-4xl font-bold mb-2 group-hover:text-white transition-colors">98%</div>
                 <div class="text-purple-200 text-sm uppercase tracking-wider">Pass Rate Recorded</div>
             </div>
-            <div class="border-r border-purple-400 last:border-0 reveal delay-100">
-                <div class="font-condensed text-4xl font-bold mb-2">3</div>
+            <div class="border-r border-purple-400 last:border-0 reveal delay-100 hover:scale-105 transition-transform duration-300">
+                <div class="font-condensed text-4xl font-bold mb-2 group-hover:text-white transition-colors">3</div>
                 <div class="text-purple-200 text-sm uppercase tracking-wider">Faculties Covered</div>
             </div>
-            <div class="border-r border-purple-400 last:border-0 reveal delay-200">
-                <div class="font-condensed text-4xl font-bold mb-2">500+</div>
+            <div class="border-r border-purple-400 last:border-0 reveal delay-200 hover:scale-105 transition-transform duration-300">
+                <div class="font-condensed text-4xl font-bold mb-2 group-hover:text-white transition-colors">500+</div>
                 <div class="text-purple-200 text-sm uppercase tracking-wider">Past Questions</div>
             </div>
-            <div class="reveal delay-300">
-                <div class="font-condensed text-4xl font-bold mb-2">5,000+</div>
+            <div class="reveal delay-300 hover:scale-105 transition-transform duration-300">
+                <div class="font-condensed text-4xl font-bold mb-2 group-hover:text-white transition-colors">5,000+</div>
                 <div class="text-purple-200 text-sm uppercase tracking-wider">Students Served</div>
             </div>
         </div>
@@ -191,9 +224,9 @@
                     </p>
                 </div>
             </div>
-            <div class="reveal-right delay-200">
-                <div class="image-frame">
-                    <img src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&q=80" alt="Students Learning" class="w-full h-auto rounded-lg shadow-xl">
+            <div class="reveal-right delay-200 group">
+                <div class="image-frame overflow-hidden rounded-lg">
+                    <img src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&q=80" alt="Students Learning" class="w-full h-auto rounded-lg shadow-xl transition-transform duration-700 group-hover:scale-110">
                 </div>
             </div>
         </div>
@@ -218,33 +251,41 @@
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="group relative overflow-hidden rounded-lg cursor-pointer reveal delay-100">
                 <img src="https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&q=80" alt="Science" class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
-                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                    <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Faculty of</span>
-                    <h3 class="text-white font-bold text-lg">Science</h3>
+                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
+                    <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                        <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Faculty of</span>
+                        <h3 class="text-white font-bold text-lg">Science</h3>
+                    </div>
                 </div>
             </div>
             
             <div class="group relative overflow-hidden rounded-lg cursor-pointer reveal delay-200">
                 <img src="https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=600&q=80" alt="Arts" class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
-                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                    <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Faculty of</span>
-                    <h3 class="text-white font-bold text-lg">Arts & Humanities</h3>
+                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
+                    <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                        <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Faculty of</span>
+                        <h3 class="text-white font-bold text-lg">Arts & Humanities</h3>
+                    </div>
                 </div>
             </div>
             
             <div class="group relative overflow-hidden rounded-lg cursor-pointer reveal delay-300">
                 <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600&q=80" alt="Commercial" class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
-                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                    <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Faculty of</span>
-                    <h3 class="text-white font-bold text-lg">Commercial</h3>
+                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
+                    <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                        <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Faculty of</span>
+                        <h3 class="text-white font-bold text-lg">Commercial</h3>
+                    </div>
                 </div>
             </div>
             
             <div class="group relative overflow-hidden rounded-lg cursor-pointer reveal delay-400">
                 <img src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=600&q=80" alt="Exam Prep" class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
-                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                    <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Programme</span>
-                    <h3 class="text-white font-bold text-lg">JUPEB Mastery</h3>
+                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
+                    <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                        <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Programme</span>
+                        <h3 class="text-white font-bold text-lg">JUPEB Mastery</h3>
+                    </div>
                 </div>
             </div>
         </div>
@@ -330,8 +371,8 @@
 
         <div class="grid md:grid-cols-3 gap-8">
             <!-- Story 1 -->
-            <article class="pb-8 reveal delay-100">
-                <div class="contact__img js-tilt" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="600">
+            <article class="pb-8 reveal delay-100 group cursor-pointer focus-within:ring-2 focus-within:ring-purple-400 rounded-xl transition-all">
+                <div class="contact__img js-tilt" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="1000">
                     <div class="contact__img-bg">
                         <img src="{{ url_for('static', filename='bg.png') }}"
                              class="contact__bg-image" alt="Study background">
@@ -356,8 +397,8 @@
             </article>
 
             <!-- Story 2 -->
-            <article class="pb-8 reveal delay-200">
-                <div class="contact__img js-tilt" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="600">
+            <article class="pb-8 reveal delay-200 group cursor-pointer focus-within:ring-2 focus-within:ring-purple-400 rounded-xl transition-all">
+                <div class="contact__img js-tilt" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="1000">
                     <div class="contact__img-bg">
                         <img src="{{ url_for('static', filename='bg.png') }}" 
                             class="contact__bg-image" alt="Library background">
@@ -382,8 +423,8 @@
             </article>
 
             <!-- Story 3 -->
-            <article class="pb-8 reveal delay-300">
-                <div class="contact__img js-tilt" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="600">
+            <article class="pb-8 reveal delay-300 group cursor-pointer focus-within:ring-2 focus-within:ring-purple-400 rounded-xl transition-all">
+                <div class="contact__img js-tilt" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="1000">
                     <div class="contact__img-bg">
                         <img src="{{ url_for('static', filename='bg.png') }}"
                             class="contact__bg-image" alt="Study notes background">

@@ -89,9 +89,7 @@
             if (data.status === 'success') {
                 const handler = PaystackPop.setup({
                     key: '{{ paystack_public_key }}',
-                    email: '{{ current_user.email }}',
-                    amount: {{ total_amount * 100 }},
-                    ref: data.data.reference,
+                    access_code: data.data.access_code,
                     onClose: function(){
                         alert('Payment window closed.');
                     },

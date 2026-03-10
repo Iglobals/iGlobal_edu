@@ -202,6 +202,26 @@ def add_to_library(book_id):
     
     return jsonify({'status': 'added', 'message': 'Added to library'})
 
+@app.route('/api/library/remove/<int:book_id>', methods=['POST'])
+@login_required
+def remove_from_library(book_id):
+    library_item = LibraryItem.query.filter_by(user_id=current_user.id, book_id=book_id).first()
+
+    if not library_item:
+        return jsonify({'status': 'error', 'message': 'Book not in library'}), 404
+
+    # Check if purchased (if not free)
+    book = Book.query.get(book_id)
+    if not book.is_free:
+        purchase = Purchase.query.filter_by(user_id=current_user.id, book_id=book_id, payment_status='success').first()
+        if purchase:
+            return jsonify({'status': 'error', 'message': 'Cannot remove a purchased book from library'}), 400
+
+    db.session.delete(library_item)
+    db.session.commit()
+
+    return jsonify({'status': 'removed', 'message': 'Removed from library'})
+
 @app.route('/api/favorite/<int:book_id>', methods=['POST'])
 @login_required
 def toggle_favorite(book_id):
@@ -309,7 +329,31 @@ def payment(book_id):
     if purchase:
         return redirect(url_for('reading', book_id=book_id))
     
-    return render_template('payment.html', book=book, paystack_public_key=app.config['PAYSTACK_PUBLIC_KEY'])
+    # Calculate total with charges for display
+    total_amount = calculate_paystack_total(book.price_naira)
+
+    return render_template('payment.html',
+                         book=book,
+                         total_amount=total_amount,
+                         paystack_public_key=app.config['PAYSTACK_PUBLIC_KEY'])
+
+def calculate_paystack_total(amount):
+    """
+    Calculate the total amount to charge the user so that the merchant receives 'amount'.
+    Paystack Fee: 1.5% + NGN 100
+    NGN 100 fee is waived for transactions below NGN 2,500.
+    Fee is capped at NGN 2,000.
+    """
+    if amount < 2500:
+        total = (amount) / (1 - 0.015)
+    else:
+        total = (amount + 100) / (1 - 0.015)
+
+    # Check if fee exceeds 2000
+    if total - amount > 2000:
+        total = amount + 2000
+
+    return round(total, 2)
 
 @app.route('/api/payment/initialize', methods=['POST'])
 @login_required
@@ -318,38 +362,43 @@ def initialize_payment():
         data = request.get_json()
         book_id = data.get('book_id')
         book = Book.query.get_or_404(book_id)
-        
+
+        # Calculate total with charges
+        total_to_charge = calculate_paystack_total(book.price_naira)
+
         # Check if already purchased
         existing_purchase = Purchase.query.filter_by(
-            user_id=current_user.id, 
-            book_id=book_id, 
+            user_id=current_user.id,
+            book_id=book_id,
             payment_status='success'
         ).first()
-        
+
         if existing_purchase:
             return jsonify({'status': 'error', 'message': 'Book already purchased'}), 400
-        
+
         # Create or update purchase record
         purchase = Purchase.query.filter_by(
             user_id=current_user.id,
             book_id=book_id
         ).filter(Purchase.payment_status != 'success').first()
-        
+
         if not purchase:
             purchase = Purchase(
                 user_id=current_user.id,
                 book_id=book_id,
-                amount_paid=book.price_naira,
+                amount_paid=total_to_charge,
                 payment_status='pending'
             )
             db.session.add(purchase)
             db.session.flush()  # Get the ID without committing
-        
+        else:
+            purchase.amount_paid = total_to_charge
+
         # Generate unique reference
         reference = f'IGS-{purchase.id}-{int(datetime.now().timestamp())}'
         purchase.payment_reference = reference
         db.session.commit()
-        
+
         # Initialize Paystack payment
         url = 'https://api.paystack.co/transaction/initialize'
         headers = {
@@ -358,7 +407,7 @@ def initialize_payment():
         }
         payload = {
             'email': current_user.email,
-            'amount': int(book.price_naira * 100),  # Paystack uses kobo
+            'amount': int(total_to_charge * 100),  # Paystack uses kobo
             'reference': reference,
             'callback_url': url_for('verify_payment', reference=reference, _external=True),
             'metadata': {
@@ -366,7 +415,9 @@ def initialize_payment():
                 'book_id': book_id,
                 'book_title': book.title,
                 'user_id': current_user.id,
-                'user_name': current_user.full_name
+                'user_name': current_user.full_name,
+                'base_amount': book.price_naira,
+                'total_amount': total_to_charge
             }
         }
         

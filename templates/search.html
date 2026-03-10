@@ -305,8 +305,8 @@
                     <span class="book-price {% if book.is_free %}free{% endif %}">
                         {% if book.is_free %}
                             Free
-                        {% elif book.price_naira == 4999 %}
-                            <span class="text-xs text-gray-400 line-through mr-1">₦5,997</span>₦4,999
+                        {% elif book.price_naira|int == 4999 %}
+                            <span class="text-xs text-[#FF4500] line-through mr-1 font-bold">₦5,997</span>₦4,999
                         {% else %}
                             ₦{{ "{:,.0f}".format(book.price_naira) }}
                         {% endif %}

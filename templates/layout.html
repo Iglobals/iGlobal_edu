@@ -4,6 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}iGlobals Educational Services{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='logo.png') }}">
+
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="iGlobals Educational Services">
+    <meta name="description" content="Empowering learners worldwide with quality educational resources and innovative digital solutions.">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:title" content="{% block og_title %}iGlobals Educational Services{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Empowering learners worldwide with quality educational resources and innovative digital solutions.{% endblock %}">
+    <meta property="og:image" content="{{ url_for('static', filename='logo.png', _external=True) }}">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ request.url }}">
+    <meta property="twitter:title" content="{% block twitter_title %}iGlobals Educational Services{% endblock %}">
+    <meta property="twitter:description" content="{% block twitter_description %}Empowering learners worldwide with quality educational resources and innovative digital solutions.{% endblock %}">
+    <meta property="twitter:image" content="{{ url_for('static', filename='logo.png', _external=True) }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>

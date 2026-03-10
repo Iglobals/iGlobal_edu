@@ -186,6 +186,14 @@ def logout():
 def forgot_password():
     return render_template('forgot_password.html')
 
+@app.route('/sitemap.xml')
+def sitemap():
+    return render_template('sitemap.xml'), 200, {'Content-Type': 'application/xml'}
+
+@app.route('/robots.txt')
+def robots():
+    return render_template('robots.txt'), 200, {'Content-Type': 'text/plain'}
+
 # API Routes
 @app.route('/api/library/add/<int:book_id>', methods=['POST'])
 @login_required

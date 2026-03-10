@@ -70,12 +70,22 @@
 
                 <div>
                     <label class="block text-gray-700 text-sm font-bold mb-2 uppercase tracking-wide">Password</label>
-                    <input type="password" name="password" class="input-field" placeholder="••••••••" required>
+                    <div class="relative">
+                        <input type="password" name="password" id="password" class="input-field pr-12" placeholder="••••••••" required>
+                        <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 focus:outline-none z-20 p-2" onclick="togglePassword('password', this)">
+                            <i data-lucide="eye" class="w-5 h-5 text-gray-400 hover:text-[#2F1341] transition-colors"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div>
                     <label class="block text-gray-700 text-sm font-bold mb-2 uppercase tracking-wide">Confirm Password</label>
-                    <input type="password" name="confirm_password" class="input-field" placeholder="••••••••" required>
+                    <div class="relative">
+                        <input type="password" name="confirm_password" id="confirm_password" class="input-field pr-12" placeholder="••••••••" required>
+                        <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 focus:outline-none z-20 p-2" onclick="togglePassword('confirm_password', this)">
+                            <i data-lucide="eye" class="w-5 h-5 text-gray-400 hover:text-[#2F1341] transition-colors"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="flex items-start">
@@ -116,7 +126,20 @@
 
     <script>
         lucide.createIcons();
+
+        function togglePassword(inputId, button) {
+            const input = document.getElementById(inputId);
+            const icon = button.querySelector('i');
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
     </script>
 </body>
 </html>
-

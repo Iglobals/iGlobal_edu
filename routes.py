@@ -1,11 +1,13 @@
-from flask import render_template, request, redirect, url_for, flash, jsonify, session
+from flask import render_template, request, redirect, url_for, flash, jsonify, session, make_response
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import app
 from extensions import db
-from models import User, Book, Review, Favorite, Purchase, Note, LibraryItem
+from models import User, Book, Review, Favorite, Purchase, Note, LibraryItem, OTPCode
 import requests
-from datetime import datetime
+import random
+import os
+from datetime import datetime, timedelta
 
 @app.route('/')
 def index():
@@ -42,10 +44,9 @@ def search():
 def preview(book_id):
     book = Book.query.get_or_404(book_id)
     
-    # Get preview content (first 3-5 pages)
-    preview_count = 3  # Can be changed easily
-    preview_chapters = book.chapters[:preview_count] if book.chapters else []
-    preview_content = book.content[:preview_count] if book.content else []
+    # Send all chapters — frontend will paginate and cap at MAX_PREVIEW_PAGES
+    preview_chapters = book.chapters if book.chapters else []
+    preview_content = book.content if book.content else []
     
     # Check if in library (if logged in)
     in_library = False
@@ -131,49 +132,56 @@ def reading(book_id):
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('library'))
-    
+
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        remember = request.form.get('remember', False)
-        
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+
         user = User.query.filter_by(email=email).first()
-        
-        if user and check_password_hash(user.password_hash, password):
+
+        if not user:
+            flash('No account found with that email address.', 'danger')
+        elif not check_password_hash(user.password_hash, password):
+            flash('Incorrect password. Please try again.', 'danger')
+        else:
+            remember = request.form.get('remember', False)
             login_user(user, remember=remember)
             next_page = request.args.get('next')
             return redirect(next_page if next_page else url_for('library'))
-        else:
-            flash('Invalid email or password', 'danger')
-    
+
     return render_template('login.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if current_user.is_authenticated:
         return redirect(url_for('library'))
-    
+
     if request.method == 'POST':
-        full_name = request.form.get('full_name')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        if User.query.filter_by(email=email).first():
-            flash('Email already registered', 'danger')
-            return redirect(url_for('signup'))
-        
-        user = User(
-            full_name=full_name,
-            email=email,
-            password_hash=generate_password_hash(password)
-        )
-        db.session.add(user)
-        db.session.commit()
-        
-        login_user(user)
-        flash('Account created successfully!', 'success')
-        return redirect(url_for('library'))
-    
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        if not full_name:
+            flash('Please enter your full name.', 'danger')
+        elif User.query.filter_by(email=email).first():
+            flash('An account with that email already exists. Try logging in instead.', 'danger')
+        elif len(password) < 6:
+            flash('Password must be at least 6 characters.', 'danger')
+        elif password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+        else:
+            user = User(
+                full_name=full_name,
+                email=email,
+                password_hash=generate_password_hash(password)
+            )
+            db.session.add(user)
+            db.session.commit()
+            login_user(user)
+            flash('Account created successfully! Welcome to iGlobals.', 'success')
+            return redirect(url_for('library'))
+
     return render_template('signup.html')
 
 @app.route('/logout')
@@ -182,17 +190,134 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
-@app.route('/forgot-password')
+def send_otp_email(to_email, to_name, otp):
+    """Send OTP via Brevo transactional email API."""
+    api_key = os.environ.get('BREVO_API_KEY', '')
+    payload = {
+        "sender": {
+            "name": os.environ.get('EMAIL_FROM_NAME', 'iGlobals'),
+            "email": os.environ.get('EMAIL_FROM', 'no-reply@iglobals.com')
+        },
+        "to": [{"email": to_email, "name": to_name}],
+        "subject": "Your iGlobals Password Reset OTP",
+        "htmlContent": (
+            "<html><body style='font-family:Inter,sans-serif;background:#f3f4f6;padding:2rem;'>"
+            "<div style='max-width:480px;margin:0 auto;background:white;border-radius:12px;padding:2.5rem;box-shadow:0 4px 20px rgba(0,0,0,0.08);'>"
+            "<div style='text-align:center;margin-bottom:1.5rem;'>"
+            "<div style='display:inline-block;background:#2F1341;border-radius:8px;padding:0.6rem 1rem;'>"
+            "<span style='color:white;font-weight:800;font-size:1.1rem;letter-spacing:0.05em;'>IGLOBALS</span></div></div>"
+            "<h2 style='color:#2F1341;font-size:1.4rem;font-weight:700;margin-bottom:0.5rem;'>Password Reset OTP</h2>"
+            "<p style='color:#6b7280;margin-bottom:1.5rem;'>Use the code below to reset your password. It expires in <strong>5 minutes</strong>.</p>"
+            f"<div style='background:#f3e8ff;border-radius:10px;padding:1.5rem;text-align:center;margin-bottom:1.5rem;'>"
+            f"<span style='font-size:2.5rem;font-weight:800;letter-spacing:0.3em;color:#2F1341;'>{otp}</span></div>"
+            "<p style='color:#9ca3af;font-size:0.8rem;'>If you didn't request this, you can safely ignore this email.</p>"
+            "</div></body></html>"
+        )
+    }
+    headers = {
+        'accept': 'application/json',
+        'api-key': api_key,
+        'content-type': 'application/json'
+    }
+    try:
+        resp = requests.post('https://api.brevo.com/v3/smtp/email', json=payload, headers=headers, timeout=10)
+        return resp.status_code == 201
+    except Exception:
+        return False
+
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            flash('No account found with that email address.', 'danger')
+            return render_template('forgot_password.html')
+
+        # Invalidate any existing unused OTPs for this user
+        OTPCode.query.filter_by(user_id=user.id, used=False).delete()
+        db.session.flush()
+
+        otp = str(random.randint(100000, 999999))
+        record = OTPCode(
+            user_id=user.id,
+            code=otp,
+            expires_at=datetime.utcnow() + timedelta(minutes=5)
+        )
+        db.session.add(record)
+        db.session.commit()
+
+        sent = send_otp_email(email, user.full_name, otp)
+        if not sent:
+            flash('Failed to send OTP email. Please try again shortly.', 'danger')
+            return render_template('forgot_password.html')
+
+        session['otp_user_id'] = user.id
+        return redirect(url_for('verify_otp'))
     return render_template('forgot_password.html')
 
-@app.route('/sitemap.xml')
-def sitemap():
-    return render_template('sitemap.xml'), 200, {'Content-Type': 'application/xml'}
 
-@app.route('/robots.txt')
-def robots():
-    return render_template('robots.txt'), 200, {'Content-Type': 'text/plain'}
+@app.route('/verify-otp', methods=['GET', 'POST'])
+def verify_otp():
+    user_id = session.get('otp_user_id')
+    if not user_id:
+        return redirect(url_for('forgot_password'))
+
+    user = User.query.get(user_id)
+    if not user:
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        entered = request.form.get('otp', '').strip()
+        record = OTPCode.query.filter_by(user_id=user_id, used=False).order_by(OTPCode.created_at.desc()).first()
+
+        if not record or datetime.utcnow() > record.expires_at:
+            # Clean up expired record
+            if record:
+                db.session.delete(record)
+                db.session.commit()
+            flash('OTP has expired. Please request a new one.', 'danger')
+            return redirect(url_for('forgot_password'))
+
+        if entered == record.code:
+            record.used = True
+            db.session.commit()
+            session['otp_verified_user_id'] = user_id
+            session.pop('otp_user_id', None)
+            return redirect(url_for('reset_password'))
+        else:
+            flash('Invalid OTP. Please try again.', 'danger')
+
+    return render_template('verify_otp.html', email=user.email)
+
+
+@app.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    user_id = session.get('otp_verified_user_id')
+    if not user_id:
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        confirm = request.form.get('confirm_password', '')
+        if len(password) < 6:
+            flash('Password must be at least 6 characters.', 'danger')
+            return render_template('reset_password.html')
+        if password != confirm:
+            flash('Passwords do not match.', 'danger')
+            return render_template('reset_password.html')
+
+        user = User.query.get(user_id)
+        if user:
+            user.password_hash = generate_password_hash(password)
+            db.session.commit()
+
+        session.pop('otp_verified_user_id', None)
+        flash('Password reset successfully. You can now log in.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('reset_password.html')
 
 # API Routes
 @app.route('/api/library/add/<int:book_id>', methods=['POST'])
@@ -209,26 +334,6 @@ def add_to_library(book_id):
     db.session.commit()
     
     return jsonify({'status': 'added', 'message': 'Added to library'})
-
-@app.route('/api/library/remove/<int:book_id>', methods=['POST'])
-@login_required
-def remove_from_library(book_id):
-    library_item = LibraryItem.query.filter_by(user_id=current_user.id, book_id=book_id).first()
-
-    if not library_item:
-        return jsonify({'status': 'error', 'message': 'Book not in library'}), 404
-
-    # Check if purchased (if not free)
-    book = Book.query.get(book_id)
-    if not book.is_free:
-        purchase = Purchase.query.filter_by(user_id=current_user.id, book_id=book_id, payment_status='success').first()
-        if purchase:
-            return jsonify({'status': 'error', 'message': 'Cannot remove a purchased book from library'}), 400
-
-    db.session.delete(library_item)
-    db.session.commit()
-
-    return jsonify({'status': 'removed', 'message': 'Removed from library'})
 
 @app.route('/api/favorite/<int:book_id>', methods=['POST'])
 @login_required
@@ -327,41 +432,24 @@ def add_note(book_id):
 @login_required
 def payment(book_id):
     book = Book.query.get_or_404(book_id)
-    
+
     if book.is_free:
         flash('This book is free!', 'info')
         return redirect(url_for('reading', book_id=book_id))
-    
-    # Check if already purchased
+
     purchase = Purchase.query.filter_by(user_id=current_user.id, book_id=book_id, payment_status='success').first()
     if purchase:
         return redirect(url_for('reading', book_id=book_id))
-    
-    # Calculate total with charges for display
-    total_amount = calculate_paystack_total(book.price_naira)
 
-    return render_template('payment.html',
-                         book=book,
-                         total_amount=total_amount,
-                         paystack_public_key=app.config['PAYSTACK_PUBLIC_KEY'])
+    resp = make_response(render_template('payment.html', book=book, paystack_public_key=app.config['PAYSTACK_PUBLIC_KEY']))
 
-def calculate_paystack_total(amount):
-    """
-    Calculate the total amount to charge the user so that the merchant receives 'amount'.
-    Paystack Fee: 1.5% + NGN 100
-    NGN 100 fee is waived for transactions below NGN 2,500.
-    Fee is capped at NGN 2,000.
-    """
-    if amount < 2500:
-        total = (amount) / (1 - 0.015)
-    else:
-        total = (amount + 100) / (1 - 0.015)
+    # Set referral cookie if ?ref= is in the URL and no cookie already set
+    ref = request.args.get('ref', '').strip()
+    if ref and not request.cookies.get('igref'):
+        from models import REFERRAL_COOKIE_DAYS
+        resp.set_cookie('igref', ref, max_age=REFERRAL_COOKIE_DAYS * 86400, httponly=True, samesite='Lax')
 
-    # Check if fee exceeds 2000
-    if total - amount > 2000:
-        total = amount + 2000
-
-    return round(total, 2)
+    return resp
 
 @app.route('/api/payment/initialize', methods=['POST'])
 @login_required
@@ -370,43 +458,38 @@ def initialize_payment():
         data = request.get_json()
         book_id = data.get('book_id')
         book = Book.query.get_or_404(book_id)
-
-        # Calculate total with charges
-        total_to_charge = calculate_paystack_total(book.price_naira)
-
+        
         # Check if already purchased
         existing_purchase = Purchase.query.filter_by(
-            user_id=current_user.id,
-            book_id=book_id,
+            user_id=current_user.id, 
+            book_id=book_id, 
             payment_status='success'
         ).first()
-
+        
         if existing_purchase:
             return jsonify({'status': 'error', 'message': 'Book already purchased'}), 400
-
+        
         # Create or update purchase record
         purchase = Purchase.query.filter_by(
             user_id=current_user.id,
             book_id=book_id
         ).filter(Purchase.payment_status != 'success').first()
-
+        
         if not purchase:
             purchase = Purchase(
                 user_id=current_user.id,
                 book_id=book_id,
-                amount_paid=total_to_charge,
+                amount_paid=book.price_naira,
                 payment_status='pending'
             )
             db.session.add(purchase)
             db.session.flush()  # Get the ID without committing
-        else:
-            purchase.amount_paid = total_to_charge
-
+        
         # Generate unique reference
         reference = f'IGS-{purchase.id}-{int(datetime.now().timestamp())}'
         purchase.payment_reference = reference
         db.session.commit()
-
+        
         # Initialize Paystack payment
         url = 'https://api.paystack.co/transaction/initialize'
         headers = {
@@ -415,7 +498,7 @@ def initialize_payment():
         }
         payload = {
             'email': current_user.email,
-            'amount': int(total_to_charge * 100),  # Paystack uses kobo
+            'amount': int(book.price_naira * 100),  # Paystack uses kobo
             'reference': reference,
             'callback_url': url_for('verify_payment', reference=reference, _external=True),
             'metadata': {
@@ -424,8 +507,7 @@ def initialize_payment():
                 'book_title': book.title,
                 'user_id': current_user.id,
                 'user_name': current_user.full_name,
-                'base_amount': book.price_naira,
-                'total_amount': total_to_charge
+                'ref_code': request.cookies.get('igref', '')
             }
         }
         
@@ -465,22 +547,23 @@ def verify_payment(reference):
                 purchase = Purchase.query.filter_by(payment_reference=reference).first()
                 if purchase:
                     purchase.payment_status = 'success'
-                    
-                    # Also add to library if not already there
+
                     library_item = LibraryItem.query.filter_by(
                         user_id=current_user.id,
                         book_id=purchase.book_id
                     ).first()
-                    
                     if not library_item:
-                        library_item = LibraryItem(
+                        db.session.add(LibraryItem(
                             user_id=current_user.id,
                             book_id=purchase.book_id
-                        )
-                        db.session.add(library_item)
-                    
+                        ))
+
+                    # Attribute referral commission if cookie present
+                    from models import attribute_referral
+                    ref_code = request.cookies.get('igref')
+                    attribute_referral(purchase, ref_code)
+
                     db.session.commit()
-                    
                     flash('Payment successful! You can now access the book.', 'success')
                     return redirect(url_for('reading', book_id=purchase.book_id))
         
@@ -494,3 +577,54 @@ def verify_payment(reference):
 @app.context_processor
 def inject_user():
     return dict(current_user=current_user)
+
+
+# ── Paystack Webhook ──────────────────────────────────────────────────────
+import hmac
+import hashlib
+
+@app.route('/api/payment/webhook', methods=['POST'])
+def paystack_webhook():
+    secret = os.environ.get('PAYSTACK_SECRET_KEY', '')
+
+    # 1. Verify signature
+    sig = request.headers.get('x-paystack-signature', '')
+    body = request.get_data()  # raw bytes — must be used before .get_json()
+    expected = hmac.new(secret.encode(), body, hashlib.sha512).hexdigest()
+
+    if not hmac.compare_digest(expected, sig):
+        return jsonify({'status': 'invalid signature'}), 401
+
+    # 2. Acknowledge immediately (Paystack requires 200 fast)
+    event = request.get_json(force=True, silent=True) or {}
+    event_type = event.get('event')
+
+    # 3. Handle charge.success
+    if event_type == 'charge.success':
+        data      = event.get('data', {})
+        reference = data.get('reference')
+        status    = data.get('status')
+
+        if reference and status == 'success':
+            purchase = Purchase.query.filter_by(payment_reference=reference).first()
+            if purchase and purchase.payment_status != 'success':
+                purchase.payment_status = 'success'
+
+                library_item = LibraryItem.query.filter_by(
+                    user_id=purchase.user_id,
+                    book_id=purchase.book_id
+                ).first()
+                if not library_item:
+                    db.session.add(LibraryItem(
+                        user_id=purchase.user_id,
+                        book_id=purchase.book_id
+                    ))
+
+                # Attribute referral — webhook carries metadata we stored at init
+                from models import attribute_referral
+                ref_code = (data.get('metadata') or {}).get('ref_code')
+                attribute_referral(purchase, ref_code)
+
+                db.session.commit()
+
+    return jsonify({'status': 'ok'}), 200

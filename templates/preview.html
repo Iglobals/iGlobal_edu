@@ -2,59 +2,56 @@
 
 {% block title %}{{ book.title }} - Preview{% endblock %}
 
+{% block og_tags %}
+<meta property="og:type"        content="book">
+<meta property="og:site_name"   content="iGlobals Educational Services">
+<meta property="og:title"       content="{{ book.title }} — Preview">
+<meta property="og:description" content="{{ book.description[:150] if book.description else book.category + ' study material by ' + book.author }}">
+<meta property="og:image"       content="{{ book.image_url }}">
+<meta property="og:url"         content="https://iglobalseducationalservices.org/preview/{{ book.id }}">
+<meta name="twitter:card"       content="summary_large_image">
+<meta name="twitter:title"      content="{{ book.title }}">
+<meta name="twitter:description" content="{{ book.description[:150] if book.description else '' }}">
+<meta name="twitter:image"      content="{{ book.image_url }}">
+{% endblock %}
+
 {% block extra_css %}
 <style>
     .preview-hero {
         background: linear-gradient(135deg, #2F1341 0%, #4A1F5C 100%);
         padding: 4rem 0 3rem;
     }
-    
-    .preview-carousel {
-        position: relative;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        transition: height 0.4s ease;
-        overflow: hidden;
-    }
-
-    .carousel-content {
-        display: flex;
-        align-items: flex-start;
-        transition: transform 0.4s ease;
-    }
-
-    .carousel-page {
-        min-width: 100%;
-        padding: 3rem;
-        box-sizing: border-box;
-    }
-    
     .carousel-nav {
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
-        background: rgba(47, 19, 65, 0.9);
+        background: rgba(47, 19, 65, 0.85);
         color: white;
         border: none;
-        width: 48px;
-        height: 48px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.3s;
+        transition: all 0.2s;
         z-index: 10;
     }
     
     .carousel-nav:hover {
         background: #2F1341;
-        transform: translateY(-50%) scale(1.1);
+        transform: translateY(-50%) scale(1.08);
     }
     
-    .carousel-nav.prev { left: 1rem; }
-    .carousel-nav.next { right: 1rem; }
+    .carousel-nav.prev { left: 0.5rem; }
+    .carousel-nav.next { right: 0.5rem; }
+
+    @media(min-width: 640px) {
+        .carousel-nav { width: 44px; height: 44px; }
+        .carousel-nav.prev { left: 0.75rem; }
+        .carousel-nav.next { right: 0.75rem; }
+    }
     
     .carousel-indicators {
         display: flex;
@@ -131,6 +128,59 @@
         font-weight: 700;
         color: #2F1341;
     }
+
+    /* Carousel — each page is 70vh, content clipped, pagination handles overflow */
+    .preview-carousel {
+        position: relative;
+        background: #fffef9;
+        border-radius: 2px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.12), 0 4px 24px rgba(0,0,0,0.08);
+        overflow: hidden;
+        height: 70vh;
+    }
+
+    .carousel-content {
+        display: flex;
+        transition: transform 0.35s ease;
+        height: 100%;
+    }
+
+    .carousel-page {
+        min-width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        padding: 1.75rem 2.5rem;
+        font-size: 0.93rem;
+        line-height: 1.85;
+        color: #1a1a2e;
+        overflow: hidden;   /* clipped — pagination handles the rest */
+    }
+
+    @media (max-width: 640px) {
+        .preview-carousel { height: 70vh; }
+        .carousel-page { padding: 1.25rem 0.85rem; font-size: 0.86rem; }
+    }
+    @media (max-width: 400px) {
+        .carousel-page { padding: 1rem 0.5rem; font-size: 0.82rem; }
+    }
+
+    /* Page label strip above carousel */
+    .carousel-page-label {
+        font-size: 0.7rem; color: #9ca3af;
+        text-align: right; padding: 0.4rem 0.5rem 0.2rem;
+        letter-spacing: 0.04em; text-transform: uppercase;
+    }
+
+    /* ── Tiny mobile (<350px) ── */
+    @media (max-width: 349px) {
+        .container { padding-left: 3px !important; padding-right: 3px !important; }
+        .carousel-page { padding: 0.75rem 0.4rem !important; font-size: 0.76rem !important; }
+        .carousel-page h3 { font-size: 0.9rem !important; }
+        .preview-hero h1 { font-size: 1.5rem !important; }
+        .preview-hero p  { font-size: 0.78rem !important; }
+        h2.font-condensed { font-size: 1.2rem !important; }
+        .carousel-nav { width: 32px !important; height: 32px !important; }
+    }
 </style>
 {% endblock %}
 
@@ -144,12 +194,10 @@
             <div class="text-white">
                 <span class="text-sm uppercase tracking-wider text-purple-300 font-semibold">{{ book.category }}</span>
                 <h1 class="font-condensed text-4xl md:text-5xl font-bold mt-2 mb-4">{{ book.title }}</h1>
+                <p class="text-xl text-purple-200 mb-2">By {{ book.author }}</p>
                 <div class="text-3xl font-bold mb-6">
                     {% if book.is_free %}
                         <span class="text-[#B0522E]">FREE</span>
-                    {% elif book.price_naira|int == 4999 %}
-                        <span class="text-lg text-[#FF4500] line-through mr-2 font-bold">₦5,997</span>
-                        ₦4,999
                     {% else %}
                         ₦{{ "{:,.0f}".format(book.price_naira) }}
                     {% endif %}
@@ -192,16 +240,11 @@
             <div class="mb-6">
                 <p class="text-lg leading-relaxed text-gray-700 max-w-3xl">{{ book.description }}</p>
                 <p class="text-sm text-gray-500 mt-3">
-                    <span class="font-semibold">Chapters:</span> {{ book.chapters|length if book.chapters else 0 }} •
-                    <span class="font-semibold">Price:</span>
+                    <span class="font-semibold">By:</span> {{ book.author }} • 
+                    <span class="font-semibold">Chapters:</span> {{ book.chapters|length if book.chapters else 0 }} • 
+                    <span class="font-semibold">Price:</span> 
                     <span class="text-[#2F1341] font-bold">
-                        {% if book.is_free %}
-                            FREE
-                        {% elif book.price_naira|int == 4999 %}
-                            <span class="text-xs text-[#FF4500] line-through mr-1 font-bold">₦5,997</span>₦4,999
-                        {% else %}
-                            ₦{{ "{:,.0f}".format(book.price_naira) }}
-                        {% endif %}
+                        {% if book.is_free %}FREE{% else %}₦{{ "{:,.0f}".format(book.price_naira) }}{% endif %}
                     </span>
                 </p>
             </div>
@@ -234,36 +277,21 @@
 
         <!-- Preview Content -->
         <div class="mb-12">
-            <h2 class="font-condensed text-3xl font-bold text-[#2F1341] mb-6 text-center">Preview Content</h2>
-            <p class="text-center text-gray-600 mb-8">Swipe through the first {{ preview_content|length }} pages</p>
-            
-            <div class="preview-carousel">
-                <button class="carousel-nav prev" onclick="prevPage()" aria-label="Previous page">
-                    <i data-lucide="chevron-left" class="w-6 h-6"></i>
-                </button>
-                
-                <div class="carousel-content" id="carouselContent">
-                    {% for i in range(preview_content|length) %}
-                    <div class="carousel-page">
-                        <h3 class="font-condensed text-2xl font-bold text-[#2F1341] mb-4">
-                            {{ preview_chapters[i] if i < preview_chapters|length else 'Chapter ' ~ (i+1) }}
-                        </h3>
-                        <div class="prose max-w-none">
-                            {{ preview_content[i]|safe }}
-                        </div>
-                    </div>
-                    {% endfor %}
+            <h2 class="font-condensed text-3xl font-bold text-[#2F1341] mb-3 text-center">Preview Content</h2>
+            <p class="text-center text-gray-500 text-sm mb-4">Swipe or use arrows to navigate pages</p>
+
+            <div style="background:#e8e0ed; border-radius:4px; padding:0.75rem 0.5rem;">
+                <div class="carousel-page-label" id="carouselPageLabel"></div>
+                <div class="preview-carousel">
+                    <button class="carousel-nav prev" onclick="prevPage()" aria-label="Previous page">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                    </button>
+                    <div class="carousel-content" id="carouselContent"></div>
+                    <button class="carousel-nav next" onclick="nextPage()" aria-label="Next page">
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
                 </div>
-                
-                <button class="carousel-nav next" onclick="nextPage()" aria-label="Next page">
-                    <i data-lucide="chevron-right" class="w-6 h-6"></i>
-                </button>
-            </div>
-            
-            <div class="carousel-indicators">
-                {% for i in range(preview_content|length) %}
-                <div class="indicator {% if i == 0 %}active{% endif %}" onclick="goToPage({{ i }})"></div>
-                {% endfor %}
+                <div class="carousel-indicators" id="carouselIndicators"></div>
             </div>
         </div>
 
@@ -294,102 +322,147 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/security.js') }}"></script>
 <script>
-    let currentPage = 0;
-    const totalPages = {{ preview_content|length }};
-    
-    function updateCarousel() {
-        const carousel = document.querySelector('.preview-carousel');
-        const content = document.getElementById('carouselContent');
-        const pages = document.querySelectorAll('.carousel-page');
+const previewChapters = {{ preview_chapters | tojson }};
+const previewContent  = {{ preview_content  | tojson }};
 
-        content.style.transform = `translateX(-${currentPage * 100}%)`;
+// Words per page — same constant as reading.html
+// Adjust this number to control page length (more = longer pages)
+const WORDS_PER_PAGE = 100;
 
-        // Update carousel height to match current page
-        const currentPageHeight = pages[currentPage].offsetHeight;
-        carousel.style.height = currentPageHeight + 'px';
+// ── Pixel-height pagination (70vh per page) ────────────────────────────────
+function paginateChapter(htmlContent) {
+    const pageH  = Math.floor(window.innerHeight * 0.70);
+    const padV   = window.innerWidth <= 640 ? 40 : 56;
+    const availH = pageH - padV;
+    const pageW  = Math.min(860, window.innerWidth) - (window.innerWidth <= 400 ? 16 : window.innerWidth <= 640 ? 28 : 80);
 
-        // Update indicators
-        document.querySelectorAll('.indicator').forEach((ind, idx) => {
-            ind.classList.toggle('active', idx === currentPage);
-        });
+    const probe = document.createElement('div');
+    probe.style.cssText = [
+        'position:fixed','top:-9999px','left:-9999px',
+        `width:${pageW}px`,
+        'font-size:0.93rem','line-height:1.85',
+        'font-family:Inter,sans-serif',
+        'visibility:hidden','pointer-events:none'
+    ].join(';');
+    document.body.appendChild(probe);
 
-        // Update button states
-        document.querySelector('.carousel-nav.prev').style.opacity = currentPage === 0 ? '0.5' : '1';
-        document.querySelector('.carousel-nav.next').style.opacity = currentPage === totalPages - 1 ? '0.5' : '1';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = htmlContent;
+    const nodes = Array.from(tmp.childNodes).filter(n =>
+        n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim())
+    );
+
+    const pages = [];
+    let bucket = [], bucketH = 0;
+
+    function flush() {
+        if (!bucket.length) return;
+        const w = document.createElement('div');
+        bucket.forEach(n => w.appendChild(n.cloneNode(true)));
+        pages.push(w.innerHTML);
+        bucket = []; bucketH = 0;
     }
 
-    // Call on load and resize
-    window.addEventListener('load', updateCarousel);
-    window.addEventListener('resize', updateCarousel);
-    
-    function nextPage() {
-        if (currentPage < totalPages - 1) {
-            currentPage++;
-            updateCarousel();
+    nodes.forEach(node => {
+        probe.innerHTML = '';
+        probe.appendChild(node.cloneNode(true));
+        const nodeH = probe.scrollHeight;
+        if (bucketH > 0 && bucketH + nodeH > availH) flush();
+        bucket.push(node);
+        bucketH += nodeH;
+    });
+    flush();
+
+    document.body.removeChild(probe);
+    return pages.length ? pages : [htmlContent];
+}
+
+const MAX_PREVIEW_PAGES = 5;
+
+// ── Build flat page list, capped at MAX_PREVIEW_PAGES ─────────────────────
+let allPages = [];
+let currentPage = 0;
+
+function buildPages() {
+    allPages = [];
+    for (let ci = 0; ci < previewContent.length; ci++) {
+        const title = previewChapters[ci] || `Chapter ${ci + 1}`;
+        const subPages = paginateChapter(previewContent[ci]);
+        for (let pi = 0; pi < subPages.length; pi++) {
+            allPages.push({ title, html: subPages[pi] });
+            if (allPages.length >= MAX_PREVIEW_PAGES) return; // hard cap
         }
     }
-    
-    function prevPage() {
-        if (currentPage > 0) {
-            currentPage--;
-            updateCarousel();
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderCarousel() {
+    const container = document.getElementById('carouselContent');
+    container.innerHTML = allPages.map((p, i) =>
+        `<div class="carousel-page" data-idx="${i}">
+            <h3 style="font-family:'Roboto Condensed',sans-serif;font-size:1.1rem;font-weight:700;color:#2F1341;margin-bottom:0.75rem;">${p.title}</h3>
+            <div>${p.html}</div>
+        </div>`
+    ).join('');
+
+    const indWrap = document.getElementById('carouselIndicators');
+    indWrap.innerHTML = allPages.map((_, i) =>
+        `<div class="indicator ${i === 0 ? 'active' : ''}" onclick="goToPage(${i})"></div>`
+    ).join('');
+
+    updateCarousel();
+    lucide.createIcons();
+}
+
+function updateCarousel() {
+    document.getElementById('carouselContent').style.transform = `translateX(-${currentPage * 100}%)`;
+    document.querySelectorAll('.indicator').forEach((el, i) => el.classList.toggle('active', i === currentPage));
+    document.querySelector('.carousel-nav.prev').style.opacity = currentPage === 0 ? '0.35' : '1';
+    document.querySelector('.carousel-nav.next').style.opacity = currentPage === allPages.length - 1 ? '0.35' : '1';
+
+    // Simple "Page X of Y"
+    document.getElementById('carouselPageLabel').textContent =
+        `Preview — Page ${currentPage + 1} of ${allPages.length}`;
+}
+
+function nextPage() { if (currentPage < allPages.length - 1) { currentPage++; updateCarousel(); } }
+function prevPage() { if (currentPage > 0) { currentPage--; updateCarousel(); } }
+function goToPage(n) { currentPage = n; updateCarousel(); }
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft')  prevPage();
+    if (e.key === 'ArrowRight') nextPage();
+});
+
+let touchStartX = 0;
+document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    if (dx < -60) nextPage();
+    if (dx >  60) prevPage();
+}, { passive: true });
+
+function addToLibrary(bookId) {
+    fetch(`/api/library/add/${bookId}`, { method:'POST', headers:{'Content-Type':'application/json'} })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'added' || data.status === 'already_added') {
+            document.querySelectorAll('.add-library-btn').forEach(btn => {
+                btn.classList.add('added'); btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i> In Your Library';
+                lucide.createIcons();
+            });
+            if (data.status === 'added') alert('Book added to your library!');
         }
-    }
-    
-    function goToPage(page) {
-        currentPage = page;
-        updateCarousel();
-    }
-    
-    // Keyboard navigation
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowLeft') prevPage();
-        if (e.key === 'ArrowRight') nextPage();
     });
-    
-    // Touch swipe support
-    let touchStartX = 0;
-    let touchEndX = 0;
-    
-    document.querySelector('.preview-carousel').addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-    });
-    
-    document.querySelector('.preview-carousel').addEventListener('touchend', (e) => {
-        touchEndX = e.changedTouches[0].screenX;
-        handleSwipe();
-    });
-    
-    function handleSwipe() {
-        if (touchEndX < touchStartX - 50) nextPage();
-        if (touchEndX > touchStartX + 50) prevPage();
-    }
-    
-    function addToLibrary(bookId) {
-        fetch(`/api/library/add/${bookId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'added' || data.status === 'already_added') {
-                // Update buttons
-                document.querySelectorAll('.add-library-btn').forEach(btn => {
-                    btn.classList.add('added');
-                    btn.disabled = true;
-                    btn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5"></i> In Your Library';
-                    lucide.createIcons();
-                });
-                
-                if (data.status === 'added') {
-                    alert('Book added to your library!');
-                }
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    buildPages();
+    renderCarousel();
+    lucide.createIcons();
+});
 </script>
 {% endblock %}

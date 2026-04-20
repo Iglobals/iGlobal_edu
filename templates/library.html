@@ -312,10 +312,6 @@
                             <a href="{{ url_for('payment', book_id=book.id) }}">
                                 <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i> Purchase
                             </a>
-                            <span class="sep">|</span>
-                            <button onclick="removeFromLibrary({{ book.id }}, this)" class="text-red-500 hover:text-red-700">
-                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Remove
-                            </button>
                         {% endif %}
                     {% else %}
                         <button onclick="toggleFavorite({{ book.id }}, this)">
@@ -369,27 +365,6 @@
             } else if (data.status === 'added') {
                 btn.innerHTML = '<i data-lucide="heart" class="w-3.5 h-3.5"></i> Remove';
                 lucide.createIcons();
-            } else if (data.status === 'error') {
-                alert(data.message);
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-
-    function removeFromLibrary(bookId, btn) {
-        if (!confirm('Are you sure you want to remove this book from your library?')) return;
-
-        fetch(`/api/library/remove/${bookId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'removed') {
-                // Reload page to update the list
-                window.location.reload();
             } else if (data.status === 'error') {
                 alert(data.message);
             }

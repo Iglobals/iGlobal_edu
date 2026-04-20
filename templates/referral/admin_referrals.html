@@ -1,0 +1,68 @@
+{% extends "admin/layout.html" %}
+{% block title %}Referral Agents{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-6xl mx-auto">
+    <h1 class="font-condensed text-2xl font-bold text-[#2F1341] mb-6">Referral Agents</h1>
+
+    {% if data %}
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                <tr>
+                    <th class="px-4 py-3 text-left">Agent</th>
+                    <th class="px-4 py-3 text-left">Code</th>
+                    <th class="px-4 py-3 text-right">Sales</th>
+                    <th class="px-4 py-3 text-right">Total Earned</th>
+                    <th class="px-4 py-3 text-right">Settled</th>
+                    <th class="px-4 py-3 text-right">Pending</th>
+                    <th class="px-4 py-3 text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for row in data %}
+                <tr class="hover:bg-gray-50" id="agent-row-{{ row.agent.id }}">
+                    <td class="px-4 py-3">
+                        <div class="font-semibold text-gray-800">{{ row.agent.first_name }}</div>
+                        <div class="text-xs text-gray-400">{{ row.agent.email }}</div>
+                    </td>
+                    <td class="px-4 py-3 font-mono font-bold text-[#2F1341]">{{ row.agent.ref_code }}</td>
+                    <td class="px-4 py-3 text-right">{{ row.sales }}</td>
+                    <td class="px-4 py-3 text-right font-bold">₦{{ "{:,.0f}".format(row.earned) }}</td>
+                    <td class="px-4 py-3 text-right text-green-600 font-semibold">₦{{ "{:,.0f}".format(row.paid) }}</td>
+                    <td class="px-4 py-3 text-right text-orange-500 font-semibold">₦{{ "{:,.0f}".format(row.unpaid) }}</td>
+                    <td class="px-4 py-3 text-center">
+                        <!-- Mark all unpaid commissions for this agent as paid -->
+                        {% if row.unpaid > 0 %}
+                        <button onclick="markAllPaid({{ row.agent.id }})"
+                            class="bg-[#2F1341] text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-[#4A1F5C] transition-colors">
+                            Mark Settled
+                        </button>
+                        {% else %}
+                        <span class="text-xs text-green-600 font-semibold">All settled</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow-sm p-10 text-center text-gray-400">
+        <p>No agents with sales yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function markAllPaid(agentId) {
+    if (!confirm('Mark all pending commissions for this agent as settled?')) return;
+    // Fetch all unpaid commission IDs for this agent then mark each
+    fetch(`/admin/referrals/agent/${agentId}/mark-all-paid`, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+        if (d.status === 'ok') location.reload();
+    });
+}
+</script>
+{% endblock %}

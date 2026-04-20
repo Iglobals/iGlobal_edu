@@ -77,69 +77,97 @@
     .contact__bg-image {
         position: absolute;
         bottom: 0; left: 0;
-        width: 100%; height: 100%;
+        width: 100%; height: 93%;
         object-fit: cover;
         z-index: 1;
         border-radius: 0.75rem;
-        transition: transform 0.6s cubic-bezier(0.33, 1, 0.68, 1);
     }
     /* Purple tint overlay on bg */
     .contact__img-bg::before {
         content: '';
         position: absolute;
         bottom: 0; left: 0;
-        width: 100%; height: 100%;
-        background: linear-gradient(to top, rgba(107,45,92,0.65) 0%, rgba(107,45,92,0.2) 60%, transparent 100%);
+        width: 100%; height: 93%;
+        background: linear-gradient(to top, rgba(107,45,92,0.55) 0%, rgba(107,45,92,0.1) 60%, transparent 100%);
         z-index: 2;
         border-radius: 0.75rem;
         pointer-events: none;
-        transition: opacity 0.4s ease;
     }
     .contact__img-person img {
         position: absolute;
         bottom: 0;
         left: 50%;
         transform: translateX(-50%) translateZ(40px);
-        height: 120%;
-        max-width: 95%;
+        height: 112%;
+        max-width: 90%;
         width: auto;
         object-fit: cover;
         object-position: top center;
         z-index: 3;
         pointer-events: none;
         border-radius: 0.5rem;
-        box-shadow: 0 15px 35px rgba(107,45,92,0.3);
-        transition: transform 0.6s cubic-bezier(0.33, 1, 0.68, 1), filter 0.4s ease;
+        box-shadow: 0 12px 32px rgba(107,45,92,0.28);
     }
 
-    /* ── Hover Effects ── */
-    article:hover .contact__bg-image {
-        transform: scale(1.05);
+        /* Study card — replaces the old article layout */
+    .study-card {
+        background: transparent;
     }
-    article:hover .contact__img-person img {
-        transform: translateX(-50%) translateZ(60px) scale(1.05);
-        filter: drop-shadow(0 20px 40px rgba(0,0,0,0.3));
+ 
+    /* Tilt image frame — same dimensions & tilt behaviour as before */
+    .study-card .contact__img {
+        position: relative;
+        width: 100%;
+        height: 240px;
+        transform-style: preserve-3d;
+        margin-bottom: 1.5rem;
+        border-radius: 0.75rem;
+        overflow: hidden;           /* contain the image */
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
     }
-    article:hover .contact__img-bg::before {
-        opacity: 0.8;
+ 
+    .study-card .contact__img img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        border-radius: 0.75rem;
+        display: block;
+        /* lifted slightly in Z to give the tilt effect depth */
+        transform: translateZ(20px);
+        pointer-events: none;
     }
-
-    /* ── Floating Animation ── */
-    @keyframes floating {
-        0% { transform: translateX(-50%) translateZ(40px) translateY(0px); }
-        50% { transform: translateX(-50%) translateZ(40px) translateY(-10px); }
-        100% { transform: translateX(-50%) translateZ(40px) translateY(0px); }
+ 
+    /* Dark gradient at the bottom of each photo for legibility */
+    .study-card .contact__img::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            to top,
+            rgba(47, 19, 65, 0.55) 0%,
+            rgba(47, 19, 65, 0.08) 55%,
+            transparent 100%
+        );
+        border-radius: 0.75rem;
+        pointer-events: none;
     }
-    .contact__img-person img {
-        animation: floating 4s ease-in-out infinite;
-    }
-    article:hover .contact__img-person img {
-        animation-play-state: paused;
-    }
-
-    /* ── Section Scroll Reveal ── */
-    section {
-        overflow: hidden;
+ 
+    /* Small label that sits over the photo bottom-left */
+    .study-card .img-label {
+        position: absolute;
+        bottom: 0.85rem;
+        left: 1rem;
+        z-index: 4;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.75);
+        font-family: 'Roboto Condensed', sans-serif;
+        pointer-events: none;
     }
 </style>
 {% endblock %}
@@ -186,20 +214,20 @@
 <section class="bg-[#2F1341] text-white py-12">
     <div class="container mx-auto px-6">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div class="border-r border-purple-400 last:border-0 reveal hover:scale-105 transition-transform duration-300">
-                <div class="font-condensed text-4xl font-bold mb-2 group-hover:text-white transition-colors">98%</div>
+            <div class="border-r border-purple-400 last:border-0 reveal">
+                <div class="font-condensed text-4xl font-bold mb-2">98%</div>
                 <div class="text-purple-200 text-sm uppercase tracking-wider">Pass Rate Recorded</div>
             </div>
-            <div class="border-r border-purple-400 last:border-0 reveal delay-100 hover:scale-105 transition-transform duration-300">
-                <div class="font-condensed text-4xl font-bold mb-2 group-hover:text-white transition-colors">3</div>
+            <div class="border-r border-purple-400 last:border-0 reveal delay-100">
+                <div class="font-condensed text-4xl font-bold mb-2">3</div>
                 <div class="text-purple-200 text-sm uppercase tracking-wider">Faculties Covered</div>
             </div>
-            <div class="border-r border-purple-400 last:border-0 reveal delay-200 hover:scale-105 transition-transform duration-300">
-                <div class="font-condensed text-4xl font-bold mb-2 group-hover:text-white transition-colors">500+</div>
+            <div class="border-r border-purple-400 last:border-0 reveal delay-200">
+                <div class="font-condensed text-4xl font-bold mb-2">500+</div>
                 <div class="text-purple-200 text-sm uppercase tracking-wider">Past Questions</div>
             </div>
-            <div class="reveal delay-300 hover:scale-105 transition-transform duration-300">
-                <div class="font-condensed text-4xl font-bold mb-2 group-hover:text-white transition-colors">5,000+</div>
+            <div class="reveal delay-300">
+                <div class="font-condensed text-4xl font-bold mb-2">5,000+</div>
                 <div class="text-purple-200 text-sm uppercase tracking-wider">Students Served</div>
             </div>
         </div>
@@ -224,9 +252,9 @@
                     </p>
                 </div>
             </div>
-            <div class="reveal-right delay-200 group">
-                <div class="image-frame overflow-hidden rounded-lg">
-                    <img src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&q=80" alt="Students Learning" class="w-full h-auto rounded-lg shadow-xl transition-transform duration-700 group-hover:scale-110">
+            <div class="reveal-right delay-200">
+                <div class="image-frame">
+                    <img src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&q=80" alt="Students Learning" class="w-full h-auto rounded-lg shadow-xl">
                 </div>
             </div>
         </div>
@@ -251,41 +279,33 @@
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="group relative overflow-hidden rounded-lg cursor-pointer reveal delay-100">
                 <img src="https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&q=80" alt="Science" class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
-                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
-                    <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                        <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Faculty of</span>
-                        <h3 class="text-white font-bold text-lg">Science</h3>
-                    </div>
+                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                    <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Faculty of</span>
+                    <h3 class="text-white font-bold text-lg">Science</h3>
                 </div>
             </div>
             
             <div class="group relative overflow-hidden rounded-lg cursor-pointer reveal delay-200">
                 <img src="https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=600&q=80" alt="Arts" class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
-                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
-                    <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                        <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Faculty of</span>
-                        <h3 class="text-white font-bold text-lg">Arts & Humanities</h3>
-                    </div>
+                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                    <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Faculty of</span>
+                    <h3 class="text-white font-bold text-lg">Arts & Humanities</h3>
                 </div>
             </div>
             
             <div class="group relative overflow-hidden rounded-lg cursor-pointer reveal delay-300">
                 <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600&q=80" alt="Commercial" class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
-                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
-                    <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                        <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Faculty of</span>
-                        <h3 class="text-white font-bold text-lg">Commercial</h3>
-                    </div>
+                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                    <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Faculty of</span>
+                    <h3 class="text-white font-bold text-lg">Commercial</h3>
                 </div>
             </div>
             
             <div class="group relative overflow-hidden rounded-lg cursor-pointer reveal delay-400">
                 <img src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=600&q=80" alt="Exam Prep" class="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110">
-                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
-                    <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                        <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Programme</span>
-                        <h3 class="text-white font-bold text-lg">JUPEB Mastery</h3>
-                    </div>
+                <div class="project-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
+                    <span class="text-purple-200 text-xs uppercase tracking-wider mb-1">Programme</span>
+                    <h3 class="text-white font-bold text-lg">JUPEB Mastery</h3>
                 </div>
             </div>
         </div>
@@ -360,93 +380,83 @@
     </div>
 </section>
 
-<!-- SCHOLAR SUCCESS STORIES -->
+<!-- HOW WE BUILD IT -->
 <section class="py-20 bg-white">
     <div class="container mx-auto px-6">
-        <div class="text-center mb-12 reveal">
-            <span class="text-[#2F1341] font-semibold tracking-wider uppercase text-sm">In Their Own Words</span>
-            <h2 class="font-condensed text-3xl md:text-4xl font-bold text-[#2F1341] mt-2 mb-4">Scholar Success Stories</h2>
-            <p class="text-gray-600 max-w-2xl mx-auto">Real students, real results — here's how they prepared, what worked, and what they wish they'd known earlier.</p>
+ 
+        <div class="text-center mb-14 reveal">
+            <span class="text-[#2F1341] font-semibold tracking-wider uppercase text-sm">Inside the Materials</span>
+            <h2 class="font-condensed text-3xl md:text-4xl font-bold text-[#2F1341] mt-2 mb-4">How We Compile the Books</h2>
+            <p class="text-gray-500 max-w-2xl mx-auto leading-relaxed">
+                Every resource in the iGlobals library is put together with one question in mind — what does a student actually need to pass this exam? Here is the answer, broken into three parts.
+            </p>
         </div>
-
-        <div class="grid md:grid-cols-3 gap-8">
-            <!-- Story 1 -->
-            <article class="pb-8 reveal delay-100 group cursor-pointer focus-within:ring-2 focus-within:ring-purple-400 rounded-xl transition-all">
-                <div class="contact__img js-tilt" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="1000">
-                    <div class="contact__img-bg">
-                        <img src="{{ url_for('static', filename='bg.png') }}"
-                             class="contact__bg-image" alt="Study background">
-                        <div class="contact__img-person">
-                            <img src="{{ url_for('static', filename='person1.png') }}" alt="Adaeze O.">
-                        </div>
-                    </div>
+ 
+        <div class="grid md:grid-cols-3 gap-10">
+ 
+            <!-- Card 1 — Cut the noise -->
+            <article class="study-card pb-8 reveal delay-100">
+                <div class="contact__img js-tilt" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="600">
+                    <img
+                        src="https://images.pexels.com/photos/1181671/pexels-photo-1181671.jpeg?auto=compress&cs=tinysrgb&w=800&q=80"
+                        alt="Clean study desk with open book and lamp"
+                    >
+                    <span class="img-label">01 &mdash; Focus</span>
                 </div>
-                <div class="mb-4">
-                    <div class="text-xl font-bold text-gray-800 mb-1">Adaeze O.</div>
-                    <div class="text-sm text-gray-500">Science Faculty · University of Lagos</div>
+ 
+                <div class="mb-3">
+                    <div class="text-xs font-bold uppercase tracking-widest text-[#B0522E] mb-1" style="font-family:'Roboto Condensed',sans-serif;">Cut the noise</div>
+                    <h3 class="text-xl font-bold text-[#2F1341] leading-snug mb-3">
+                        Only what the exam actually tests — nothing more
+                    </h3>
                 </div>
-                <h3 class="text-lg font-bold text-[#2F1341] mb-3 leading-snug">
-                    "I started six weeks before the exam and still scored A's across the board"
-                </h3>
-                <p class="text-gray-600 text-sm mb-4 leading-relaxed">
-                    I won't lie — I panicked when I realised how little time I had. What saved me was being very strategic. I focused entirely on past question patterns and stopped trying to read every textbook. Chemistry was my worst subject, but I drilled the repeated topics and it clicked. The key is trusting the process and staying consistent, even for just a few hours a day.
+                <p class="text-gray-600 text-sm leading-relaxed">
+                    Textbooks cover everything. Exams do not. The materials in this library are built around what shows up in JUPEB consistently, so you are not spending revision time on topics that have not appeared in the last ten years and likely will not appear now. Less to read, more to score.
                 </p>
-                <a href="#" class="text-[#2F1341] font-semibold text-sm flex items-center gap-2 hover:gap-3 transition-all">
-                    Read full story <i data-lucide="arrow-right" class="w-3 h-3"></i>
-                </a>
             </article>
-
-            <!-- Story 2 -->
-            <article class="pb-8 reveal delay-200 group cursor-pointer focus-within:ring-2 focus-within:ring-purple-400 rounded-xl transition-all">
-                <div class="contact__img js-tilt" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="1000">
-                    <div class="contact__img-bg">
-                        <img src="{{ url_for('static', filename='bg.png') }}" 
-                            class="contact__bg-image" alt="Library background">
-                        <div class="contact__img-person">
-                            <img src="{{ url_for('static', filename='person2.png') }}" alt="Emeka T.">
-                        </div>
-                    </div>
+ 
+            <!-- Card 2 — See it worked, then work it yourself -->
+            <article class="study-card pb-8 reveal delay-200">
+                <div class="contact__img js-tilt" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="600">
+                    <img
+                        src="https://images.pexels.com/photos/6238297/pexels-photo-6238297.jpeg?auto=compress&cs=tinysrgb&w=800&q=80"
+                        alt="Student writing notes with pen on paper"
+                    >
+                    <span class="img-label">02 &mdash; Practice</span>
                 </div>
-                <div class="mb-4">
-                    <div class="text-xl font-bold text-gray-800 mb-1">Emeka T.</div>
-                    <div class="text-sm text-gray-500">Commercial Faculty · University of Ibadan</div>
+ 
+                <div class="mb-3">
+                    <div class="text-xs font-bold uppercase tracking-widest text-[#B0522E] mb-1" style="font-family:'Roboto Condensed',sans-serif;">Worked, then yours to try</div>
+                    <h3 class="text-xl font-bold text-[#2F1341] leading-snug mb-3">
+                        Every concept comes with a worked example first
+                    </h3>
                 </div>
-                <h3 class="text-lg font-bold text-[#2F1341] mb-3 leading-snug">
-                    "Economics felt impossible until I stopped reading and started practising"
-                </h3>
-                <p class="text-gray-600 text-sm mb-4 leading-relaxed">
-                    I spent months reading Economics textbooks cover to cover and still couldn't answer past questions properly. The shift happened when I reversed my approach — I'd look at a question first, struggle with it, then read just that topic. Suddenly everything had a purpose. For Accounting, I timed myself on every question. Speed matters. Don't just know the concept; know it fast.
+                <p class="text-gray-600 text-sm leading-relaxed">
+                    Before you practice anything, you see how it is done — the exact reasoning, the way the answer is structured, the parts the examiner is looking for. Then past questions follow immediately, while the method is still fresh. That sequence is deliberate, and it makes a difference.
                 </p>
-                <a href="#" class="text-[#2F1341] font-semibold text-sm flex items-center gap-2 hover:gap-3 transition-all">
-                    Read full story <i data-lucide="arrow-right" class="w-3 h-3"></i>
-                </a>
             </article>
-
-            <!-- Story 3 -->
-            <article class="pb-8 reveal delay-300 group cursor-pointer focus-within:ring-2 focus-within:ring-purple-400 rounded-xl transition-all">
-                <div class="contact__img js-tilt" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="1000">
-                    <div class="contact__img-bg">
-                        <img src="{{ url_for('static', filename='bg.png') }}"
-                            class="contact__bg-image" alt="Study notes background">
-                        <div class="contact__img-person">
-                            <img src="{{ url_for('static', filename='person3.png') }}" alt="Fatima A.">
-                        </div>
-                    </div>
+ 
+            <!-- Card 3 — Structure you can actually follow -->
+            <article class="study-card pb-8 reveal delay-300">
+                <div class="contact__img js-tilt" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="600">
+                    <img
+                        src="https://images.pexels.com/photos/4145153/pexels-photo-4145153.jpeg?auto=compress&cs=tinysrgb&w=800&q=80"
+                        alt="Highlighted and tabbed study notes"
+                    >
+                    <span class="img-label">03 &mdash; Retention</span>
                 </div>
-                <div class="mb-4">
-                    <div class="text-xl font-bold text-gray-800 mb-1">Fatima A.</div>
-                    <div class="text-sm text-gray-500">Arts Faculty · Ahmadu Bello University</div>
+ 
+                <div class="mb-3">
+                    <div class="text-xs font-bold uppercase tracking-widest text-[#B0522E] mb-1" style="font-family:'Roboto Condensed',sans-serif;">Built to stick</div>
+                    <h3 class="text-xl font-bold text-[#2F1341] leading-snug mb-3">
+                        The order topics appear in is not accidental
+                    </h3>
                 </div>
-                <h3 class="text-lg font-bold text-[#2F1341] mb-3 leading-snug">
-                    "Literature in English is not about reading novels — it's about knowing the examiner"
-                </h3>
-                <p class="text-gray-600 text-sm mb-4 leading-relaxed">
-                    Most people fail Literature because they try to memorise plot summaries. I studied the themes, the examiner's marking style, and the exact phrasing they reward. For Government, timelines were everything — I mapped every key event chronologically and it stuck. Arts students underestimate how much pattern recognition matters. The exam is more predictable than you think.
+                <p class="text-gray-600 text-sm leading-relaxed">
+                    Each chapter builds on the one before it. By the time you reach the end of a topic, you are not just familiar with it — it connects to things you already understand. That is the difference between reading something and actually being able to use it under exam pressure.
                 </p>
-                <a href="#" class="text-[#2F1341] font-semibold text-sm flex items-center gap-2 hover:gap-3 transition-all">
-                    Read full story <i data-lucide="arrow-right" class="w-3 h-3"></i>
-                </a>
             </article>
+ 
         </div>
     </div>
 </section>

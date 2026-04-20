@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Dashboard - iGlobals</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f3f4f6; }
+        .font-condensed { font-family: 'Roboto Condensed', sans-serif; }
+        :root { --p: #2F1341; --pl: #4A1F5C; --ash: #B0522E; }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed; top: 0; left: 0; bottom: 0; width: 240px;
+            background: var(--p); color: white; z-index: 50;
+            display: flex; flex-direction: column;
+            transform: translateX(-100%);
+            transition: transform .3s cubic-bezier(.4,0,.2,1);
+        }
+        .sidebar.open { transform: translateX(0); }
+        @media(min-width: 1024px) {
+            .sidebar { transform: translateX(0); }
+            .main-content { margin-left: 240px; }
+        }
+        .scrim { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:49; display:none; }
+        .scrim.open { display:block; }
+
+        .nav-item {
+            display: flex; align-items: center; gap: .75rem;
+            padding: .7rem 1.25rem; border-radius: .5rem; margin: .15rem .75rem;
+            font-size: .85rem; font-weight: 600; color: rgba(255,255,255,.7);
+            cursor: pointer; transition: all .2s; text-decoration: none;
+        }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,.12); color: white; }
+
+        /* Stat cards */
+        .stat-card { background: white; border-radius: .75rem; padding: 1.25rem 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,.06); }
+        .stat-val { font-size: 1.75rem; font-weight: 800; color: var(--p); font-family: 'Roboto Condensed', sans-serif; }
+        .stat-label { font-size: .75rem; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; margin-top: .2rem; }
+
+        /* Copy button */
+        .copy-btn { cursor: pointer; transition: color .2s; }
+        .copy-btn:hover { color: var(--p); }
+    </style>
+</head>
+<body>
+
+<!-- Scrim -->
+<div class="scrim" id="scrim" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="flex items-center justify-between px-5 py-5 border-b border-white/10">
+        <div>
+            <div class="font-condensed font-bold text-lg tracking-wide">IGLOBALS</div>
+            <div class="text-xs text-purple-300 uppercase tracking-widest">Agent Portal</div>
+        </div>
+        <button onclick="closeSidebar()" class="lg:hidden text-white/60 hover:text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <div class="px-3 py-4 flex-1">
+        <div class="text-xs text-purple-400 uppercase tracking-widest px-3 mb-2">Menu</div>
+        <a href="{{ url_for('agent_dashboard') }}" class="nav-item active">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+        </a>
+    </div>
+
+    <div class="px-3 pb-6 border-t border-white/10 pt-4">
+        <div class="px-3 mb-3">
+            <div class="text-sm font-semibold text-white">{{ agent.first_name }}</div>
+            <div class="text-xs text-purple-300">{{ agent.email }}</div>
+        </div>
+        <a href="{{ url_for('agent_logout') }}" class="nav-item">
+            <i data-lucide="log-out" class="w-4 h-4"></i> Logout
+        </a>
+    </div>
+</div>
+
+<!-- Main -->
+<div class="main-content min-h-screen">
+    <!-- Topbar -->
+    <div class="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-40">
+        <button onclick="openSidebar()" class="lg:hidden text-gray-500 hover:text-[#2F1341]">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+        <h1 class="font-condensed font-bold text-xl text-[#2F1341]">Agent Dashboard</h1>
+    </div>
+
+    <div class="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="stat-card">
+                <div class="stat-val">{{ total_sales }}</div>
+                <div class="stat-label">Total Sales</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val">₦{{ "{:,.0f}".format(total_earned) }}</div>
+                <div class="stat-label">Total Earned</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val text-green-600">₦{{ "{:,.0f}".format(total_paid) }}</div>
+                <div class="stat-label">Settled</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val text-orange-500">₦{{ "{:,.0f}".format(total_unpaid) }}</div>
+                <div class="stat-label">Pending Payout</div>
+            </div>
+        </div>
+
+        <!-- Ref code + link generator -->
+        <div class="bg-white rounded-xl shadow-sm p-5 border border-purple-100">
+            <h2 class="font-condensed font-bold text-lg text-[#2F1341] mb-4">Your Referral Code</h2>
+            <div class="flex items-center gap-3 mb-4">
+                <span class="font-mono text-2xl font-bold tracking-widest text-[#2F1341] bg-purple-50 px-4 py-2 rounded-lg">{{ agent.ref_code }}</span>
+                <button onclick="copyText('{{ agent.ref_code }}')" class="copy-btn text-gray-400" title="Copy code">
+                    <i data-lucide="copy" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <p class="text-sm text-gray-500 mb-3">Generate a referral link for a specific book:</p>
+            <div class="flex gap-2 flex-wrap">
+                <input id="bookIdInput" type="number" placeholder="Book ID" min="1"
+                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-28 outline-none focus:border-[#2F1341]">
+                <button onclick="generateLink()"
+                    class="bg-[#2F1341] text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-[#4A1F5C] transition-colors">
+                    Generate Link
+                </button>
+            </div>
+            <div id="generatedLink" class="hidden mt-3">
+                <div class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                    <span id="linkText" class="text-sm text-gray-700 break-all flex-1"></span>
+                    <button onclick="copyLink()" class="copy-btn text-gray-400 flex-shrink-0">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commission history -->
+        {% if commissions %}
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100">
+                <h2 class="font-condensed font-bold text-lg text-[#2F1341]">Commission History</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                        <tr>
+                            <th class="px-4 py-3 text-left">Date</th>
+                            <th class="px-4 py-3 text-left">Book</th>
+                            <th class="px-4 py-3 text-right">Earned</th>
+                            <th class="px-4 py-3 text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        {% for c in commissions %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-gray-500">{{ c.created_at.strftime('%b %d, %Y') }}</td>
+                            <td class="px-4 py-3 font-medium text-gray-800">{{ c.book.title if c.book else '—' }}</td>
+                            <td class="px-4 py-3 text-right font-bold text-[#2F1341]">₦{{ "{:,.0f}".format(c.amount_earned) }}</td>
+                            <td class="px-4 py-3 text-center">
+                                {% if c.is_paid %}
+                                    <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">Settled</span>
+                                {% else %}
+                                    <span class="bg-orange-100 text-orange-600 text-xs font-bold px-2 py-0.5 rounded-full">Pending</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white rounded-xl shadow-sm p-8 text-center text-gray-400">
+            <i data-lucide="bar-chart-2" class="w-10 h-10 mx-auto mb-3 opacity-30"></i>
+            <p class="text-sm">No sales yet. Share your referral link to start earning.</p>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<div id="toast" class="fixed bottom-6 right-6 bg-[#2F1341] text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none">
+    Copied!
+</div>
+
+<script>
+    lucide.createIcons();
+
+    function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('scrim').classList.add('open'); }
+    function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('scrim').classList.remove('open'); }
+
+    function copyText(text) {
+        navigator.clipboard.writeText(text).then(showToast);
+    }
+
+    function generateLink() {
+        const bookId = document.getElementById('bookIdInput').value.trim();
+        if (!bookId) return;
+        const link = `{{ base_url }}/payment/${bookId}?ref={{ agent.ref_code }}`;
+        document.getElementById('linkText').textContent = link;
+        document.getElementById('generatedLink').classList.remove('hidden');
+        lucide.createIcons();
+    }
+
+    function copyLink() {
+        const text = document.getElementById('linkText').textContent;
+        navigator.clipboard.writeText(text).then(showToast);
+    }
+
+    function showToast() {
+        const t = document.getElementById('toast');
+        t.style.opacity = '1';
+        setTimeout(() => { t.style.opacity = '0'; }, 1800);
+    }
+</script>
+</body>
+</html>

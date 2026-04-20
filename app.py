@@ -7,6 +7,7 @@ from flask import Flask
 import os
 from dotenv import load_dotenv
 from extensions import db, login_manager
+from flask_migrate import Migrate
 
 # Load environment variables
 load_dotenv()
@@ -24,9 +25,10 @@ app.config['PAYSTACK_SECRET_KEY'] = os.environ.get('PAYSTACK_SECRET_KEY', '')
 # Initialize extensions with app
 db.init_app(app)
 login_manager.init_app(app)
+migrate = Migrate(app, db)
 
 # Import models AFTER initializing db and login_manager
-from models import User, Book, Review, Favorite, Purchase, Note, LibraryItem
+from models import User, Book, Review, Favorite, Purchase, Note, LibraryItem, OTPCode
 
 # User loader for Flask-Login (must be AFTER importing User model)
 @login_manager.user_loader
@@ -36,13 +38,14 @@ def load_user(user_id):
 # Import routes AFTER importing models
 from routes import *
 import admin_routes
+import referral_routes
 
 # Vercel handler
 def handler(request):
     return app(request)
 
-# app.run(debug=True, host='0.0.0.0', port=5000)
+# app.run(debug=True, host='0.0.0.0', port=5000) // app.run()
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run()
+    app.run(debug=True, host='0.0.0.0', port=5000)

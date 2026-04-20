@@ -1,151 +1,145 @@
-// Security script to prevent screenshots and printing
-
-(function() {
+(function () {
     'use strict';
 
-    // A. DYNAMIC CONTENT WATERMARK (Optional - adds timestamp overlay)
-    function addWatermark() {
-        const watermark = document.createElement('div');
-        watermark.id = 'security-watermark';
-        watermark.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 72px;
-            color: rgba(107, 45, 92, 0.05);
-            pointer-events: none;
-            z-index: 9999;
-            user-select: none;
-            font-weight: bold;
-            white-space: nowrap;
-        `;
-        watermark.textContent = 'iGlobals © ' + new Date().toLocaleString();
-        document.body.appendChild(watermark);
-        
-        // Update watermark every 2 seconds
-        setInterval(() => {
-            watermark.textContent = 'iGlobals © ' + new Date().toLocaleString();
-        }, 2000);
+    // ── BLUR APPROACH ─────────────────────────────────────────────────────────
+    // CSS filter:blur is applied synchronously before the next paint, so it
+    // actually shows up in screenshots on both desktop and mobile.
+    // An overlay on top handles the visual "content protected" message.
+
+    var blurStyle = document.createElement('style');
+    blurStyle.id = 'ig-blur-style';
+    blurStyle.textContent = [
+        '.ig-blurred { filter: blur(12px) !important; pointer-events: none !important; }',
+        '@media print { body { display:none !important; } }'
+    ].join('\n');
+    document.head.appendChild(blurStyle);
+
+    // Overlay — shown on top of blurred content
+    var overlay = document.createElement('div');
+    overlay.id = 'ig-overlay';
+    overlay.style.cssText = [
+        'position:fixed', 'inset:0',
+        'background:rgba(26,10,36,0.82)',
+        'z-index:2147483647',   // max z-index
+        'display:none',
+        'align-items:center', 'justify-content:center',
+        'flex-direction:column', 'gap:1rem',
+        'font-family:Inter,sans-serif'
+    ].join(';');
+    overlay.innerHTML =
+        '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">' +
+        '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+        '<p style="color:white;font-size:1rem;font-weight:600;margin:0;">Content protected</p>';
+
+    function getContentEl() {
+        // Blur the reader shell if present, otherwise the whole body
+        return document.querySelector('.reader-shell') || document.body;
     }
 
-    // B. WINDOW FOCUS BLUR (Deters screen capture of background apps)
-    window.addEventListener('blur', () => {
-        document.body.style.filter = 'blur(10px)';
-        document.body.style.pointerEvents = 'none';
-    });
-    
-    window.addEventListener('focus', () => {
-        document.body.style.filter = 'none';
-        document.body.style.pointerEvents = 'auto';
-    });
+    function blurContent() {
+        getContentEl().classList.add('ig-blurred');
+        overlay.style.display = 'flex';
+    }
 
-    // C. PRINT SCREEN / KEYBOARD LISTENER
-    document.addEventListener('keydown', (e) => {
-        // Detect PrintScreen
-        if (e.key === "PrintScreen") {
-            navigator.clipboard.writeText('');
-            alert("Security Alert: Screen capture is not allowed on this page.");
-        }
-        
-        // Detect Command+Shift+4 (Mac screenshot)
-        if (e.metaKey && e.shiftKey && (e.key === '4' || e.key === '3')) {
-            e.preventDefault();
-            alert("Security Alert: Screen capture is not allowed on this page.");
-            return false;
-        }
-        
-        // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J (DevTools)
-        if (e.keyCode === 123 || 
-            (e.ctrlKey && e.shiftKey && e.keyCode === 73) ||
-            (e.ctrlKey && e.shiftKey && e.keyCode === 74)) {
-            e.preventDefault();
-            return false;
-        }
-        
-        // Disable Ctrl+U (View Source)
-        if (e.ctrlKey && e.keyCode === 85) {
-            e.preventDefault();
-            return false;
-        }
-        
-        // Disable Ctrl+S (Save)
-        if (e.ctrlKey && e.keyCode === 83) {
-            e.preventDefault();
-            alert("Saving content is not allowed.");
-            return false;
-        }
-        
-        // Disable Ctrl+P (Print)
-        if (e.ctrlKey && e.keyCode === 80) {
-            e.preventDefault();
-            alert("Printing is not allowed on this page.");
-            return false;
-        }
-    });
+    function unblurContent() {
+        getContentEl().classList.remove('ig-blurred');
+        overlay.style.display = 'none';
+    }
 
-    // D. MOBILE SCREENSHOT DETECTION (Limited support)
-    document.addEventListener('visibilitychange', () => {
+    // ── VISIBILITY CHANGE (mobile screenshot / app switcher / screen record) ──
+    // On iOS: taking a screenshot briefly triggers visibilitychange → hidden.
+    // On Android: same for recent-apps gesture and screen recording start.
+    // Applying blur BEFORE the hidden state means the blurred frame is what
+    // gets captured.
+    var blurTimeout;
+    document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'hidden') {
-            console.log('User navigated away or may have taken a screenshot.');
-            // Log to server if needed
+            blurContent();
+        } else {
+            // Small delay so the blur is visible for a moment on return
+            clearTimeout(blurTimeout);
+            blurTimeout = setTimeout(unblurContent, 800);
         }
     });
 
-    // E. DISABLE RIGHT CLICK
-    document.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        return false;
+    // ── WINDOW BLUR (desktop: alt-tab, print dialog, screenshot tool focus) ──
+    window.addEventListener('blur', function () {
+        blurContent();
+    });
+    window.addEventListener('focus', function () {
+        clearTimeout(blurTimeout);
+        blurTimeout = setTimeout(unblurContent, 600);
     });
 
-    // F. DISABLE TEXT SELECTION
-    document.body.style.userSelect = 'none';
-    document.body.style.webkitUserSelect = 'none';
-    document.body.style.mozUserSelect = 'none';
-    document.body.style.msUserSelect = 'none';
-    document.body.style.webkitTouchCallout = 'none';
-
-    // G. DISABLE DRAG
-    document.addEventListener('dragstart', (e) => {
-        e.preventDefault();
-        return false;
+    // ── KEYBOARD SHORTCUTS (desktop) ─────────────────────────────────────────
+    document.addEventListener('keydown', function (e) {
+        // PrintScreen
+        if (e.key === 'PrintScreen') {
+            blurContent();
+            navigator.clipboard && navigator.clipboard.writeText('').catch(function(){});
+            clearTimeout(blurTimeout);
+            blurTimeout = setTimeout(unblurContent, 2000);
+        }
+        // Mac screenshot: Cmd+Shift+3/4/5/6
+        if (e.metaKey && e.shiftKey && ['3','4','5','6'].includes(e.key)) {
+            e.preventDefault();
+            blurContent();
+            clearTimeout(blurTimeout);
+            blurTimeout = setTimeout(unblurContent, 2000);
+        }
+        // Ctrl+P (print)
+        if (e.ctrlKey && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); }
+        // Ctrl+S (save page)
+        if (e.ctrlKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); }
+        // F12 / DevTools shortcuts
+        if (e.key === 'F12') { e.preventDefault(); }
+        if (e.ctrlKey && e.shiftKey && ['i','I','j','J','c','C'].includes(e.key)) { e.preventDefault(); }
+        if (e.ctrlKey && (e.key === 'u' || e.key === 'U')) { e.preventDefault(); }
     });
 
-    // H. DETECT DEVTOOLS OPENING
-    let devtoolsOpen = false;
-    const threshold = 160;
-    
-    setInterval(() => {
-        if (window.outerWidth - window.innerWidth > threshold || 
-            window.outerHeight - window.innerHeight > threshold) {
-            if (!devtoolsOpen) {
-                devtoolsOpen = true;
-                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;"><h1>Developer tools detected. Please close to continue.</h1></div>';
-            }
+    // ── PRINT BLOCK ───────────────────────────────────────────────────────────
+    window.addEventListener('beforeprint', function (e) {
+        e.preventDefault();
+        blurContent();
+    });
+    window.addEventListener('afterprint', function () {
+        unblurContent();
+    });
+
+    // ── CONTEXT MENU + SELECTION + DRAG ──────────────────────────────────────
+    document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    document.addEventListener('dragstart',   function (e) { e.preventDefault(); });
+
+    // Disable text selection via CSS (doesn't block reading, just copy)
+    var selStyle = document.createElement('style');
+    selStyle.textContent = '* { user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }';
+    document.head.appendChild(selStyle);
+
+    // ── DEVTOOLS DETECTION (desktop) ─────────────────────────────────────────
+    // Uses size diff heuristic — doesn't wipe the DOM, just blurs
+    var devOpen = false;
+    setInterval(function () {
+        var wDiff = window.outerWidth  - window.innerWidth  > 160;
+        var hDiff = window.outerHeight - window.innerHeight > 160;
+        if ((wDiff || hDiff) && !devOpen) {
+            devOpen = true;
+            blurContent();
+        }
+        if (!wDiff && !hDiff && devOpen) {
+            devOpen = false;
+            unblurContent();
         }
     }, 1000);
 
-    // I. PREVENT PRINT
-    window.addEventListener('beforeprint', (e) => {
-        e.preventDefault();
-        alert("Printing is disabled for security reasons.");
-        return false;
-    });
+    // ── INIT ──────────────────────────────────────────────────────────────────
+    function init() {
+        document.body.appendChild(overlay);
+    }
 
-    // J. CSS PRINT MEDIA OVERRIDE
-    const style = document.createElement('style');
-    style.textContent = `
-        @media print {
-            body { display: none !important; }
-        }
-    `;
-    document.head.appendChild(style);
-
-    // Initialize watermark
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', addWatermark);
+        document.addEventListener('DOMContentLoaded', init);
     } else {
-        addWatermark();
+        init();
     }
 
 })();

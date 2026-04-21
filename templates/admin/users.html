@@ -1,45 +1,56 @@
 {% extends "admin/layout.html" %}
-
 {% block title %}Users Management{% endblock %}
 {% block page_title %}Users Management{% endblock %}
 
 {% block content %}
-<div class="bg-white rounded-lg shadow overflow-hidden">
+<!-- Desktop table -->
+<div class="hidden md:block bg-white rounded-lg shadow overflow-hidden">
     <table class="w-full">
-        <thead class="bg-gray-50 border-b border-gray-200">
+        <thead class="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase">
             <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Purchases</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reviews</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th class="px-4 py-3 text-left">Name</th>
+                <th class="px-4 py-3 text-left">Email</th>
+                <th class="px-4 py-3 text-left">Joined</th>
+                <th class="px-4 py-3 text-left">Purchases</th>
+                <th class="px-4 py-3 text-left">Reviews</th>
+                <th class="px-4 py-3 text-left">Actions</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200">
+        <tbody class="divide-y divide-gray-100">
             {% for user in users %}
             <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 font-semibold text-gray-900">{{ user.full_name }}</td>
-                <td class="px-6 py-4 text-gray-600">{{ user.email }}</td>
-                <td class="px-6 py-4 text-sm text-gray-600">{{ user.created_at.strftime('%b %d, %Y') }}</td>
-                <td class="px-6 py-4">
-                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        {{ user.purchases|selectattr('payment_status', 'equalto', 'success')|list|length }}
-                    </span>
-                </td>
-                <td class="px-6 py-4">
-                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {{ user.reviews|length }}
-                    </span>
-                </td>
-                <td class="px-6 py-4">
-                    <a href="{{ url_for('admin_user_detail', user_id=user.id) }}" class="text-[#6B2D5C] hover:text-[#8B4A7A]" title="View Details">
-                        <i data-lucide="eye" class="w-4 h-4"></i>
-                    </a>
-                </td>
+                <td class="px-4 py-3 font-semibold text-sm text-gray-900">{{ user.full_name }}</td>
+                <td class="px-4 py-3 text-sm text-gray-600">{{ user.email }}</td>
+                <td class="px-4 py-3 text-sm text-gray-500">{{ user.created_at.strftime('%b %d, %Y') }}</td>
+                <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ user.purchases|selectattr('payment_status','equalto','success')|list|length }}</span></td>
+                <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">{{ user.reviews|length }}</span></td>
+                <td class="px-4 py-3"><a href="{{ url_for('admin_user_detail', user_id=user.id) }}" class="text-[#6B2D5C] hover:text-[#8B4A7A]"><i data-lucide="eye" class="w-4 h-4"></i></a></td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+</div>
+
+<!-- Mobile cards -->
+<div class="md:hidden space-y-3">
+    {% for user in users %}
+    <div class="bg-white rounded-lg shadow p-3 flex gap-3 items-start">
+        <div class="w-10 h-10 rounded-full bg-[#6B2D5C] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            {{ user.full_name[0].upper() }}
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="font-semibold text-sm text-gray-900">{{ user.full_name }}</div>
+            <div class="text-xs text-gray-400 truncate">{{ user.email }}</div>
+            <div class="text-xs text-gray-500 mt-1">
+                Joined {{ user.created_at.strftime('%b %d, %Y') }}
+                · <span class="text-green-600 font-semibold">{{ user.purchases|selectattr('payment_status','equalto','success')|list|length }} purchases</span>
+                · {{ user.reviews|length }} reviews
+            </div>
+            <a href="{{ url_for('admin_user_detail', user_id=user.id) }}" class="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#6B2D5C]">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i> View Details
+            </a>
+        </div>
+    </div>
+    {% endfor %}
 </div>
 {% endblock %}

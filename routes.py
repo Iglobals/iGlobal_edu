@@ -586,19 +586,38 @@ def verify_payment(reference):
 
 @app.context_processor
 def inject_user():
-    return dict(current_user=current_user)
+    return dict(current_user=current_user, google_enabled=_GOOGLE_ENABLED)
 
+
+# Endpoints that should never trigger the session check
+_AUTH_ENDPOINTS = {'login', 'signup', 'logout', 'forgot_password',
+                   'verify_otp', 'reset_password', 'google_login',
+                   'google_callback', 'static', 'paystack_webhook'}
 
 @app.before_request
 def enforce_single_session():
-    """Kick out any session whose token no longer matches the DB."""
-    if current_user.is_authenticated:
-        stored = session.get('user_session_token')
-        if stored != current_user.session_token:
-            logout_user()
-            session.clear()
-            flash('You were signed in on another device. Please log in again.', 'danger')
-            return redirect(url_for('login'))
+    """Invalidate sessions that no longer match the DB token.
+    This kicks device A out the moment device B logs in."""
+    if not current_user.is_authenticated:
+        return
+    if request.endpoint in _AUTH_ENDPOINTS:
+        return
+
+    stored = session.get('user_session_token')
+    # Re-fetch the token fresh from DB to avoid stale ORM cache
+    from sqlalchemy import text
+    row = db.session.execute(
+        text('SELECT session_token FROM users WHERE id = :uid'),
+        {'uid': current_user.id}
+    ).fetchone()
+    db_token = row[0] if row else None
+
+    if stored != db_token:
+        # Don't clear session before logout — Flask-Login needs it
+        logout_user()
+        session.pop('user_session_token', None)
+        flash('Your account was signed in on another device. Please log in again.', 'danger')
+        return redirect(url_for('login'))
 
 
 # ── Paystack Webhook ──────────────────────────────────────────────────────
@@ -650,3 +669,67 @@ def paystack_webhook():
                 db.session.commit()
 
     return jsonify({'status': 'ok'}), 200
+
+
+# ── Google OAuth ──────────────────────────────────────────────────────────
+from authlib.integrations.flask_client import OAuth
+
+_GOOGLE_CLIENT_ID     = os.environ.get('GOOGLE_CLIENT_ID', '')
+_GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+_GOOGLE_ENABLED = bool(_GOOGLE_CLIENT_ID and
+                       _GOOGLE_CLIENT_ID != 'your-google-client-id-here')
+
+oauth = OAuth(app)
+if _GOOGLE_ENABLED:
+    google = oauth.register(
+        name='google',
+        client_id=_GOOGLE_CLIENT_ID,
+        client_secret=_GOOGLE_CLIENT_SECRET,
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+        client_kwargs={'scope': 'openid email profile'}
+    )
+else:
+    google = None
+
+
+@app.route('/auth/google')
+def google_login():
+    if not _GOOGLE_ENABLED:
+        flash('Google sign-in is temporarily unavailable. Please use email and password.', 'warning')
+        return redirect(url_for('login'))
+    redirect_uri = url_for('google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+
+@app.route('/auth/google/callback')
+def google_callback():
+    if not _GOOGLE_ENABLED:
+        return redirect(url_for('login'))
+    try:
+        token = google.authorize_access_token()
+        user_info = token.get('userinfo')
+        if not user_info:
+            flash('Google authentication failed.', 'danger')
+            return redirect(url_for('login'))
+
+        email = user_info.get('email')
+        name  = user_info.get('name', email.split('@')[0])
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(
+                full_name=name,
+                email=email,
+                password_hash=generate_password_hash(secrets.token_hex(16))
+            )
+            db.session.add(user)
+            db.session.commit()
+
+        user.session_token = secrets.token_hex(32)
+        db.session.commit()
+        login_user(user)
+        session['user_session_token'] = user.session_token
+        return redirect(url_for('library'))
+    except Exception:
+        flash('Google sign-in failed. Please try again or use email and password.', 'danger')
+        return redirect(url_for('login'))

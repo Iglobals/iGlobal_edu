@@ -7,6 +7,7 @@ from models import User, Book, Review, Favorite, Purchase, Note, LibraryItem, OT
 import requests
 import random
 import os
+import secrets
 from datetime import datetime, timedelta
 
 @app.route('/')
@@ -145,7 +146,11 @@ def login():
             flash('Incorrect password. Please try again.', 'danger')
         else:
             remember = request.form.get('remember', False)
+            # Issue a new session token — invalidates any other active session
+            user.session_token = secrets.token_hex(32)
+            db.session.commit()
             login_user(user, remember=remember)
+            session['user_session_token'] = user.session_token
             next_page = request.args.get('next')
             return redirect(next_page if next_page else url_for('library'))
 
@@ -187,6 +192,8 @@ def signup():
 @app.route('/logout')
 @login_required
 def logout():
+    current_user.session_token = None
+    db.session.commit()
     logout_user()
     return redirect(url_for('index'))
 
@@ -479,11 +486,14 @@ def initialize_payment():
             purchase = Purchase(
                 user_id=current_user.id,
                 book_id=book_id,
-                amount_paid=book.price_naira,
+                amount_paid=book.price_naira,   # always live price
                 payment_status='pending'
             )
             db.session.add(purchase)
-            db.session.flush()  # Get the ID without committing
+            db.session.flush()
+        else:
+            # Update amount in case price changed since the pending record was created
+            purchase.amount_paid = book.price_naira
         
         # Generate unique reference
         reference = f'IGS-{purchase.id}-{int(datetime.now().timestamp())}'
@@ -577,6 +587,18 @@ def verify_payment(reference):
 @app.context_processor
 def inject_user():
     return dict(current_user=current_user)
+
+
+@app.before_request
+def enforce_single_session():
+    """Kick out any session whose token no longer matches the DB."""
+    if current_user.is_authenticated:
+        stored = session.get('user_session_token')
+        if stored != current_user.session_token:
+            logout_user()
+            session.clear()
+            flash('You were signed in on another device. Please log in again.', 'danger')
+            return redirect(url_for('login'))
 
 
 # ── Paystack Webhook ──────────────────────────────────────────────────────

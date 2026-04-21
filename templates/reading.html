@@ -102,10 +102,35 @@
         line-height: 1.8;
         color: #1a1a2e;
         font-size: 13px;
-        /* Fixed height so content clips cleanly at page boundary */
+        font-family: Georgia, 'Times New Roman', serif;
         height: calc(100vh - 125px);
         overflow: hidden;
         box-sizing: border-box;
+    }
+    /* Heading hierarchy — color + size, clearly distinct from body */
+    .book-page h1 {
+        font-size: 1.5em; font-weight: 700; color: #2F1341;
+        margin: 0 0 0.5em; border-bottom: 2px solid #e9d5ff;
+        padding-bottom: 0.2em; line-height: 1.3;
+    }
+    .book-page h2 {
+        font-size: 1.2em; font-weight: 700; color: #4A1F5C;
+        margin: 0.7em 0 0.35em; line-height: 1.35;
+    }
+    .book-page h3 {
+        font-size: 1em; font-weight: 600; color: #B0522E;
+        margin: 0.6em 0 0.25em;
+        text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .book-page p  { margin-bottom: 0.6em; }
+    .book-page strong { color: #1a1a2e; font-weight: 700; }
+    .book-page em { font-style: italic; color: #374151; }
+    .book-page ul, .book-page ol { padding-left: 1.4em; margin-bottom: 0.6em; }
+    .book-page li { margin-bottom: 0.15em; }
+    .book-page blockquote {
+        border-left: 3px solid #6B2D5C; margin: 0.6em 0;
+        padding: 0.35rem 0.8rem; color: #4b5563;
+        background: #fdf4f8; font-style: italic;
     }
     @media(max-width: 768px) {
         .book-page { padding: 1.25rem 1.25rem; font-size: 12px; height: calc(100vh - 120px); }

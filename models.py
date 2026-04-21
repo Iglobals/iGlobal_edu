@@ -15,6 +15,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    session_token = db.Column(db.String(64), nullable=True)   # single-device enforcement
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     reviews = db.relationship('Review', backref='user', lazy=True, cascade='all, delete-orphan')

@@ -83,12 +83,23 @@
 
                 <div>
                     <label class="block text-gray-700 text-sm font-bold mb-2 uppercase tracking-wide">Password</label>
-                    <input type="password" name="password" class="input-field" placeholder="••••••••" required>
+                    <div class="relative">
+                        <input type="password" name="password" id="pw" class="input-field pr-10" placeholder="Min. 6 characters" required minlength="6">
+                        <button type="button" onclick="togglePw('pw','eyePw')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#2F1341]">
+                            <i data-lucide="eye" class="w-4 h-4" id="eyePw"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div>
                     <label class="block text-gray-700 text-sm font-bold mb-2 uppercase tracking-wide">Confirm Password</label>
-                    <input type="password" name="confirm_password" class="input-field" placeholder="••••••••" required>
+                    <div class="relative">
+                        <input type="password" name="confirm_password" id="cpw" class="input-field pr-10" placeholder="Repeat password" required>
+                        <button type="button" onclick="togglePw('cpw','eyeCpw')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#2F1341]">
+                            <i data-lucide="eye" class="w-4 h-4" id="eyeCpw"></i>
+                        </button>
+                    </div>
+                    <p id="matchMsg" class="text-xs mt-1 hidden"></p>
                 </div>
 
                 <div class="flex items-start">
@@ -129,6 +140,33 @@
 
     <script>
         lucide.createIcons();
+
+        function togglePw(id, iconId) {
+            const inp = document.getElementById(id);
+            const ico = document.getElementById(iconId);
+            const isText = inp.type === 'text';
+            inp.type = isText ? 'password' : 'text';
+            ico.setAttribute('data-lucide', isText ? 'eye' : 'eye-off');
+            lucide.createIcons();
+        }
+
+        // Live confirm-password match feedback
+        const pw = document.getElementById('pw');
+        const cpw = document.getElementById('cpw');
+        const msg = document.getElementById('matchMsg');
+        cpw.addEventListener('input', () => {
+            if (!cpw.value) { msg.classList.add('hidden'); return; }
+            msg.classList.remove('hidden');
+            if (pw.value === cpw.value) {
+                msg.textContent = '✓ Passwords match';
+                msg.className = 'text-xs mt-1 text-green-600';
+                cpw.style.borderColor = '#16a34a';
+            } else {
+                msg.textContent = '✗ Passwords do not match';
+                msg.className = 'text-xs mt-1 text-red-500';
+                cpw.style.borderColor = '#dc2626';
+            }
+        });
     </script>
 </body>
 </html>

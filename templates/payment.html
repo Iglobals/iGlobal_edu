@@ -16,55 +16,60 @@
 {% endblock %}
 
 {% block content %}
-<section class="py-20 bg-gray-50 min-h-screen">
-    <div class="container mx-auto px-6">
+<section class="py-6 md:py-20 bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-3 md:px-6">
         <div class="max-w-2xl mx-auto">
             <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div class="bg-[#2F1341] text-white p-6">
-                    <h1 class="font-condensed text-3xl font-bold">Complete Your Purchase</h1>
-                    <p class="text-purple-200 mt-2">Secure payment powered by Paystack</p>
+                <div class="bg-[#2F1341] text-white p-4 md:p-6">
+                    <h1 class="font-condensed text-2xl md:text-3xl font-bold">Complete Your Purchase</h1>
+                    <p class="text-purple-200 mt-1 text-sm md:text-base">Secure payment powered by Paystack</p>
                 </div>
-                
-                <div class="p-8">
-                    <div class="flex gap-6 mb-8">
-                        <img src="{{ book.image_url }}" alt="{{ book.title }}" class="w-32 h-40 object-cover rounded-lg shadow-md">
-                        <div class="flex-1">
+
+                <div class="p-4 md:p-8">
+                    <!-- Book info: stacked on mobile, side-by-side on md+ -->
+                    <div class="flex flex-col sm:flex-row gap-4 mb-6 md:mb-8">
+                        <img src="{{ book.image_url }}" alt="{{ book.title }}"
+                             class="w-full sm:w-28 h-48 sm:h-36 object-cover rounded-lg shadow-md flex-shrink-0">
+                        <div class="flex-1 min-w-0">
                             <span class="text-xs font-bold text-[#00A4B4] uppercase tracking-wider">{{ book.category }}</span>
-                            <h2 class="font-bold text-2xl text-gray-900 mt-1 mb-2">{{ book.title }}</h2>
-                            <p class="text-gray-600 mb-3">By {{ book.author }}</p>
-                            <div class="text-3xl font-bold text-[#2F1341]">₦{{ "{:,.2f}".format(book.price_naira) }}</div>
+                            <h2 class="font-bold text-lg md:text-2xl text-gray-900 mt-1 mb-1 leading-tight">{{ book.title }}</h2>
+                            <p class="text-gray-500 text-sm mb-2">By {{ book.author }}</p>
+                            <div class="text-2xl md:text-3xl font-bold text-[#2F1341]">
+                                ₦{{ "{:,.2f}".format(book.price_naira) }}
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="border-t border-gray-200 pt-6 mb-6">
-                        <h3 class="font-bold text-lg mb-4">What you'll get:</h3>
-                        <ul class="space-y-3">
-                            <li class="flex items-start gap-3">
-                                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
-                                <span class="text-gray-700">Full access to all {{ book.chapters|length }} chapters</span>
+
+                    <div class="border-t border-gray-100 pt-4 mb-5">
+                        <h3 class="font-bold text-sm md:text-base mb-3">What you'll get:</h3>
+                        <ul class="space-y-2">
+                            <li class="flex items-start gap-2 text-sm text-gray-700">
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5"></i>
+                                Full access to all {{ book.chapters|length }} chapters
                             </li>
-                            <li class="flex items-start gap-3">
-                                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
-                                <span class="text-gray-700">Lifetime access - read anytime, anywhere</span>
+                            <li class="flex items-start gap-2 text-sm text-gray-700">
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5"></i>
+                                Lifetime access — read anytime, anywhere
                             </li>
-                            <li class="flex items-start gap-3">
-                                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
-                                <span class="text-gray-700">Add notes and highlights</span>
+                            <li class="flex items-start gap-2 text-sm text-gray-700">
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5"></i>
+                                Add notes and highlights
                             </li>
-                            <li class="flex items-start gap-3">
-                                <i data-lucide="check-circle" class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
-                                <span class="text-gray-700">Secure, protected content</span>
+                            <li class="flex items-start gap-2 text-sm text-gray-700">
+                                <i data-lucide="check-circle" class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5"></i>
+                                Secure, protected content
                             </li>
                         </ul>
                     </div>
-                    
-                    <button onclick="payWithPaystack()" class="w-full btn-primary py-4 rounded-lg text-lg font-bold flex items-center justify-center gap-2">
-                        <i data-lucide="lock" class="w-5 h-5"></i>
+
+                    <button onclick="payWithPaystack()"
+                        class="w-full btn-primary py-3 md:py-4 rounded-lg text-sm md:text-base font-bold flex items-center justify-center gap-2">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
                         Pay ₦{{ "{:,.2f}".format(book.price_naira) }} Securely
                     </button>
-                    
-                    <p class="text-center text-sm text-gray-500 mt-4">
-                        <i data-lucide="shield-check" class="w-4 h-4 inline"></i>
+
+                    <p class="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-1">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
                         Secure payment processed by Paystack
                     </p>
                 </div>
@@ -75,53 +80,37 @@
 
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <script>
+    // Price is always read from the server — never hardcoded
+    const BOOK_PRICE_KOBO = {{ (book.price_naira * 100) | int }};
+    const BOOK_ID = {{ book.id }};
+
     function payWithPaystack() {
-        // Initialize payment
         fetch('/api/payment/initialize', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                book_id: {{ book.id }}
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ book_id: BOOK_ID })
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
             if (data.status === 'success') {
                 const handler = PaystackPop.setup({
                     key: '{{ paystack_public_key }}',
                     email: '{{ current_user.email }}',
-                    amount: {{ book.price_naira * 100 }},
+                    amount: BOOK_PRICE_KOBO,
                     ref: data.data.reference,
-                    onClose: function(){
-                        alert('Payment window closed.');
-                    },
-                    callback: function(response){
-                        // Verify payment
-                        fetch('/api/payment/verify/' + response.reference)
-                        .then(res => res.json())
-                        .then(result => {
-                            if (result.status === 'success') {
-                                alert('Payment successful! Redirecting to book...');
-                                window.location.href = '/reading/{{ book.id }}';
-                            } else {
-                                alert('Payment verification failed. Please contact support.');
-                            }
-                        });
+                    onClose: function() {},
+                    callback: function(response) {
+                        window.location.href = '/api/payment/verify/' + response.reference;
                     }
                 });
                 handler.openIframe();
             } else {
-                alert('Payment initialization failed. Please try again.');
+                alert(data.message || 'Payment initialization failed. Please try again.');
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred. Please try again.');
-        });
+        .catch(() => alert('A network error occurred. Please try again.'));
     }
-    
+
     lucide.createIcons();
 </script>
 {% endblock %}

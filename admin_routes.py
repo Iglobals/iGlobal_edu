@@ -271,6 +271,21 @@ def admin_parse_docx():
     result = mammoth.convert_to_html(io.BytesIO(f.read()), style_map=style_map)
     soup = BeautifulSoup(result.value, 'html.parser')
 
+    # Inject the same inline styles Quill uses for headings,
+    # so docx-sourced content renders identically to hand-typed content.
+    HEADING_STYLES = {
+        'h1': 'font-family:Georgia,serif;font-size:1.5em;font-weight:700;color:#2F1341;'
+              'border-bottom:2px solid #e9d5ff;padding-bottom:0.2em;margin:0 0 0.5em;line-height:1.3;',
+        'h2': 'font-family:Georgia,serif;font-size:1.2em;font-weight:700;color:#4A1F5C;'
+              'margin:0.7em 0 0.35em;line-height:1.35;',
+        'h3': 'font-family:Georgia,serif;font-size:1em;font-weight:600;color:#B0522E;'
+              'margin:0.6em 0 0.25em;text-transform:uppercase;letter-spacing:0.04em;',
+    }
+    for tag_name, style in HEADING_STYLES.items():
+        for tag in soup.find_all(tag_name):
+            existing = tag.get('style', '')
+            tag['style'] = (existing + ';' + style).lstrip(';')
+
     chapters, contents = [], []
     current_title, current_nodes = None, []
 

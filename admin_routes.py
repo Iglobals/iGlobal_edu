@@ -5,6 +5,7 @@ from app import app, db
 from models import User, Book, Review, Purchase
 from datetime import datetime
 import re
+import io
 
 def admin_required(f):
     @wraps(f)
@@ -237,3 +238,63 @@ def admin_settings():
         return redirect(url_for('admin_settings'))
     
     return render_template('admin/settings.html')
+
+
+@app.route('/admin/books/parse-docx', methods=['POST'])
+@login_required
+@admin_required
+def admin_parse_docx():
+    """
+    Accepts a .docx upload, converts to HTML with mammoth,
+    splits on <h1> tags — each H1 = chapter title, content between = chapter body.
+    Returns JSON: { chapters: [...], contents: [...], warnings: [...] }
+    """
+    try:
+        import mammoth
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return jsonify({'error': 'mammoth or beautifulsoup4 not installed.'}), 500
+
+    f = request.files.get('docx_file')
+    if not f or not f.filename.lower().endswith('.docx'):
+        return jsonify({'error': 'Please upload a valid .docx file.'}), 400
+
+    style_map = """
+        p[style-name='Heading 1'] => h1:fresh
+        p[style-name='Heading 2'] => h2:fresh
+        p[style-name='Heading 3'] => h3:fresh
+        p[style-name='Heading 4'] => h4:fresh
+        r[style-name='Strong']    => strong
+        r[style-name='Emphasis']  => em
+    """
+
+    result = mammoth.convert_to_html(io.BytesIO(f.read()), style_map=style_map)
+    soup = BeautifulSoup(result.value, 'html.parser')
+
+    chapters, contents = [], []
+    current_title, current_nodes = None, []
+
+    for tag in soup.children:
+        if getattr(tag, 'name', None) == 'h1':
+            if current_title is not None:
+                chapters.append(current_title)
+                contents.append(''.join(str(n) for n in current_nodes))
+            current_title = tag.get_text(strip=True)
+            current_nodes = []
+        else:
+            if str(tag).strip():
+                current_nodes.append(tag)
+
+    # flush last chapter
+    if current_title is not None:
+        chapters.append(current_title)
+        contents.append(''.join(str(n) for n in current_nodes))
+    elif current_nodes:
+        chapters.append('Full Document')
+        contents.append(''.join(str(n) for n in current_nodes))
+
+    return jsonify({
+        'chapters': chapters,
+        'contents': contents,
+        'warnings': [w.message for w in result.messages]
+    })

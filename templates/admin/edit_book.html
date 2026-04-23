@@ -92,7 +92,22 @@
         </div>
 
         <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 class="text-lg font-bold mb-4">Chapters</h2>
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <h2 class="text-lg font-bold">Chapters</h2>
+                <!-- Option to replace content via docx upload -->
+                <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[#6B2D5C] border border-[#6B2D5C]/30 rounded-lg px-3 py-1.5 hover:bg-purple-50">
+                    <i data-lucide="upload" class="w-4 h-4"></i>
+                    Replace with .docx
+                    <input type="file" id="docxFileInput" accept=".docx" class="hidden">
+                </label>
+            </div>
+
+            <div id="docxProcessing" class="hidden text-center py-3 mb-3">
+                <div class="inline-block w-5 h-5 border-2 border-[#6B2D5C] border-t-transparent rounded-full animate-spin mr-2"></div>
+                <span class="text-sm text-gray-500">Converting document…</span>
+            </div>
+            <div id="docxWarnings" class="hidden mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-700"></div>
+            <div id="docxHiddenFields"></div>
             
             <div id="chaptersContainer">
                 {% for i in range(book.chapters|length) %}
@@ -227,6 +242,54 @@
             if (editor && contentTextareas[index]) {
                 contentTextareas[index].value = editor.root.innerHTML;
             }
+        });
+    });
+
+    // ── Word document upload (replace chapters) ───────────────────────────
+    document.getElementById('docxFileInput').addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) return;
+        if (!confirm(`Replace all current chapters with content from "${file.name}"?`)) return;
+
+        document.getElementById('docxProcessing').classList.remove('hidden');
+        document.getElementById('docxWarnings').classList.add('hidden');
+
+        const fd = new FormData();
+        fd.append('docx_file', file);
+
+        fetch('{{ url_for("admin_parse_docx") }}', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('docxProcessing').classList.add('hidden');
+            if (data.error) { alert(data.error); return; }
+
+            if (data.warnings && data.warnings.length) {
+                const w = document.getElementById('docxWarnings');
+                w.textContent = 'Notes: ' + data.warnings.join('; ');
+                w.classList.remove('hidden');
+            }
+
+            // Clear existing Quill editors and chapter items
+            document.getElementById('chaptersContainer').innerHTML = '';
+            chapterEditors = [];
+
+            // Inject hidden fields for each extracted chapter
+            const container = document.getElementById('docxHiddenFields');
+            container.innerHTML = '';
+            data.chapters.forEach((title, i) => {
+                const t = document.createElement('input');
+                t.type = 'hidden'; t.name = 'chapter_titles[]'; t.value = title;
+                const c = document.createElement('textarea');
+                c.name = 'chapter_contents[]'; c.style.display = 'none'; c.value = data.contents[i] || '';
+                container.appendChild(t);
+                container.appendChild(c);
+            });
+
+            alert(`✓ ${data.chapters.length} chapters extracted from "${file.name}". Click "Update Book" to save.`);
+        })
+        .catch(() => {
+            document.getElementById('docxProcessing').classList.add('hidden');
+            alert('Upload failed. Please try again.');
         });
     });
 </script>

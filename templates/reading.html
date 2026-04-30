@@ -141,7 +141,14 @@
         break-inside: avoid;
         page-break-inside: avoid;
     }
-    .book-page img { max-width: 100%; height: auto; display: block; }
+    /* Images: never taller than 85% of the page height, never wider than the page */
+    .book-page img {
+        max-width: 100%;
+        max-height: 85vh;
+        height: auto;
+        display: block;
+        object-fit: contain;
+    }
     @media(max-width: 768px) {
         .book-page { padding: 1.25rem 1.25rem; font-size: 12px; height: calc(100vh - 120px); }
     }
@@ -368,31 +375,54 @@ let chapterPageOffsets = [];
 let totalGlobalPages   = 0;
 
 // ── Pagination ────────────────────────────────────────────────────────────
-// Strategy: render nodes into the REAL .book-page element, measure actual
-// overflow, then split. No hidden probe — measures what the user actually sees.
+// Renders nodes into the real .book-page, measures overflow after each node.
+// Images are given their natural height immediately (avoids async load issues).
+// A node that alone exceeds the page gets its own page (no infinite loop).
 function paginateChapter(htmlContent) {
     const el = document.getElementById('pageContent');
+    const pageH = el.clientHeight;   // the fixed CSS height of .book-page
+
     const tmp = document.createElement('div');
     tmp.innerHTML = htmlContent;
     const nodes = Array.from(tmp.childNodes).filter(n =>
         n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim())
     );
 
+    // Pre-set explicit dimensions on images so layout is synchronous
+    nodes.forEach(n => {
+        if (n.nodeType === 1) {
+            n.querySelectorAll && n.querySelectorAll('img').forEach(img => {
+                if (!img.style.maxWidth) img.style.maxWidth = '100%';
+                // If natural size known, constrain height so it doesn't exceed page
+                if (img.naturalHeight && img.naturalHeight > pageH * 0.85) {
+                    img.style.maxHeight = (pageH * 0.85) + 'px';
+                    img.style.width = 'auto';
+                }
+            });
+        }
+    });
+
     const pages = [];
 
     while (nodes.length > 0) {
-        // Load nodes one by one until overflow
         el.innerHTML = '';
         let lastFit = 0;
 
         for (let i = 0; i < nodes.length; i++) {
             el.appendChild(nodes[i].cloneNode(true));
-            if (el.scrollHeight > el.clientHeight) {
-                // This node caused overflow
+
+            // Force layout recalc
+            void el.offsetHeight;
+
+            const overflows = el.scrollHeight > pageH + 2; // +2px tolerance
+
+            if (overflows) {
                 if (i === 0) {
-                    // Single node is already too big — include it anyway (no infinite loop)
+                    // This single node is bigger than the page — give it its own page
+                    // but cap images to fit
                     lastFit = 1;
                 } else {
+                    // Don't include this node — it caused the overflow
                     lastFit = i;
                 }
                 break;
@@ -400,12 +430,9 @@ function paginateChapter(htmlContent) {
             lastFit = i + 1;
         }
 
-        // Capture the HTML of what fits
         const w = document.createElement('div');
         for (let i = 0; i < lastFit; i++) w.appendChild(nodes[i].cloneNode(true));
         pages.push(w.innerHTML);
-
-        // Remove the nodes we just paged
         nodes.splice(0, lastFit);
     }
 

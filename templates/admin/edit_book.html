@@ -176,10 +176,16 @@
         {% endfor %}
       </div>
 
-      <button type="button" onclick="addChapter()"
-        class="mt-2 text-[#6B2D5C] font-semibold hover:underline flex items-center gap-1.5 text-sm">
-        <i data-lucide="plus" class="w-4 h-4"></i> Add Chapter
-      </button>
+      <div class="flex flex-wrap gap-3 mt-2">
+        <button type="button" onclick="addChapter('','', document.querySelector('#chaptersContainer .chapter-item'))"
+          class="text-[#6B2D5C] font-semibold hover:underline flex items-center gap-1.5 text-sm">
+          <i data-lucide="plus" class="w-4 h-4"></i> Add at Beginning
+        </button>
+        <button type="button" onclick="addChapter()"
+          class="text-[#6B2D5C] font-semibold hover:underline flex items-center gap-1.5 text-sm">
+          <i data-lucide="plus" class="w-4 h-4"></i> Add at End
+        </button>
+      </div>
     </div>
 
     <div class="flex gap-3 flex-wrap">
@@ -282,7 +288,43 @@ const TOOLBAR = [
 ];
 
 function createQuill(el) {
-    return new Quill(el, { theme: 'snow', modules: { toolbar: TOOLBAR } });
+    const editor = new Quill(el, { theme: 'snow', modules: { toolbar: TOOLBAR } });
+
+    // Prevent Quill from scrolling the page to the editor on paste or image insert.
+    // We lock the window scroll position for the duration of the text-change event.
+    let _lockScroll = false;
+    const _savedY = { val: 0 };
+
+    editor.on('text-change', function(delta, old, source) {
+        if (source === 'user') {
+            // Check if this change includes an image embed (paste or toolbar insert)
+            const hasImage = delta.ops && delta.ops.some(op => op.insert && op.insert.image);
+            if (hasImage) {
+                _savedY.val = window.scrollY;
+                _lockScroll = true;
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: _savedY.val, behavior: 'instant' });
+                    _lockScroll = false;
+                });
+            }
+        }
+    });
+
+    // Also prevent the editor's own scroll container from jumping on paste
+    const container = el.closest('.chapter-body') || el.parentElement;
+    if (container) {
+        editor.root.addEventListener('paste', function() {
+            const scrollEl = container.closest('.chapter-item');
+            const savedScroll = scrollEl ? scrollEl.scrollTop : 0;
+            const savedWindowY = window.scrollY;
+            requestAnimationFrame(() => {
+                window.scrollTo({ top: savedWindowY, behavior: 'instant' });
+                if (scrollEl) scrollEl.scrollTop = savedScroll;
+            });
+        });
+    }
+
+    return editor;
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────────
@@ -303,20 +345,39 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // ── Chapter CRUD ───────────────────────────────────────────────────────────
-function addChapter(title = '', html = '') {
+function addChapter(title = '', html = '', insertBeforeEl = null) {
     const container = document.getElementById('chaptersContainer');
-    const index = chapterEditors.length;
     const div = document.createElement('div');
     div.className = 'chapter-item';
-    div.setAttribute('data-chapter-index', index);
-    div.innerHTML = buildChapterHTML(index, title);
-    container.appendChild(div);
+    div.innerHTML = buildChapterHTML(0, title); // index updated by renumber
 
-    const editor = createQuill(div.querySelector('.chapter-editor'));
-    if (html) editor.clipboard.dangerouslyPasteHTML(html);
-    chapterEditors.push(editor);
+    if (insertBeforeEl) {
+        container.insertBefore(div, insertBeforeEl);
+        // Find insertion index
+        const items = Array.from(container.children);
+        const idx = items.indexOf(div);
+        const editor = createQuill(div.querySelector('.chapter-editor'));
+        if (html) editor.clipboard.dangerouslyPasteHTML(html);
+        chapterEditors.splice(idx, 0, editor);
+    } else {
+        container.appendChild(div);
+        const editor = createQuill(div.querySelector('.chapter-editor'));
+        if (html) editor.clipboard.dangerouslyPasteHTML(html);
+        chapterEditors.push(editor);
+    }
+
     renumberChapters();
     lucide.createIcons();
+}
+
+function insertChapterBefore(btn) {
+    const item = btn.closest('.chapter-item');
+    addChapter('', '', item);
+}
+
+function insertChapterAfter(btn) {
+    const item = btn.closest('.chapter-item');
+    addChapter('', '', item.nextSibling || null);
 }
 
 function buildChapterHTML(index, title) {
@@ -330,6 +391,8 @@ function buildChapterHTML(index, title) {
         <input type="text" name="chapter_titles[]" value="${escHtml(title)}" placeholder="Chapter Title"
             class="flex-1 min-w-0 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:border-[#6B2D5C]">
         <div class="flex items-center gap-1 flex-shrink-0">
+            <button type="button" onclick="insertChapterBefore(this)" title="Insert chapter before this one" class="p-1 text-purple-400 hover:text-purple-700 text-xs font-bold">+↑</button>
+            <button type="button" onclick="insertChapterAfter(this)"  title="Insert chapter after this one"  class="p-1 text-purple-400 hover:text-purple-700 text-xs font-bold">+↓</button>
             <button type="button" onclick="moveChapter(this,-1)" title="Move up" class="p-1 text-gray-400 hover:text-gray-700"><i data-lucide="chevron-up" class="w-3.5 h-3.5"></i></button>
             <button type="button" onclick="moveChapter(this,1)" title="Move down" class="p-1 text-gray-400 hover:text-gray-700"><i data-lucide="chevron-down" class="w-3.5 h-3.5"></i></button>
             <button type="button" onclick="toggleChapter(this)" title="Collapse" class="p-1 text-gray-400 hover:text-gray-700"><i data-lucide="chevron-up" class="w-3.5 h-3.5 toggle-icon"></i></button>
@@ -398,44 +461,71 @@ function renumberChapters() {
 }
 
 // ── Heading tools ──────────────────────────────────────────────────────────
+
+// Inline styles that match reading.html / preview.html exactly
+const HEADING_STYLES = {
+    1: 'font-family:Georgia,serif;font-size:1.5em;font-weight:700;color:#2F1341;border-bottom:2px solid #e9d5ff;padding-bottom:0.2em;margin:0 0 0.5em;line-height:1.3;',
+    2: 'font-family:Georgia,serif;font-size:1.2em;font-weight:700;color:#4A1F5C;margin:0.7em 0 0.35em;line-height:1.35;',
+    3: 'font-family:Georgia,serif;font-size:1em;font-weight:600;color:#B0522E;margin:0.6em 0 0.25em;text-transform:uppercase;letter-spacing:0.04em;',
+    4: 'font-family:Georgia,serif;font-size:0.9em;font-weight:600;color:#6b7280;margin:0.5em 0 0.2em;',
+};
+
+function applyHeadingStyle(html) {
+    // Strip any existing style on headings, then inject the canonical one
+    return html.replace(/<h([1-4])(\s[^>]*)?>/gi, function(_, level) {
+        return `<h${level} style="${HEADING_STYLES[parseInt(level)]}">`;
+    });
+}
+
+// Preserve scroll + cursor position when programmatically replacing editor HTML
+function replaceEditorHTML(editor, html) {
+    const scroller = editor.root.closest('.ql-container') || editor.root.parentElement;
+    const scrollTop = scroller ? scroller.scrollTop : 0;
+    // Save selection index
+    const sel = editor.getSelection();
+    const selIndex = sel ? sel.index : null;
+
+    editor.clipboard.dangerouslyPasteHTML(html);
+
+    // Restore scroll after Quill re-renders
+    requestAnimationFrame(() => {
+        if (scroller) scroller.scrollTop = scrollTop;
+        if (selIndex !== null) {
+            try { editor.setSelection(Math.min(selIndex, editor.getLength() - 1), 0, 'silent'); } catch(e) {}
+        }
+    });
+}
+
 function getEditorForBtn(btn) {
     const item = btn.closest('.chapter-item');
     const items = Array.from(document.getElementById('chaptersContainer').children);
     return chapterEditors[items.indexOf(item)];
 }
 
-// Shift all headings up (dir=-1) or down (dir=1) by one level
 function shiftHeadings(btn, dir) {
     const editor = getEditorForBtn(btn);
     if (!editor) return;
-    const html = editor.root.innerHTML;
-    // Process in correct order to avoid double-shifting
-    // dir=-1 (promote): process H1 first (they'd become invalid, cap at H1), then H2→H1, H3→H2, H4→H3
-    // dir=+1 (demote):  process H4 first (cap at H4), then H3→H4, H2→H3, H1→H2
+    let html = editor.root.innerHTML;
     const levels = dir === -1 ? [1,2,3,4] : [4,3,2,1];
-    let result = html;
-    // Use placeholder tokens to avoid double-replacement
     levels.forEach(h => {
         const newH = h + dir;
-        if (newH < 1 || newH > 4) return; // cap: H1 can't go up, H4 can't go down
-        result = result
-            .replace(new RegExp(`<h${h}([ >])`, 'gi'), `<__H${newH}$1`)
+        if (newH < 1 || newH > 4) return;
+        html = html
+            .replace(new RegExp(`<h${h}([ >][^>]*)?>`, 'gi'), `<__H${newH}>`)
             .replace(new RegExp(`</h${h}>`, 'gi'), `</__H${newH}>`);
     });
-    // Resolve placeholders
-    result = result.replace(/<__H(\d)/g, '<h$1').replace(/<\/__H(\d)>/g, '</h$1>');
-    editor.clipboard.dangerouslyPasteHTML(result);
+    html = html.replace(/<__H(\d)>/g, '<h$1>').replace(/<\/__H(\d)>/g, '</h$1>');
+    replaceEditorHTML(editor, applyHeadingStyle(html));
 }
 
-// Convert a specific heading level to another
 function convertHeading(btn, fromH, toH) {
     const editor = getEditorForBtn(btn);
     if (!editor) return;
     let html = editor.root.innerHTML;
     html = html
-        .replace(new RegExp(`<h${fromH}([ >])`, 'gi'), `<h${toH}$1`)
+        .replace(new RegExp(`<h${fromH}([ >][^>]*)?>`, 'gi'), `<h${toH}>`)
         .replace(new RegExp(`</h${fromH}>`, 'gi'), `</h${toH}>`);
-    editor.clipboard.dangerouslyPasteHTML(html);
+    replaceEditorHTML(editor, applyHeadingStyle(html));
 }
 
 // ── Form submit ────────────────────────────────────────────────────────────

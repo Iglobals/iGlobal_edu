@@ -115,30 +115,38 @@
 
         <!-- Ref code + link generator -->
         <div class="bg-white rounded-xl shadow-sm p-5 border border-purple-100">
-            <h2 class="font-condensed font-bold text-lg text-[#2F1341] mb-4">Your Referral Code</h2>
-            <div class="flex items-center gap-3 mb-4">
+            <h2 class="font-condensed font-bold text-lg text-[#2F1341] mb-1">Your Referral Code</h2>
+            <p class="text-xs text-gray-400 mb-4">You earn <span class="font-bold text-[#2F1341]">30% commission</span> on every purchase made through your link.</p>
+            <div class="flex items-center gap-3 mb-5">
                 <span class="font-mono text-2xl font-bold tracking-widest text-[#2F1341] bg-purple-50 px-4 py-2 rounded-lg">{{ agent.ref_code }}</span>
                 <button onclick="copyText('{{ agent.ref_code }}')" class="copy-btn text-gray-400" title="Copy code">
                     <i data-lucide="copy" class="w-5 h-5"></i>
                 </button>
             </div>
 
-            <p class="text-sm text-gray-500 mb-3">Generate a referral link for a specific book:</p>
-            <div class="flex gap-2 flex-wrap">
-                <input id="bookIdInput" type="number" placeholder="Book ID" min="1"
-                    class="border border-gray-200 rounded-lg px-3 py-2 text-sm w-28 outline-none focus:border-[#2F1341]">
-                <button onclick="generateLink()"
-                    class="bg-[#2F1341] text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-[#4A1F5C] transition-colors">
-                    Generate Link
+            <p class="text-sm font-semibold text-gray-700 mb-3">Generate a referral link:</p>
+
+            <!-- Category filter -->
+            <div class="flex flex-wrap gap-2 mb-3" id="categoryTabs">
+                <button onclick="filterCategory('all')" data-cat="all"
+                    class="cat-tab px-3 py-1 rounded-full text-xs font-bold border border-[#2F1341] bg-[#2F1341] text-white">
+                    All Books
                 </button>
             </div>
-            <div id="generatedLink" class="hidden mt-3">
+
+            <!-- Book selector -->
+            <div id="bookList" class="space-y-2 max-h-52 overflow-y-auto mb-3">
+                <p class="text-xs text-gray-400 text-center py-4">Loading books…</p>
+            </div>
+
+            <div id="generatedLink" class="hidden">
                 <div class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
                     <span id="linkText" class="text-sm text-gray-700 break-all flex-1"></span>
                     <button onclick="copyLink()" class="copy-btn text-gray-400 flex-shrink-0">
                         <i data-lucide="copy" class="w-4 h-4"></i>
                     </button>
                 </div>
+                <p class="text-xs text-gray-400 mt-1">Share this link — you earn 30% when someone buys through it.</p>
             </div>
         </div>
 
@@ -197,17 +205,72 @@
     function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('scrim').classList.add('open'); }
     function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('scrim').classList.remove('open'); }
 
-    function copyText(text) {
-        navigator.clipboard.writeText(text).then(showToast);
+    function copyText(text) { navigator.clipboard.writeText(text).then(showToast); }
+
+    // ── Book list ──────────────────────────────────────────────────────────
+    let allBooks = {};   // { category: [{id, title, price}] }
+    let activeCategory = 'all';
+
+    fetch('/api/agent/books')
+    .then(r => r.json())
+    .then(data => {
+        allBooks = data;
+        // Build category tabs
+        const tabs = document.getElementById('categoryTabs');
+        Object.keys(data).forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = 'cat-tab px-3 py-1 rounded-full text-xs font-bold border border-gray-200 text-gray-600 hover:border-[#2F1341] hover:text-[#2F1341]';
+            btn.setAttribute('data-cat', cat);
+            btn.textContent = cat;
+            btn.onclick = () => filterCategory(cat);
+            tabs.appendChild(btn);
+        });
+        renderBooks('all');
+    })
+    .catch(() => {
+        document.getElementById('bookList').innerHTML =
+            '<p class="text-xs text-red-400 text-center py-4">Could not load books.</p>';
+    });
+
+    function filterCategory(cat) {
+        activeCategory = cat;
+        document.querySelectorAll('.cat-tab').forEach(b => {
+            const active = b.getAttribute('data-cat') === cat;
+            b.className = active
+                ? 'cat-tab px-3 py-1 rounded-full text-xs font-bold border border-[#2F1341] bg-[#2F1341] text-white'
+                : 'cat-tab px-3 py-1 rounded-full text-xs font-bold border border-gray-200 text-gray-600 hover:border-[#2F1341] hover:text-[#2F1341]';
+        });
+        renderBooks(cat);
     }
 
-    function generateLink() {
-        const bookId = document.getElementById('bookIdInput').value.trim();
-        if (!bookId) return;
-        const link = `{{ base_url }}/payment/${bookId}?ref={{ agent.ref_code }}`;
+    function renderBooks(cat) {
+        const list = document.getElementById('bookList');
+        let books = [];
+        if (cat === 'all') {
+            Object.values(allBooks).forEach(arr => books = books.concat(arr));
+        } else {
+            books = allBooks[cat] || [];
+        }
+        if (!books.length) {
+            list.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">No books in this category.</p>';
+            return;
+        }
+        list.innerHTML = books.map(b => `
+            <button onclick="selectBook(${b.id}, '${b.title.replace(/'/g,"\\'")}', ${b.price})"
+                class="w-full text-left flex items-center justify-between px-3 py-2 rounded-lg border border-gray-100 hover:border-[#2F1341] hover:bg-purple-50 transition-colors group">
+                <span class="text-sm font-medium text-gray-800 group-hover:text-[#2F1341]">${b.title}</span>
+                <span class="text-xs text-gray-400 flex-shrink-0 ml-2">₦${b.price.toLocaleString()}</span>
+            </button>`).join('');
+    }
+
+    function selectBook(id, title, price) {
+        const base = '{{ base_url }}';
+        const ref  = '{{ agent.ref_code }}';
+        const link = `${base}/payment/${id}?ref=${ref}`;
         document.getElementById('linkText').textContent = link;
         document.getElementById('generatedLink').classList.remove('hidden');
-        lucide.createIcons();
+        // Scroll to link
+        document.getElementById('generatedLink').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function copyLink() {

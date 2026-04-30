@@ -121,7 +121,7 @@ class OTPCode(db.Model):
 
 # ── Referral System ───────────────────────────────────────────────────────
 
-REFERRAL_COMMISSION_RATE = 0.10   # 10% — change here to update globally
+REFERRAL_COMMISSION_RATE = 0.30   # 30% — change here to update globally
 REFERRAL_COOKIE_DAYS     = 5
 
 

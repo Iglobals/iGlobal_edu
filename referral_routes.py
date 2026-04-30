@@ -1,6 +1,7 @@
 import random
 import string
 import os
+import secrets
 from functools import wraps
 from flask import (render_template, request, redirect, url_for,
                    flash, session, make_response, jsonify)
@@ -95,7 +96,7 @@ def agent_register():
             session[AGENT_SESSION_KEY] = agent.id
             return redirect(url_for('agent_dashboard'))
 
-    return render_template('referral/register.html')
+    return render_template('referral/register.html', google_enabled=_GOOGLE_ENABLED)
 
 
 @app.route('/agents/login', methods=['GET', 'POST'])
@@ -118,7 +119,7 @@ def agent_login():
             session[AGENT_SESSION_KEY] = agent.id
             return redirect(url_for('agent_dashboard'))
 
-    return render_template('referral/login.html')
+    return render_template('referral/login.html', google_enabled=_GOOGLE_ENABLED)
 
 
 @app.route('/agents/logout')
@@ -201,3 +202,77 @@ def admin_mark_all_paid(agent_id):
     ReferralCommission.query.filter_by(agent_id=agent_id, is_paid=False).update({'is_paid': True})
     db.session.commit()
     return jsonify({'status': 'ok'})
+
+
+# ── Books list API (for agent link generator) ─────────────────────────────
+
+@app.route('/api/agent/books')
+def agent_books_list():
+    """Returns all non-free books grouped by category for the agent dashboard."""
+    books = Book.query.filter_by(is_free=False).order_by(Book.category, Book.title).all()
+    result = {}
+    for b in books:
+        result.setdefault(b.category, []).append({
+            'id': b.id,
+            'title': b.title,
+            'price': b.price_naira
+        })
+    return jsonify(result)
+
+
+# ── Google OAuth for agents ───────────────────────────────────────────────
+
+_GOOGLE_ENABLED = bool(
+    os.environ.get('GOOGLE_CLIENT_ID', '') and
+    os.environ.get('GOOGLE_CLIENT_ID', '') != 'your-google-client-id-here'
+)
+
+
+@app.route('/agents/auth/google')
+def agent_google_login():
+    if not _GOOGLE_ENABLED:
+        flash('Google sign-in is temporarily unavailable. Please use email and password.', 'warning')
+        return redirect(url_for('agent_login'))
+    from routes import google
+    redirect_uri = url_for('agent_google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+
+@app.route('/agents/auth/google/callback')
+def agent_google_callback():
+    if not _GOOGLE_ENABLED:
+        return redirect(url_for('agent_login'))
+    try:
+        from routes import google
+        token = google.authorize_access_token()
+        user_info = token.get('userinfo')
+        if not user_info:
+            flash('Google authentication failed.', 'danger')
+            return redirect(url_for('agent_login'))
+
+        email = user_info.get('email')
+        name  = user_info.get('given_name') or user_info.get('name', email.split('@')[0])
+        username = email.split('@')[0]
+
+        agent = ReferralAgent.query.filter_by(email=email).first()
+        if not agent:
+            # Auto-generate unique username
+            base = username
+            i = 1
+            while ReferralAgent.query.filter_by(username=username).first():
+                username = f'{base}{i}'; i += 1
+            agent = ReferralAgent(
+                username=username,
+                first_name=name,
+                email=email,
+                password_hash=generate_password_hash(secrets.token_hex(16)),
+                ref_code=generate_ref_code()
+            )
+            db.session.add(agent)
+            db.session.commit()
+
+        session[AGENT_SESSION_KEY] = agent.id
+        return redirect(url_for('agent_dashboard'))
+    except Exception:
+        flash('Google sign-in failed. Please try again or use email and password.', 'danger')
+        return redirect(url_for('agent_login'))

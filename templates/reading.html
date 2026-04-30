@@ -132,6 +132,16 @@
         padding: 0.35rem 0.8rem; color: #4b5563;
         background: #fdf4f8; font-style: italic;
     }
+    /* Never clip an image or a block element mid-page — move to next page instead */
+    .book-page img,
+    .book-page table,
+    .book-page blockquote,
+    .book-page figure,
+    .book-page div {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    .book-page img { max-width: 100%; height: auto; display: block; }
     @media(max-width: 768px) {
         .book-page { padding: 1.25rem 1.25rem; font-size: 12px; height: calc(100vh - 120px); }
     }

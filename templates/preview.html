@@ -178,6 +178,16 @@
         padding: 0.35rem 0.8rem; color: #4b5563;
         background: #fdf4f8; font-style: italic;
     }
+    /* Never clip images or block elements mid-page */
+    .carousel-page img,
+    .carousel-page table,
+    .carousel-page blockquote,
+    .carousel-page figure,
+    .carousel-page div {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    .carousel-page img { max-width: 100%; height: auto; display: block; }
 
     @media (max-width: 640px) {
         .preview-carousel { height: 70vh; }

@@ -1,14 +1,35 @@
 {% extends "admin/layout.html" %}
-
 {% block title %}Edit Book{% endblock %}
-{% block page_title %}Edit Book: {{ book.title }}{% endblock %}
+{% block page_title %}Edit: {{ book.title }}{% endblock %}
 
 {% block extra_css %}
 <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 <style>
-    .ql-editor { min-height: 180px; }
-    .chapter-item { border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.75rem; }
+    .ql-editor { min-height: 200px; }
+    .chapter-item { border: 1px solid #e5e7eb; border-radius: 0.5rem; margin-bottom: 1rem; overflow: hidden; }
+    .chapter-header {
+        display: flex; align-items: center; gap: 0.5rem;
+        background: #f9fafb; border-bottom: 1px solid #e5e7eb;
+        padding: 0.6rem 0.75rem; flex-wrap: wrap;
+    }
+    .chapter-body { padding: 0.75rem; }
 
+    /* Heading tools bar */
+    .heading-tools {
+        display: flex; flex-wrap: wrap; gap: 0.35rem;
+        padding: 0.4rem 0.75rem; background: #fdf4f8;
+        border-bottom: 1px solid #f3e8ff; align-items: center;
+    }
+    .ht-label { font-size: 0.68rem; font-weight: 700; color: #6B2D5C; text-transform: uppercase; letter-spacing: 0.05em; margin-right: 0.25rem; }
+    .ht-btn {
+        font-size: 0.7rem; font-weight: 600; padding: 0.2rem 0.5rem;
+        border-radius: 0.3rem; border: 1px solid #d8b4fe; background: white;
+        color: #4A1F5C; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .ht-btn:hover { background: #f3e8ff; border-color: #6B2D5C; }
+    .ht-sep { width: 1px; height: 18px; background: #e9d5ff; margin: 0 0.2rem; }
+
+    /* Quill toolbar wraps */
     .ql-toolbar { flex-wrap: wrap !important; }
     .ql-toolbar .ql-formats { margin-bottom: 2px; }
 
@@ -19,278 +40,606 @@
     .ql-editor h1 { font-size: 1.5rem; font-weight: 700; color: #2F1341; margin: 1rem 0 0.4rem; border-bottom: 2px solid #e9d5ff; padding-bottom: 0.2em; }
     .ql-editor h2 { font-size: 1.2rem; font-weight: 700; color: #4A1F5C; margin: 0.8rem 0 0.35rem; }
     .ql-editor h3 { font-size: 1rem; font-weight: 600; color: #B0522E; margin: 0.7rem 0 0.25rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .ql-editor h4 { font-size: 0.9rem; font-weight: 600; color: #6b7280; margin: 0.6rem 0 0.2rem; }
     .ql-editor p  { margin-bottom: 0.65em; }
     .ql-editor strong { color: #1a1a2e; }
     .ql-editor blockquote { border-left: 4px solid #6B2D5C; margin: 0.75rem 0; padding: 0.4rem 0.8rem; color: #4b5563; background: #fdf4f8; font-style: italic; }
     .ql-editor ul, .ql-editor ol { padding-left: 1.4rem; margin-bottom: 0.65em; }
     .ql-editor img { max-width: 100%; border-radius: 4px; }
-    .ql-container { border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; }
-    .ql-toolbar { border-top-left-radius: 4px; border-top-right-radius: 4px; }
+
+    /* Docx modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .modal-box { background: white; border-radius: 0.75rem; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 1.25rem; }
+    .modal-footer { padding: 0.75rem 1.25rem; border-top: 1px solid #e5e7eb; display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
+
+    .preview-chapter { padding: 0.5rem 0.75rem; border-radius: 0.4rem; border: 1px solid #e5e7eb; margin-bottom: 0.4rem; font-size: 0.82rem; }
+    .preview-chapter.new    { background: #f0fdf4; border-color: #86efac; }
+    .preview-chapter.replace{ background: #fef3c7; border-color: #fcd34d; }
+    .preview-chapter.keep   { background: #f9fafb; border-color: #e5e7eb; color: #9ca3af; }
+    .preview-chapter.shift  { background: #eff6ff; border-color: #93c5fd; }
 
     @media (max-width: 768px) {
-        .chapter-item { padding: 0.5rem; }
+        .chapter-item { margin-bottom: 0.75rem; }
         .bg-white.rounded-lg.shadow.p-6 { padding: 0.75rem !important; }
         .grid.grid-cols-2 { grid-template-columns: 1fr !important; }
         .max-w-4xl { max-width: 100%; }
-        .flex.gap-4 { flex-direction: column; }
-        .flex.gap-4 a, .flex.gap-4 button { width: 100%; text-align: center; justify-content: center; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="max-w-4xl">
-    <form method="POST" action="{{ url_for('admin_edit_book', book_id=book.id) }}" id="bookForm">
-        <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 class="text-lg font-bold mb-4">Basic Information</h2>
-            
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Title *</label>
-                    <input type="text" name="title" value="{{ book.title }}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Author *</label>
-                    <input type="text" name="author" value="{{ book.author }}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
-                </div>
-            </div>
+  <form method="POST" action="{{ url_for('admin_edit_book', book_id=book.id) }}" id="bookForm">
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
-                    <select name="category" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
-                        <option value="Science" {% if book.category == 'Science' %}selected{% endif %}>Science</option>
-                        <option value="Commercial" {% if book.category == 'Commercial' %}selected{% endif %}>Commercial</option>
-                        <option value="Arts & Humanities" {% if book.category == 'Arts & Humanities' %}selected{% endif %}>Arts & Humanities</option>
-                        <option value="JUPEB Mastery" {% if book.category == 'JUPEB Mastery' %}selected{% endif %}>JUPEB Mastery</option>
-                        <option value="Past Questions" {% if book.category == 'Past Questions' %}selected{% endif %}>Past Questions</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Image URL *</label>
-                    <input type="url" name="image_url" value="{{ book.image_url }}" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
-                </div>
-            </div>
+    <!-- Basic info -->
+    <div class="bg-white rounded-lg shadow p-4 md:p-6 mb-4">
+      <h2 class="text-base font-bold mb-3">Basic Information</h2>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Title *</label>
+          <input type="text" name="title" value="{{ book.title }}" required class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Author *</label>
+          <input type="text" name="author" value="{{ book.author }}" required class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Category *</label>
+          <select name="category" required class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
+            {% for cat in ['Science','Commercial','Arts & Humanities','JUPEB Mastery','Past Questions'] %}
+            <option value="{{ cat }}" {% if book.category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Image URL *</label>
+          <input type="url" name="image_url" value="{{ book.image_url }}" required class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Description</label>
+        <textarea name="description" rows="2" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">{{ book.description }}</textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Price (₦)</label>
+          <input type="number" name="price_naira" step="0.01" value="{{ book.price_naira }}" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
+        </div>
+        <div class="flex items-center pt-5">
+          <label class="flex items-center cursor-pointer gap-2 text-sm font-semibold text-gray-700">
+            <input type="checkbox" name="is_free" {% if book.is_free %}checked{% endif %} class="w-4 h-4 text-[#6B2D5C] rounded">
+            Mark as Free
+          </label>
+        </div>
+      </div>
+    </div>
 
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
-                <textarea name="description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">{{ book.description }}</textarea>
-            </div>
+    <!-- Chapters -->
+    <div class="bg-white rounded-lg shadow p-4 md:p-6 mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <h2 class="text-base font-bold">Chapters</h2>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="openDocxModal()"
+            class="flex items-center gap-1.5 text-xs font-semibold text-[#6B2D5C] border border-[#6B2D5C]/30 rounded-lg px-3 py-1.5 hover:bg-purple-50">
+            <i data-lucide="file-up" class="w-3.5 h-3.5"></i> Import .docx
+          </button>
+        </div>
+      </div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Price (Naira)</label>
-                    <input type="number" name="price_naira" step="0.01" value="{{ book.price_naira }}" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
-                </div>
-                <div class="flex items-center">
-                    <label class="flex items-center cursor-pointer">
-                        <input type="checkbox" name="is_free" {% if book.is_free %}checked{% endif %} class="w-5 h-5 text-[#6B2D5C] rounded">
-                        <span class="ml-2 text-sm font-semibold text-gray-700">Mark as Free</span>
-                    </label>
-                </div>
+      <div id="docxHiddenFields"></div>
+
+      <div id="chaptersContainer">
+        {% for i in range(book.chapters|length) %}
+        <div class="chapter-item" data-chapter-index="{{ i }}">
+          <div class="chapter-header">
+            <span class="text-xs font-bold text-gray-500 w-16 flex-shrink-0">Ch. {{ i + 1 }}</span>
+            <input type="text" name="chapter_titles[]" value="{{ book.chapters[i] }}"
+              placeholder="Chapter Title"
+              class="flex-1 min-w-0 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:border-[#6B2D5C]">
+            <div class="flex items-center gap-1 flex-shrink-0">
+              <button type="button" onclick="moveChapter(this, -1)" title="Move up" class="p-1 text-gray-400 hover:text-gray-700">
+                <i data-lucide="chevron-up" class="w-3.5 h-3.5"></i>
+              </button>
+              <button type="button" onclick="moveChapter(this, 1)" title="Move down" class="p-1 text-gray-400 hover:text-gray-700">
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+              </button>
+              <button type="button" onclick="toggleChapter(this)" title="Collapse" class="p-1 text-gray-400 hover:text-gray-700">
+                <i data-lucide="chevron-up" class="w-3.5 h-3.5 toggle-icon"></i>
+              </button>
+              <button type="button" onclick="removeChapter(this)" class="p-1 text-red-400 hover:text-red-600">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
             </div>
+          </div>
+
+          <!-- Heading tools -->
+          <div class="heading-tools">
+            <span class="ht-label">Headings:</span>
+            <button type="button" class="ht-btn" onclick="shiftHeadings(this, -1)" title="Promote all headings one level (H2→H1, H3→H2…)">▲ All Up</button>
+            <button type="button" class="ht-btn" onclick="shiftHeadings(this, 1)"  title="Demote all headings one level (H1→H2, H2→H3…)">▼ All Down</button>
+            <div class="ht-sep"></div>
+            <span class="ht-label">Convert:</span>
+            {% for from_h in [1,2,3,4] %}{% for to_h in [1,2,3,4] %}{% if from_h != to_h %}
+            <button type="button" class="ht-btn" onclick="convertHeading(this, {{ from_h }}, {{ to_h }})">H{{ from_h }}→H{{ to_h }}</button>
+            {% endif %}{% endfor %}{% endfor %}
+          </div>
+
+          <div class="chapter-body">
+            <div class="chapter-editor"></div>
+            <textarea name="chapter_contents[]" class="hidden chapter-content">{{ book.content[i]|e if i < book.content|length else '' }}</textarea>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <button type="button" onclick="addChapter()"
+        class="mt-2 text-[#6B2D5C] font-semibold hover:underline flex items-center gap-1.5 text-sm">
+        <i data-lucide="plus" class="w-4 h-4"></i> Add Chapter
+      </button>
+    </div>
+
+    <div class="flex gap-3 flex-wrap">
+      <button type="submit" class="bg-[#6B2D5C] text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-[#8B4A7A]">Update Book</button>
+      <a href="{{ url_for('admin_books') }}" class="bg-gray-200 text-gray-700 px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-300">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<!-- ── Docx Import Modal ── -->
+<div id="docxModal" class="modal-backdrop hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 class="font-bold text-base text-[#2F1341]">Import Word Document</h3>
+      <button onclick="closeDocxModal()" class="text-gray-400 hover:text-gray-600">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+    <div class="modal-body space-y-4">
+
+      <!-- Step 1: Upload -->
+      <div id="step1">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">1. Choose a .docx file</label>
+        <div class="border-2 border-dashed border-[#6B2D5C]/30 rounded-lg p-5 text-center">
+          <i data-lucide="file-text" class="w-8 h-8 text-[#6B2D5C]/40 mx-auto mb-2"></i>
+          <p class="text-xs text-gray-500 mb-2">Each <strong>Heading 1</strong> in the document becomes a chapter</p>
+          <input type="file" id="modalDocxInput" accept=".docx" class="hidden">
+          <button type="button" onclick="document.getElementById('modalDocxInput').click()"
+            class="bg-[#6B2D5C] text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-[#8B4A7A]">
+            Choose File
+          </button>
+          <p id="modalFileName" class="text-xs text-gray-400 mt-2"></p>
+        </div>
+        <div id="modalProcessing" class="hidden text-center py-3">
+          <div class="inline-block w-5 h-5 border-2 border-[#6B2D5C] border-t-transparent rounded-full animate-spin mr-2"></div>
+          <span class="text-sm text-gray-500">Converting…</span>
+        </div>
+      </div>
+
+      <!-- Step 2: Action + position -->
+      <div id="step2" class="hidden space-y-3">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">2. What to do with the imported chapters?</label>
+          <select id="importAction" onchange="updatePreview()"
+            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
+            <option value="append">Append as new chapters (at the end)</option>
+            <option value="insert_before">Insert before chapter…</option>
+            <option value="insert_after">Insert after chapter…</option>
+            <option value="replace_from">Replace chapters starting from…</option>
+            <option value="replace_all">Replace entire book</option>
+          </select>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6 mb-6">
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <h2 class="text-lg font-bold">Chapters</h2>
-                <!-- Option to replace content via docx upload -->
-                <label class="flex items-center gap-2 cursor-pointer text-sm font-semibold text-[#6B2D5C] border border-[#6B2D5C]/30 rounded-lg px-3 py-1.5 hover:bg-purple-50">
-                    <i data-lucide="upload" class="w-4 h-4"></i>
-                    Replace with .docx
-                    <input type="file" id="docxFileInput" accept=".docx" class="hidden">
-                </label>
-            </div>
-
-            <div id="docxProcessing" class="hidden text-center py-3 mb-3">
-                <div class="inline-block w-5 h-5 border-2 border-[#6B2D5C] border-t-transparent rounded-full animate-spin mr-2"></div>
-                <span class="text-sm text-gray-500">Converting document…</span>
-            </div>
-            <div id="docxWarnings" class="hidden mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-700"></div>
-            <div id="docxHiddenFields"></div>
-            
-            <div id="chaptersContainer">
-                {% for i in range(book.chapters|length) %}
-                <div class="chapter-item">
-                    <div class="flex justify-between items-center mb-3">
-                        <label class="block text-sm font-semibold text-gray-700">Chapter {{ i + 1 }}</label>
-                        {% if i > 0 %}
-                        <button type="button" onclick="removeChapter(this)" class="text-red-600 hover:text-red-800">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                        {% endif %}
-                    </div>
-                    <input type="text" name="chapter_titles[]" value="{{ book.chapters[i] }}" placeholder="Chapter Title" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Content</label>
-                        <div class="chapter-editor"></div>
-                        {# FIX 1 — |e keeps the textarea tag intact (no raw </textarea> in content).
-                           FIX 2 — JS uses dangerouslyPasteHTML() so Quill parses & renders the HTML
-                                   as real formatted content instead of raw tags. #}
-                        <textarea name="chapter_contents[]" class="hidden chapter-content">{{ book.content[i]|e if i < book.content|length else '' }}</textarea>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            <button type="button" onclick="addChapter()" class="text-[#6B2D5C] font-semibold hover:underline flex items-center gap-2">
-                <i data-lucide="plus" class="w-4 h-4"></i>
-                Add Another Chapter
-            </button>
+        <div id="positionRow" class="hidden">
+          <label class="block text-xs font-semibold text-gray-600 mb-1">Chapter position (1 = first)</label>
+          <input type="number" id="importPosition" min="1" value="1" onchange="updatePreview()"
+            class="w-24 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D5C]">
         </div>
 
-        <div class="flex gap-4">
-            <button type="submit" class="bg-[#6B2D5C] text-white px-8 py-3 rounded-lg font-bold hover:bg-[#8B4A7A]">
-                Update Book
-            </button>
-            <a href="{{ url_for('admin_books') }}" class="bg-gray-300 text-gray-700 px-8 py-3 rounded-lg font-bold hover:bg-gray-400">
-                Cancel
-            </a>
+        <!-- Preview -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">3. Preview result</label>
+          <div class="text-xs text-gray-400 flex gap-3 mb-2 flex-wrap">
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-green-200 inline-block"></span> New</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-yellow-200 inline-block"></span> Replaced</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-blue-200 inline-block"></span> Shifted</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-gray-100 inline-block"></span> Unchanged</span>
+          </div>
+          <div id="importPreview" class="max-h-52 overflow-y-auto space-y-1 border border-gray-100 rounded-lg p-2 bg-gray-50"></div>
         </div>
-    </form>
+      </div>
+
+      <div id="modalWarnings" class="hidden p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-700"></div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeDocxModal()" class="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+      <button id="applyImportBtn" onclick="applyImport()" class="hidden px-4 py-2 text-sm font-bold text-white bg-[#6B2D5C] rounded-lg hover:bg-[#8B4A7A]">Apply Changes</button>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 <script>
-    let chapterEditors = [];
+// ── State ──────────────────────────────────────────────────────────────────
+let chapterEditors = [];   // parallel array to .chapter-item DOM nodes
+let importedChapters = []; // { title, content } from last docx parse
+let existingChapters = []; // snapshot of current chapters at modal open time
 
-    /* Toolbar config — block-level (H1-H3, blockquote, code) + inline + lists + link/image */
-    const TOOLBAR = [
-        [{ 'header': [1, 2, 3, false] }],
-        ['blockquote', 'code-block'],
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'color': [] }, { 'background': [] }],
-        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-        [{ 'indent': '-1' }, { 'indent': '+1' }],
-        ['link', 'image'],
-        ['clean']
-    ];
+const TOOLBAR = [
+    [{ 'header': [1, 2, 3, 4, false] }],
+    ['blockquote', 'code-block'],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'color': [] }, { 'background': [] }],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+    [{ 'indent': '-1' }, { 'indent': '+1' }],
+    ['link', 'image'],
+    ['clean']
+];
 
-    function createQuill(el) {
-        return new Quill(el, {
-            theme: 'snow',
-            modules: { toolbar: TOOLBAR }
-        });
-    }
+function createQuill(el) {
+    return new Quill(el, { theme: 'snow', modules: { toolbar: TOOLBAR } });
+}
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const editorElements   = document.querySelectorAll('.chapter-editor');
-        const contentTextareas = document.querySelectorAll('.chapter-content');
+// ── Boot ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+    const editorEls  = document.querySelectorAll('.chapter-editor');
+    const textareas  = document.querySelectorAll('.chapter-content');
 
-        editorElements.forEach((editorEl, index) => {
-            const editor   = createQuill(editorEl);
-            const textarea = contentTextareas[index];
-
-            if (textarea) {
-                /* textarea.value gives the decoded string (browser strips entities),
-                   so this is clean HTML ready for Quill to parse as formatted content. */
-                const html = textarea.value.trim();
-
-                if (html) {
-                    /* KEY FIX: dangerouslyPasteHTML goes through Quill's internal Delta
-                       parser — the editor renders it as formatted text, not raw tags.
-                       editor.root.innerHTML bypasses the parser and often shows tags. */
-                    editor.clipboard.dangerouslyPasteHTML(html);
-                }
-            }
-
-            chapterEditors[index] = editor;
-        });
-
-        lucide.createIcons();
+    editorEls.forEach((el, i) => {
+        const editor = createQuill(el);
+        const ta = textareas[i];
+        if (ta && ta.value.trim()) {
+            editor.clipboard.dangerouslyPasteHTML(ta.value.trim());
+        }
+        chapterEditors[i] = editor;
     });
 
-    function addChapter() {
-        const container = document.getElementById('chaptersContainer');
-        const index     = chapterEditors.length;
+    lucide.createIcons();
+});
 
-        const chapterHtml = `
-            <div class="chapter-item">
-                <div class="flex justify-between items-center mb-3">
-                    <label class="block text-sm font-semibold text-gray-700">Chapter ${index + 1}</label>
-                    <button type="button" onclick="removeChapter(this)" class="text-red-600 hover:text-red-800">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
-                </div>
-                <input type="text" name="chapter_titles[]" placeholder="Chapter Title" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-3">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Content</label>
-                    <div class="chapter-editor"></div>
-                    <textarea name="chapter_contents[]" class="hidden chapter-content"></textarea>
-                </div>
-            </div>`;
+// ── Chapter CRUD ───────────────────────────────────────────────────────────
+function addChapter(title = '', html = '') {
+    const container = document.getElementById('chaptersContainer');
+    const index = chapterEditors.length;
+    const div = document.createElement('div');
+    div.className = 'chapter-item';
+    div.setAttribute('data-chapter-index', index);
+    div.innerHTML = buildChapterHTML(index, title);
+    container.appendChild(div);
 
-        container.insertAdjacentHTML('beforeend', chapterHtml);
+    const editor = createQuill(div.querySelector('.chapter-editor'));
+    if (html) editor.clipboard.dangerouslyPasteHTML(html);
+    chapterEditors.push(editor);
+    renumberChapters();
+    lucide.createIcons();
+}
 
-        const newEditor = createQuill(container.lastElementChild.querySelector('.chapter-editor'));
-        chapterEditors[index] = newEditor;
-        lucide.createIcons();
+function buildChapterHTML(index, title) {
+    const htBtns = [];
+    for (let f = 1; f <= 4; f++) for (let t = 1; t <= 4; t++) {
+        if (f !== t) htBtns.push(`<button type="button" class="ht-btn" onclick="convertHeading(this,${f},${t})">H${f}→H${t}</button>`);
+    }
+    return `
+    <div class="chapter-header">
+        <span class="text-xs font-bold text-gray-500 w-16 flex-shrink-0">Ch. ${index + 1}</span>
+        <input type="text" name="chapter_titles[]" value="${escHtml(title)}" placeholder="Chapter Title"
+            class="flex-1 min-w-0 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:border-[#6B2D5C]">
+        <div class="flex items-center gap-1 flex-shrink-0">
+            <button type="button" onclick="moveChapter(this,-1)" title="Move up" class="p-1 text-gray-400 hover:text-gray-700"><i data-lucide="chevron-up" class="w-3.5 h-3.5"></i></button>
+            <button type="button" onclick="moveChapter(this,1)" title="Move down" class="p-1 text-gray-400 hover:text-gray-700"><i data-lucide="chevron-down" class="w-3.5 h-3.5"></i></button>
+            <button type="button" onclick="toggleChapter(this)" title="Collapse" class="p-1 text-gray-400 hover:text-gray-700"><i data-lucide="chevron-up" class="w-3.5 h-3.5 toggle-icon"></i></button>
+            <button type="button" onclick="removeChapter(this)" class="p-1 text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+        </div>
+    </div>
+    <div class="heading-tools">
+        <span class="ht-label">Headings:</span>
+        <button type="button" class="ht-btn" onclick="shiftHeadings(this,-1)" title="Promote all headings">▲ All Up</button>
+        <button type="button" class="ht-btn" onclick="shiftHeadings(this,1)"  title="Demote all headings">▼ All Down</button>
+        <div class="ht-sep"></div>
+        <span class="ht-label">Convert:</span>
+        ${htBtns.join('')}
+    </div>
+    <div class="chapter-body">
+        <div class="chapter-editor"></div>
+        <textarea name="chapter_contents[]" class="hidden chapter-content"></textarea>
+    </div>`;
+}
+
+function escHtml(s) { return (s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function removeChapter(btn) {
+    const item  = btn.closest('.chapter-item');
+    const items = Array.from(document.getElementById('chaptersContainer').children);
+    const idx   = items.indexOf(item);
+    item.remove();
+    chapterEditors.splice(idx, 1);
+    renumberChapters();
+}
+
+function moveChapter(btn, dir) {
+    const item      = btn.closest('.chapter-item');
+    const container = document.getElementById('chaptersContainer');
+    const items     = Array.from(container.children);
+    const idx       = items.indexOf(item);
+    const target    = idx + dir;
+    if (target < 0 || target >= items.length) return;
+
+    // Swap DOM
+    if (dir === -1) container.insertBefore(item, items[target]);
+    else            container.insertBefore(items[target], item);
+
+    // Swap editors
+    [chapterEditors[idx], chapterEditors[target]] = [chapterEditors[target], chapterEditors[idx]];
+    renumberChapters();
+}
+
+function toggleChapter(btn) {
+    const body = btn.closest('.chapter-item').querySelector('.chapter-body');
+    const ht   = btn.closest('.chapter-item').querySelector('.heading-tools');
+    const icon = btn.querySelector('.toggle-icon');
+    const hidden = body.style.display === 'none';
+    body.style.display = hidden ? '' : 'none';
+    if (ht) ht.style.display = hidden ? '' : 'none';
+    icon.setAttribute('data-lucide', hidden ? 'chevron-up' : 'chevron-down');
+    lucide.createIcons();
+}
+
+function renumberChapters() {
+    document.querySelectorAll('#chaptersContainer .chapter-item').forEach((item, i) => {
+        item.setAttribute('data-chapter-index', i);
+        const label = item.querySelector('.chapter-header span');
+        if (label) label.textContent = `Ch. ${i + 1}`;
+    });
+}
+
+// ── Heading tools ──────────────────────────────────────────────────────────
+function getEditorForBtn(btn) {
+    const item = btn.closest('.chapter-item');
+    const items = Array.from(document.getElementById('chaptersContainer').children);
+    return chapterEditors[items.indexOf(item)];
+}
+
+// Shift all headings up (dir=-1) or down (dir=1) by one level
+function shiftHeadings(btn, dir) {
+    const editor = getEditorForBtn(btn);
+    if (!editor) return;
+    const html = editor.root.innerHTML;
+    // Process in correct order to avoid double-shifting
+    // dir=-1 (promote): process H1 first (they'd become invalid, cap at H1), then H2→H1, H3→H2, H4→H3
+    // dir=+1 (demote):  process H4 first (cap at H4), then H3→H4, H2→H3, H1→H2
+    const levels = dir === -1 ? [1,2,3,4] : [4,3,2,1];
+    let result = html;
+    // Use placeholder tokens to avoid double-replacement
+    levels.forEach(h => {
+        const newH = h + dir;
+        if (newH < 1 || newH > 4) return; // cap: H1 can't go up, H4 can't go down
+        result = result
+            .replace(new RegExp(`<h${h}([ >])`, 'gi'), `<__H${newH}$1`)
+            .replace(new RegExp(`</h${h}>`, 'gi'), `</__H${newH}>`);
+    });
+    // Resolve placeholders
+    result = result.replace(/<__H(\d)/g, '<h$1').replace(/<\/__H(\d)>/g, '</h$1>');
+    editor.clipboard.dangerouslyPasteHTML(result);
+}
+
+// Convert a specific heading level to another
+function convertHeading(btn, fromH, toH) {
+    const editor = getEditorForBtn(btn);
+    if (!editor) return;
+    let html = editor.root.innerHTML;
+    html = html
+        .replace(new RegExp(`<h${fromH}([ >])`, 'gi'), `<h${toH}$1`)
+        .replace(new RegExp(`</h${fromH}>`, 'gi'), `</h${toH}>`);
+    editor.clipboard.dangerouslyPasteHTML(html);
+}
+
+// ── Form submit ────────────────────────────────────────────────────────────
+document.getElementById('bookForm').addEventListener('submit', function () {
+    const textareas = document.querySelectorAll('#chaptersContainer .chapter-content');
+    chapterEditors.forEach((editor, i) => {
+        if (editor && textareas[i]) textareas[i].value = editor.root.innerHTML;
+    });
+});
+
+// ── Docx import modal ──────────────────────────────────────────────────────
+function openDocxModal() {
+    // Snapshot current chapter titles for preview
+    existingChapters = Array.from(
+        document.querySelectorAll('#chaptersContainer input[name="chapter_titles[]"]')
+    ).map(inp => inp.value || '(untitled)');
+
+    importedChapters = [];
+    document.getElementById('modalFileName').textContent = '';
+    document.getElementById('modalDocxInput').value = '';
+    document.getElementById('step2').classList.add('hidden');
+    document.getElementById('applyImportBtn').classList.add('hidden');
+    document.getElementById('modalWarnings').classList.add('hidden');
+    document.getElementById('modalProcessing').classList.add('hidden');
+    document.getElementById('docxModal').classList.remove('hidden');
+    lucide.createIcons();
+}
+
+function closeDocxModal() {
+    document.getElementById('docxModal').classList.add('hidden');
+}
+
+document.getElementById('modalDocxInput').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    document.getElementById('modalFileName').textContent = file.name;
+    document.getElementById('modalProcessing').classList.remove('hidden');
+    document.getElementById('step2').classList.add('hidden');
+    document.getElementById('applyImportBtn').classList.add('hidden');
+
+    const fd = new FormData();
+    fd.append('docx_file', file);
+
+    fetch('{{ url_for("admin_parse_docx") }}', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('modalProcessing').classList.add('hidden');
+        if (data.error) { alert(data.error); return; }
+
+        importedChapters = data.chapters.map((t, i) => ({ title: t, content: data.contents[i] || '' }));
+
+        if (data.warnings && data.warnings.length) {
+            const w = document.getElementById('modalWarnings');
+            w.textContent = 'Notes: ' + data.warnings.join('; ');
+            w.classList.remove('hidden');
+        }
+
+        // Set max position
+        document.getElementById('importPosition').max = existingChapters.length + 1;
+        document.getElementById('importPosition').value = 1;
+
+        document.getElementById('step2').classList.remove('hidden');
+        document.getElementById('applyImportBtn').classList.remove('hidden');
+        updatePreview();
+    })
+    .catch(() => {
+        document.getElementById('modalProcessing').classList.add('hidden');
+        alert('Upload failed. Please try again.');
+    });
+});
+
+document.getElementById('importAction').addEventListener('change', function () {
+    const needsPos = ['insert_before','insert_after','replace_from'].includes(this.value);
+    document.getElementById('positionRow').classList.toggle('hidden', !needsPos);
+    updatePreview();
+});
+
+function updatePreview() {
+    const action = document.getElementById('importAction').value;
+    const pos    = parseInt(document.getElementById('importPosition').value || '1') - 1; // 0-based
+    const ex     = existingChapters;
+    const imp    = importedChapters;
+    const preview = document.getElementById('importPreview');
+
+    let rows = [];
+
+    if (action === 'replace_all') {
+        imp.forEach((c, i) => rows.push({ label: `Ch. ${i+1}: ${c.title}`, cls: 'new' }));
+
+    } else if (action === 'append') {
+        ex.forEach((t, i) => rows.push({ label: `Ch. ${i+1}: ${t}`, cls: 'keep' }));
+        imp.forEach((c, i) => rows.push({ label: `Ch. ${ex.length+i+1}: ${c.title} ✦ new`, cls: 'new' }));
+
+    } else if (action === 'insert_before') {
+        const p = Math.max(0, Math.min(pos, ex.length));
+        ex.slice(0, p).forEach((t, i) => rows.push({ label: `Ch. ${i+1}: ${t}`, cls: 'keep' }));
+        imp.forEach((c, i) => rows.push({ label: `Ch. ${p+i+1}: ${c.title} ✦ new`, cls: 'new' }));
+        ex.slice(p).forEach((t, i) => rows.push({ label: `Ch. ${p+imp.length+i+1}: ${t} ↓ shifted`, cls: 'shift' }));
+
+    } else if (action === 'insert_after') {
+        const p = Math.max(0, Math.min(pos + 1, ex.length));
+        ex.slice(0, p).forEach((t, i) => rows.push({ label: `Ch. ${i+1}: ${t}`, cls: 'keep' }));
+        imp.forEach((c, i) => rows.push({ label: `Ch. ${p+i+1}: ${c.title} ✦ new`, cls: 'new' }));
+        ex.slice(p).forEach((t, i) => rows.push({ label: `Ch. ${p+imp.length+i+1}: ${t} ↓ shifted`, cls: 'shift' }));
+
+    } else if (action === 'replace_from') {
+        const p = Math.max(0, Math.min(pos, ex.length));
+        ex.slice(0, p).forEach((t, i) => rows.push({ label: `Ch. ${i+1}: ${t}`, cls: 'keep' }));
+        imp.forEach((c, i) => {
+            const old = ex[p + i];
+            rows.push({ label: `Ch. ${p+i+1}: ${c.title}${old ? ` (was: ${old})` : ' ✦ new'}`, cls: old ? 'replace' : 'new' });
+        });
+        // Remaining existing chapters after replaced range
+        const afterIdx = p + imp.length;
+        ex.slice(afterIdx).forEach((t, i) => rows.push({ label: `Ch. ${afterIdx+i+1}: ${t}`, cls: 'keep' }));
     }
 
-    function removeChapter(btn) {
-        const item  = btn.closest('.chapter-item');
-        const index = Array.from(item.parentElement.children).indexOf(item);
-        item.remove();
-        chapterEditors.splice(index, 1);
+    preview.innerHTML = rows.map(r =>
+        `<div class="preview-chapter ${r.cls}">${r.label}</div>`
+    ).join('');
+}
+
+function applyImport() {
+    const action = document.getElementById('importAction').value;
+    const pos    = parseInt(document.getElementById('importPosition').value || '1') - 1;
+    const imp    = importedChapters;
+
+    if (!imp.length) { alert('No chapters to import.'); return; }
+
+    // Build the final ordered chapter list
+    let finalChapters = [];
+
+    if (action === 'replace_all') {
+        finalChapters = imp.map(c => ({ title: c.title, content: c.content, isNew: true }));
+
+    } else if (action === 'append') {
+        finalChapters = [
+            ...getCurrentChapters().map(c => ({ ...c, isNew: false })),
+            ...imp.map(c => ({ ...c, isNew: true }))
+        ];
+
+    } else if (action === 'insert_before') {
+        const p = Math.max(0, Math.min(pos, existingChapters.length));
+        const cur = getCurrentChapters();
+        finalChapters = [
+            ...cur.slice(0, p).map(c => ({ ...c, isNew: false })),
+            ...imp.map(c => ({ ...c, isNew: true })),
+            ...cur.slice(p).map(c => ({ ...c, isNew: false }))
+        ];
+
+    } else if (action === 'insert_after') {
+        const p = Math.max(0, Math.min(pos + 1, existingChapters.length));
+        const cur = getCurrentChapters();
+        finalChapters = [
+            ...cur.slice(0, p).map(c => ({ ...c, isNew: false })),
+            ...imp.map(c => ({ ...c, isNew: true })),
+            ...cur.slice(p).map(c => ({ ...c, isNew: false }))
+        ];
+
+    } else if (action === 'replace_from') {
+        const p = Math.max(0, Math.min(pos, existingChapters.length));
+        const cur = getCurrentChapters();
+        finalChapters = [
+            ...cur.slice(0, p).map(c => ({ ...c, isNew: false })),
+            ...imp.map(c => ({ ...c, isNew: true })),
+            ...cur.slice(p + imp.length).map(c => ({ ...c, isNew: false }))
+        ];
     }
 
-    document.getElementById('bookForm').addEventListener('submit', function () {
-        /* Before submit, copy each editor's HTML output back into its hidden textarea */
-        const contentTextareas = document.querySelectorAll('.chapter-content');
-        chapterEditors.forEach((editor, index) => {
-            if (editor && contentTextareas[index]) {
-                contentTextareas[index].value = editor.root.innerHTML;
-            }
-        });
+    // Rebuild the DOM
+    rebuildChapters(finalChapters);
+    closeDocxModal();
+}
+
+function getCurrentChapters() {
+    // Read current editor content into an array
+    const items = Array.from(document.querySelectorAll('#chaptersContainer .chapter-item'));
+    return items.map((item, i) => {
+        const title = item.querySelector('input[name="chapter_titles[]"]').value;
+        const editor = chapterEditors[i];
+        const content = editor ? editor.root.innerHTML : '';
+        return { title, content };
+    });
+}
+
+function rebuildChapters(chapters) {
+    const container = document.getElementById('chaptersContainer');
+    container.innerHTML = '';
+    chapterEditors = [];
+
+    chapters.forEach((ch, i) => {
+        const div = document.createElement('div');
+        div.className = 'chapter-item';
+        div.setAttribute('data-chapter-index', i);
+        div.innerHTML = buildChapterHTML(i, ch.title);
+        container.appendChild(div);
+
+        const editor = createQuill(div.querySelector('.chapter-editor'));
+        if (ch.content) editor.clipboard.dangerouslyPasteHTML(ch.content);
+        chapterEditors.push(editor);
     });
 
-    // ── Word document upload (replace chapters) ───────────────────────────
-    document.getElementById('docxFileInput').addEventListener('change', function () {
-        const file = this.files[0];
-        if (!file) return;
-        if (!confirm(`Replace all current chapters with content from "${file.name}"?`)) return;
-
-        document.getElementById('docxProcessing').classList.remove('hidden');
-        document.getElementById('docxWarnings').classList.add('hidden');
-
-        const fd = new FormData();
-        fd.append('docx_file', file);
-
-        fetch('{{ url_for("admin_parse_docx") }}', { method: 'POST', body: fd })
-        .then(r => r.json())
-        .then(data => {
-            document.getElementById('docxProcessing').classList.add('hidden');
-            if (data.error) { alert(data.error); return; }
-
-            if (data.warnings && data.warnings.length) {
-                const w = document.getElementById('docxWarnings');
-                w.textContent = 'Notes: ' + data.warnings.join('; ');
-                w.classList.remove('hidden');
-            }
-
-            // Clear existing Quill editors and chapter items
-            document.getElementById('chaptersContainer').innerHTML = '';
-            chapterEditors = [];
-
-            // Inject hidden fields for each extracted chapter
-            const container = document.getElementById('docxHiddenFields');
-            container.innerHTML = '';
-            data.chapters.forEach((title, i) => {
-                const t = document.createElement('input');
-                t.type = 'hidden'; t.name = 'chapter_titles[]'; t.value = title;
-                const c = document.createElement('textarea');
-                c.name = 'chapter_contents[]'; c.style.display = 'none'; c.value = data.contents[i] || '';
-                container.appendChild(t);
-                container.appendChild(c);
-            });
-
-            alert(`✓ ${data.chapters.length} chapters extracted from "${file.name}". Click "Update Book" to save.`);
-        })
-        .catch(() => {
-            document.getElementById('docxProcessing').classList.add('hidden');
-            alert('Upload failed. Please try again.');
-        });
-    });
+    renumberChapters();
+    lucide.createIcons();
+}
 </script>
 {% endblock %}

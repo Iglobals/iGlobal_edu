@@ -178,7 +178,7 @@
                         <i data-lucide="arrow-right" class="w-5 h-5 transition-transform group-hover:translate-x-1"></i>
                     </a>
                     <a href="{{ url_for('about') }}" class="border-2 border-white text-white px-6 py-3 rounded font-bold hover:bg-white hover:text-[#2F1341] transition-colors uppercase tracking-wider hero-btn">
-                        Learn More
+                        Refer &amp; Earn
                     </a>
                 </div>
             </div>
@@ -291,6 +291,70 @@
                 View All Books
                 <i data-lucide="arrow-right" class="w-5 h-5 transition-transform group-hover:translate-x-1"></i>
             </a>
+        </div>
+    </div>
+</section>
+
+<!-- EARN AS AN AGENT -->
+<section class="py-20 bg-white" id="agent-section">
+    <div class="container mx-auto px-6">
+        <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-12 reveal">
+                <span class="text-[#B0522E] font-semibold tracking-wider uppercase text-sm">Referral Programme</span>
+                <h2 class="font-condensed text-4xl md:text-5xl font-bold text-[#2F1341] mt-2 mb-4">Earn 30% on Every Sale</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto text-lg">Share books you believe in. Every time someone buys through your link, you earn 30% commission — automatically credited to your account.</p>
+            </div>
+
+            <!-- How it works steps -->
+            <div class="grid md:grid-cols-5 gap-4 mb-14 reveal">
+                {% set steps = [
+                    ('log-in', 'Register as Agent', 'Create your free agent account in under a minute.'),
+                    ('book-open', 'Pick a Book', 'Browse the library and choose a book to promote.'),
+                    ('link', 'Get Your Link', 'The system generates a unique referral link for that book.'),
+                    ('share-2', 'Share It', 'Post your link on WhatsApp, Instagram, or anywhere.'),
+                    ('banknote', 'Earn 30%', 'When someone buys through your link, 30% is yours.')
+                ] %}
+                {% for icon, title, desc in steps %}
+                <div class="text-center relative">
+                    <div class="w-14 h-14 bg-[#2F1341] rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                        <i data-lucide="{{ icon }}" class="w-6 h-6 text-white"></i>
+                    </div>
+                    {% if not loop.last %}
+                    <div class="hidden md:block absolute top-7 left-[calc(50%+28px)] right-0 h-0.5 bg-purple-100"></div>
+                    {% endif %}
+                    <h4 class="font-bold text-sm text-[#2F1341] mb-1">{{ title }}</h4>
+                    <p class="text-xs text-gray-500 leading-relaxed">{{ desc }}</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Highlight cards -->
+            <div class="grid md:grid-cols-3 gap-6 mb-12 reveal">
+                <div class="bg-purple-50 rounded-xl p-6 border border-purple-100 text-center">
+                    <div class="text-4xl font-bold text-[#2F1341] font-condensed mb-1">30%</div>
+                    <div class="text-sm font-semibold text-gray-600">Commission per sale</div>
+                    <p class="text-xs text-gray-400 mt-2">Paid automatically after each successful purchase</p>
+                </div>
+                <div class="bg-orange-50 rounded-xl p-6 border border-orange-100 text-center">
+                    <div class="text-4xl font-bold text-[#B0522E] font-condensed mb-1">₦0</div>
+                    <div class="text-sm font-semibold text-gray-600">Cost to join</div>
+                    <p class="text-xs text-gray-400 mt-2">Free to register, no hidden fees, no targets</p>
+                </div>
+                <div class="bg-green-50 rounded-xl p-6 border border-green-100 text-center">
+                    <div class="text-4xl font-bold text-green-600 font-condensed mb-1">∞</div>
+                    <div class="text-sm font-semibold text-gray-600">Books to promote</div>
+                    <p class="text-xs text-gray-400 mt-2">Generate a unique link for any book in the library</p>
+                </div>
+            </div>
+
+            <div class="text-center reveal">
+                <a href="{{ url_for('agent_register') }}"
+                   class="inline-flex items-center gap-3 bg-[#2F1341] text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-[#4A1F5C] transition-colors shadow-lg">
+                    <i data-lucide="user-plus" class="w-5 h-5"></i>
+                    Become an Agent — It's Free
+                </a>
+                <p class="text-sm text-gray-400 mt-3">Already an agent? <a href="{{ url_for('agent_login') }}" class="text-[#2F1341] font-semibold hover:underline">Sign in to your dashboard</a></p>
+            </div>
         </div>
     </div>
 </section>

@@ -48,6 +48,65 @@
     .ql-editor img { max-width: 100%; border-radius: 4px; }
 
     /* Docx modal */
+
+    /* ── Document Outline Panel (fixed right, desktop only) ── */
+    #outlinePanel {
+        display: none;
+    }
+    @media (min-width: 1280px) {
+        #outlinePanel {
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 64px;           /* below admin topbar */
+            right: 0;
+            width: 220px;
+            bottom: 0;
+            background: white;
+            border-left: 1px solid #e9d5ff;
+            z-index: 30;
+            overflow: hidden;
+        }
+    }
+    .outline-header {
+        padding: 0.6rem 0.85rem;
+        font-size: 0.68rem; font-weight: 700; color: #6B2D5C;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        border-bottom: 1px solid #f3e8ff;
+        flex-shrink: 0;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .outline-body {
+        overflow-y: auto; flex: 1; padding: 0.5rem 0;
+    }
+    .outline-body::-webkit-scrollbar { width: 4px; }
+    .outline-body::-webkit-scrollbar-thumb { background: #d8b4fe; border-radius: 2px; }
+
+    /* Chapter group label */
+    .outline-chapter {
+        padding: 0.35rem 0.85rem 0.15rem;
+        font-size: 0.7rem; font-weight: 700; color: #2F1341;
+        text-transform: uppercase; letter-spacing: 0.04em;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        cursor: pointer;
+    }
+    .outline-chapter:hover { background: #fdf4f8; }
+
+    /* Heading items — indented by level */
+    .outline-item {
+        display: block; width: 100%;
+        padding: 0.22rem 0.85rem;
+        font-size: 0.72rem; color: #4b5563;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        cursor: pointer; text-align: left; background: none; border: none;
+        transition: background 0.12s, color 0.12s;
+    }
+    .outline-item:hover { background: #f3e8ff; color: #2F1341; }
+    .outline-item.active { color: #6B2D5C; font-weight: 600; }
+    .outline-item[data-level="1"] { padding-left: 1rem; }
+    .outline-item[data-level="2"] { padding-left: 1.75rem; font-size: 0.69rem; }
+    .outline-item[data-level="3"] { padding-left: 2.4rem;  font-size: 0.67rem; color: #B0522E; }
+    .outline-item[data-level="4"] { padding-left: 3rem;    font-size: 0.65rem; color: #9ca3af; }
     .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem; }
     .modal-box { background: white; border-radius: 0.75rem; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
     .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
@@ -266,6 +325,22 @@
     </div>
   </div>
 </div>
+
+<!-- ── Document Outline Panel (desktop only, fixed right) ── -->
+<div id="outlinePanel">
+    <div class="outline-header">
+        <span>Outline</span>
+        <button onclick="refreshOutline()" title="Refresh" class="text-purple-300 hover:text-[#6B2D5C]">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+        </button>
+    </div>
+    <div class="outline-body" id="outlineBody">
+        <p class="text-xs text-gray-400 px-3 py-4">Start typing to see the outline.</p>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -339,6 +414,7 @@ document.addEventListener('DOMContentLoaded', function () {
             editor.clipboard.dangerouslyPasteHTML(ta.value.trim());
         }
         chapterEditors[i] = editor;
+        attachOutlineListener(editor);
     });
 
     lucide.createIcons();
@@ -359,11 +435,13 @@ function addChapter(title = '', html = '', insertBeforeEl = null) {
         const editor = createQuill(div.querySelector('.chapter-editor'));
         if (html) editor.clipboard.dangerouslyPasteHTML(html);
         chapterEditors.splice(idx, 0, editor);
+        attachOutlineListener(editor);
     } else {
         container.appendChild(div);
         const editor = createQuill(div.querySelector('.chapter-editor'));
         if (html) editor.clipboard.dangerouslyPasteHTML(html);
         chapterEditors.push(editor);
+        attachOutlineListener(editor);
     }
 
     renumberChapters();
@@ -726,10 +804,100 @@ function rebuildChapters(chapters) {
         const editor = createQuill(div.querySelector('.chapter-editor'));
         if (ch.content) editor.clipboard.dangerouslyPasteHTML(ch.content);
         chapterEditors.push(editor);
+        attachOutlineListener(editor);
     });
 
     renumberChapters();
     lucide.createIcons();
+}
+
+// ── Document Outline ───────────────────────────────────────────────────────
+
+function refreshOutline() {
+    const body = document.getElementById('outlineBody');
+    if (!body) return;
+
+    const items = Array.from(document.querySelectorAll('#chaptersContainer .chapter-item'));
+    if (!items.length) {
+        body.innerHTML = '<p class="text-xs text-gray-400 px-3 py-4">No chapters yet.</p>';
+        return;
+    }
+
+    let html = '';
+
+    items.forEach((item, chIdx) => {
+        const titleInput = item.querySelector('input[name="chapter_titles[]"]');
+        const chTitle = (titleInput && titleInput.value.trim()) || `Chapter ${chIdx + 1}`;
+        const editor = chapterEditors[chIdx];
+
+        // Chapter label — clicking scrolls to the chapter-item
+        html += `<div class="outline-chapter" onclick="scrollToChapter(${chIdx})" title="${escHtml(chTitle)}">${escHtml(chTitle)}</div>`;
+
+        if (editor) {
+            // Walk headings in the editor DOM
+            const headings = editor.root.querySelectorAll('h1,h2,h3,h4');
+            headings.forEach((hEl, hIdx) => {
+                const level = parseInt(hEl.tagName[1]);
+                const text  = hEl.textContent.trim();
+                if (!text) return;
+                html += `<button class="outline-item" data-level="${level}" data-ch="${chIdx}" data-h="${hIdx}"
+                    title="${escHtml(text)}" onclick="scrollToHeading(${chIdx},${hIdx})">${escHtml(text)}</button>`;
+            });
+        }
+    });
+
+    body.innerHTML = html || '<p class="text-xs text-gray-400 px-3 py-4">No headings found.</p>';
+}
+
+function scrollToChapter(chIdx) {
+    const items = document.querySelectorAll('#chaptersContainer .chapter-item');
+    if (items[chIdx]) {
+        items[chIdx].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function scrollToHeading(chIdx, hIdx) {
+    const editor = chapterEditors[chIdx];
+    if (!editor) return;
+    const headings = editor.root.querySelectorAll('h1,h2,h3,h4');
+    if (headings[hIdx]) {
+        // Expand chapter if collapsed
+        const item = document.querySelectorAll('#chaptersContainer .chapter-item')[chIdx];
+        if (item) {
+            const body = item.querySelector('.chapter-body');
+            if (body && body.style.display === 'none') {
+                body.style.display = '';
+                const ht = item.querySelector('.heading-tools');
+                if (ht) ht.style.display = '';
+            }
+        }
+        headings[hIdx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Briefly highlight
+        headings[hIdx].style.outline = '2px solid #6B2D5C';
+        headings[hIdx].style.outlineOffset = '2px';
+        setTimeout(() => { headings[hIdx].style.outline = ''; headings[hIdx].style.outlineOffset = ''; }, 1200);
+    }
+}
+
+// Auto-refresh outline on editor changes (debounced)
+let _outlineTimer;
+function scheduleOutlineRefresh() {
+    clearTimeout(_outlineTimer);
+    _outlineTimer = setTimeout(refreshOutline, 800);
+}
+
+// Hook into DOMContentLoaded to attach listeners after editors are created
+document.addEventListener('DOMContentLoaded', function() {
+    // Initial outline after editors load
+    setTimeout(refreshOutline, 400);
+});
+
+// Patch createQuill to attach outline refresh listener
+const _origCreateQuill = createQuill;
+// We override after definition — attach text-change to each new editor
+// (done in addChapter and boot loop via a wrapper)
+function attachOutlineListener(editor) {
+    editor.on('text-change', scheduleOutlineRefresh);
 }
 </script>
 {% endblock %}

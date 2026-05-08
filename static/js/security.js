@@ -51,20 +51,22 @@
 
         // --- Screenshot keys ---
         if (k === 'PrintScreen') {
+            // Blur immediately and keep blurred — only unblur on window focus return
+            // This prevents the Snipping Tool from capturing content even if it opens after keydown
             blurNow();
             navigator.clipboard && navigator.clipboard.writeText('').catch(function(){});
-            unblurAfter(2500);
+            // Do NOT call unblurAfter here — window focus/blur handles the restore
             return;
         }
 
         // Win+PrtSc, Win+Shift+S (Snipping Tool), Win+G (Game Bar)
         if (e.metaKey && (k === 'PrintScreen' || (e.shiftKey && k === 'S') || k === 'g' || k === 'G')) {
-            e.preventDefault(); blurNow(); unblurAfter(2500); return;
+            e.preventDefault(); blurNow(); return;
         }
 
         // Mac: Cmd+Shift+3/4/5/6
         if (e.metaKey && e.shiftKey && ['3','4','5','6'].includes(k)) {
-            e.preventDefault(); blurNow(); unblurAfter(2500); return;
+            e.preventDefault(); blurNow(); return;
         }
 
         // --- DevTools ---

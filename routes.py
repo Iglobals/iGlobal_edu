@@ -146,7 +146,11 @@ def login():
             flash('Incorrect password. Please try again.', 'danger')
         else:
             remember = request.form.get('remember', False)
-            # Issue a new session token — invalidates any other active session
+            # If there's already an active session token in the DB, block the new login
+            if user.session_token:
+                flash('This account is currently logged in on another device. Please log out there first before signing in here.', 'danger')
+                return render_template('login.html')
+            # No active session — issue a new token and log in
             user.session_token = secrets.token_hex(32)
             db.session.commit()
             login_user(user, remember=remember)
@@ -596,27 +600,31 @@ _AUTH_ENDPOINTS = {'login', 'signup', 'logout', 'forgot_password',
 
 @app.before_request
 def enforce_single_session():
-    """Invalidate sessions that no longer match the DB token.
-    This kicks device A out the moment device B logs in."""
+    """Safety net: if the stored session token no longer matches the DB
+    (e.g. admin cleared it), log the user out gracefully."""
     if not current_user.is_authenticated:
         return
     if request.endpoint in _AUTH_ENDPOINTS:
         return
+    if request.path.startswith('/api/') or request.path.startswith('/static/'):
+        return
 
     stored = session.get('user_session_token')
-    # Re-fetch the token fresh from DB to avoid stale ORM cache
-    from sqlalchemy import text
-    row = db.session.execute(
-        text('SELECT session_token FROM users WHERE id = :uid'),
-        {'uid': current_user.id}
-    ).fetchone()
-    db_token = row[0] if row else None
+    try:
+        from sqlalchemy import text
+        row = db.session.execute(
+            text('SELECT session_token FROM users WHERE id = :uid'),
+            {'uid': current_user.id}
+        ).fetchone()
+        db_token = row[0] if row else None
+    except Exception:
+        return
 
-    if stored != db_token:
-        # Don't clear session before logout — Flask-Login needs it
+    # Only log out if DB token is None (explicit logout elsewhere) or mismatched
+    if db_token is None or (stored and stored != db_token):
         logout_user()
         session.pop('user_session_token', None)
-        flash('Your account was signed in on another device. Please log in again.', 'danger')
+        flash('Your session has ended. Please log in again.', 'danger')
         return redirect(url_for('login'))
 
 

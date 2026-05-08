@@ -46,6 +46,47 @@
     .ql-editor blockquote { border-left: 4px solid #6B2D5C; margin: 0.75rem 0; padding: 0.4rem 0.8rem; color: #4b5563; background: #fdf4f8; font-style: italic; }
     .ql-editor ul, .ql-editor ol { padding-left: 1.4rem; margin-bottom: 0.65em; }
     .ql-editor img { max-width: 100%; border-radius: 4px; }
+    .ql-editor table { width:100%; border-collapse:collapse; margin:0.75em 0; font-size:0.9em; }
+    .ql-editor th, .ql-editor td { padding:0.4rem 0.65rem; border:1px solid #e5e7eb; text-align:left; vertical-align:top; }
+    .ql-editor th, .ql-editor tr:first-child td { background:#f3e8ff; font-weight:700; color:#2F1341; }
+    .ql-editor tr:nth-child(even) td { background:#faf5ff; }
+
+    /* Table preview panel — shown below editor when chapter has tables */
+    .table-preview-panel {
+        margin-top: 0.5rem;
+        border: 1px solid #e9d5ff;
+        border-radius: 0.4rem;
+        overflow: hidden;
+    }
+    .table-preview-header {
+        background: #f3e8ff;
+        padding: 0.35rem 0.75rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: #6B2D5C;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .table-preview-body {
+        padding: 0.75rem;
+        background: #fffef9;
+        overflow-x: auto;
+        font-family: Georgia, serif;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        color: #1a1a2e;
+    }
+    .table-preview-body table { width:100%; border-collapse:collapse; min-width:300px; }
+    .table-preview-body th, .table-preview-body td { padding:0.4rem 0.65rem; border:1px solid #e5e7eb; text-align:left; vertical-align:top; }
+    .table-preview-body th, .table-preview-body tr:first-child td { background:#f3e8ff; font-weight:700; color:#2F1341; }
+    .table-preview-body tr:nth-child(even) td { background:#faf5ff; }
+    .table-preview-note {
+        font-size: 0.68rem; color: #9ca3af; padding: 0.3rem 0.75rem 0.5rem;
+        background: #fffef9; font-style: italic;
+    }
 
     /* Docx modal */
 
@@ -230,6 +271,14 @@
           <div class="chapter-body">
             <div class="chapter-editor"></div>
             <textarea name="chapter_contents[]" class="hidden chapter-content">{{ book.content[i]|e if i < book.content|length else '' }}</textarea>
+            <div class="table-preview-panel hidden">
+                <div class="table-preview-header">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+                    Table Preview — how this table looks to readers
+                </div>
+                <div class="table-preview-body"></div>
+                <div class="table-preview-note">Tables are stored as raw HTML and rendered exactly as shown above in reading and preview pages.</div>
+            </div>
           </div>
         </div>
         {% endfor %}
@@ -488,6 +537,14 @@ function buildChapterHTML(index, title) {
     <div class="chapter-body">
         <div class="chapter-editor"></div>
         <textarea name="chapter_contents[]" class="hidden chapter-content"></textarea>
+        <div class="table-preview-panel hidden">
+            <div class="table-preview-header">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+                Table Preview — how this table looks to readers
+            </div>
+            <div class="table-preview-body"></div>
+            <div class="table-preview-note">Tables are stored as raw HTML and rendered exactly as shown above in reading and preview pages.</div>
+        </div>
     </div>`;
 }
 
@@ -583,27 +640,43 @@ function getEditorForBtn(btn) {
 function shiftHeadings(btn, dir) {
     const editor = getEditorForBtn(btn);
     if (!editor) return;
-    let html = editor.root.innerHTML;
-    const levels = dir === -1 ? [1,2,3,4] : [4,3,2,1];
-    levels.forEach(h => {
-        const newH = h + dir;
-        if (newH < 1 || newH > 4) return;
-        html = html
-            .replace(new RegExp(`<h${h}([ >][^>]*)?>`, 'gi'), `<__H${newH}>`)
-            .replace(new RegExp(`</h${h}>`, 'gi'), `</__H${newH}>`);
+
+    // Work on a real DOM tree — no regex, no scatter
+    const tmp = document.createElement('div');
+    tmp.innerHTML = editor.root.innerHTML;
+
+    // Collect all heading elements first (don't modify while iterating)
+    const headings = Array.from(tmp.querySelectorAll('h1,h2,h3,h4'));
+    headings.forEach(el => {
+        const level = parseInt(el.tagName[1]);
+        const newLevel = level + dir;
+        // H1 stays H1 when going up; H4 stays H4 when going down
+        if (newLevel < 1 || newLevel > 4) return;
+        const newEl = document.createElement(`h${newLevel}`);
+        // Copy all attributes and children
+        Array.from(el.attributes).forEach(a => newEl.setAttribute(a.name, a.value));
+        newEl.innerHTML = el.innerHTML;
+        el.replaceWith(newEl);
     });
-    html = html.replace(/<__H(\d)>/g, '<h$1>').replace(/<\/__H(\d)>/g, '</h$1>');
-    replaceEditorHTML(editor, applyHeadingStyle(html));
+
+    replaceEditorHTML(editor, tmp.innerHTML);
 }
 
 function convertHeading(btn, fromH, toH) {
     const editor = getEditorForBtn(btn);
     if (!editor) return;
-    let html = editor.root.innerHTML;
-    html = html
-        .replace(new RegExp(`<h${fromH}([ >][^>]*)?>`, 'gi'), `<h${toH}>`)
-        .replace(new RegExp(`</h${fromH}>`, 'gi'), `</h${toH}>`);
-    replaceEditorHTML(editor, applyHeadingStyle(html));
+
+    const tmp = document.createElement('div');
+    tmp.innerHTML = editor.root.innerHTML;
+
+    Array.from(tmp.querySelectorAll(`h${fromH}`)).forEach(el => {
+        const newEl = document.createElement(`h${toH}`);
+        Array.from(el.attributes).forEach(a => newEl.setAttribute(a.name, a.value));
+        newEl.innerHTML = el.innerHTML;
+        el.replaceWith(newEl);
+    });
+
+    replaceEditorHTML(editor, tmp.innerHTML);
 }
 
 // ── Form submit ────────────────────────────────────────────────────────────
@@ -636,6 +709,14 @@ function closeDocxModal() {
     document.getElementById('docxModal').classList.add('hidden');
 }
 
+function showModalError(msg) {
+    const w = document.getElementById('modalWarnings');
+    w.innerHTML = `<strong>⚠ Upload failed:</strong> ${msg}`;
+    w.classList.remove('hidden');
+    // Also scroll to it
+    w.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 document.getElementById('modalDocxInput').addEventListener('change', function () {
     const file = this.files[0];
     if (!file) return;
@@ -648,10 +729,18 @@ document.getElementById('modalDocxInput').addEventListener('change', function ()
     fd.append('docx_file', file);
 
     fetch('{{ url_for("admin_parse_docx") }}', { method: 'POST', body: fd })
-    .then(r => r.json())
+    .then(r => {
+        if (!r.ok) {
+            return r.json().then(d => { throw new Error(d.error || `Server error (${r.status})`); });
+        }
+        return r.json();
+    })
     .then(data => {
         document.getElementById('modalProcessing').classList.add('hidden');
-        if (data.error) { alert(data.error); return; }
+        if (data.error) {
+            showModalError(data.error);
+            return;
+        }
 
         importedChapters = data.chapters.map((t, i) => ({ title: t, content: data.contents[i] || '' }));
 
@@ -669,9 +758,16 @@ document.getElementById('modalDocxInput').addEventListener('change', function ()
         document.getElementById('applyImportBtn').classList.remove('hidden');
         updatePreview();
     })
-    .catch(() => {
+    .catch(err => {
         document.getElementById('modalProcessing').classList.add('hidden');
-        alert('Upload failed. Please try again.');
+        const msg = err && err.message ? err.message : null;
+        if (msg && msg.includes('Failed to fetch')) {
+            showModalError('Network error — the upload timed out or your connection dropped. Check your internet and try again.');
+        } else if (msg) {
+            showModalError(msg);
+        } else {
+            showModalError('Something went wrong during the upload. Please try again.');
+        }
     });
 });
 
@@ -805,6 +901,9 @@ function rebuildChapters(chapters) {
         if (ch.content) editor.clipboard.dangerouslyPasteHTML(ch.content);
         chapterEditors.push(editor);
         attachOutlineListener(editor);
+
+        // Show table preview for this chapter if it has tables
+        refreshTablePreview(div, ch.content || '');
     });
 
     renumberChapters();
@@ -890,6 +989,7 @@ function scheduleOutlineRefresh() {
 document.addEventListener('DOMContentLoaded', function() {
     // Initial outline after editors load
     setTimeout(refreshOutline, 400);
+    setTimeout(refreshAllTablePreviews, 500);
 });
 
 // Patch createQuill to attach outline refresh listener
@@ -898,6 +998,47 @@ const _origCreateQuill = createQuill;
 // (done in addChapter and boot loop via a wrapper)
 function attachOutlineListener(editor) {
     editor.on('text-change', scheduleOutlineRefresh);
+}
+
+// ── Table preview ──────────────────────────────────────────────────────────
+// Quill strips <table> from its Delta, so we extract tables from the raw
+// HTML stored in the hidden textarea and render them in a read-only panel.
+function refreshTablePreview(chapterItem, htmlContent) {
+    const panel = chapterItem.querySelector('.table-preview-panel');
+    const body  = chapterItem.querySelector('.table-preview-body');
+    if (!panel || !body) return;
+
+    // Parse the HTML and find tables
+    const tmp = document.createElement('div');
+    tmp.innerHTML = htmlContent || '';
+    const tables = tmp.querySelectorAll('table');
+
+    if (tables.length === 0) {
+        panel.classList.add('hidden');
+        return;
+    }
+
+    // Render all tables into the preview body
+    body.innerHTML = '';
+    tables.forEach((table, i) => {
+        if (i > 0) {
+            const sep = document.createElement('hr');
+            sep.style.cssText = 'border:none;border-top:1px dashed #e9d5ff;margin:0.75rem 0;';
+            body.appendChild(sep);
+        }
+        body.appendChild(table.cloneNode(true));
+    });
+
+    panel.classList.remove('hidden');
+}
+
+function refreshAllTablePreviews() {
+    const items = document.querySelectorAll('#chaptersContainer .chapter-item');
+    items.forEach((item, i) => {
+        const ta = item.querySelector('.chapter-content');
+        const html = ta ? ta.value : (chapterEditors[i] ? chapterEditors[i].root.innerHTML : '');
+        refreshTablePreview(item, html);
+    });
 }
 </script>
 {% endblock %}

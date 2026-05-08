@@ -137,6 +137,14 @@ def admin_delete_book(book_id):
     flash(f'Book "{title}" deleted successfully!', 'success')
     return redirect(url_for('admin_books'))
 
+@app.route('/admin/books/<int:book_id>/view')
+@login_required
+@admin_required
+def admin_book_view(book_id):
+    book = Book.query.get_or_404(book_id)
+    return render_template('admin/bookview.html', book=book)
+
+
 @app.route('/admin/books/<int:book_id>/purchases')
 @login_required
 @admin_required
@@ -240,6 +248,40 @@ def admin_settings():
     return render_template('admin/settings.html')
 
 
+def _fix_interrupted_lists(soup):
+    """
+    Mammoth splits interrupted numbered lists into multiple <ol> blocks,
+    each restarting at 1. This function finds ALL <ol> elements anywhere
+    in the document (not just top-level) and sets the correct `start`
+    attribute so numbering is continuous across interruptions.
+    """
+    from bs4 import NavigableString, Tag
+
+    def fix_in_parent(parent):
+        children = [c for c in parent.children if isinstance(c, Tag)]
+        running = 0
+        last_ol = None
+
+        for child in children:
+            if child.name == 'ol':
+                if running > 0:
+                    # This ol continues a previous one — set start
+                    child['start'] = running + 1
+                running += len(child.find_all('li', recursive=False))
+                last_ol = child
+            elif child.name in ('h1','h2','h3','h4','p','blockquote','div'):
+                # Interrupting content — keep running count alive
+                # Recurse into divs in case lists are nested inside them
+                if child.name == 'div':
+                    fix_in_parent(child)
+            else:
+                # Something else resets the list context
+                running = 0
+                last_ol = None
+
+    fix_in_parent(soup)
+
+
 @app.route('/admin/books/parse-docx', methods=['POST'])
 @login_required
 @admin_required
@@ -253,11 +295,13 @@ def admin_parse_docx():
         import mammoth
         from bs4 import BeautifulSoup
     except ImportError:
-        return jsonify({'error': 'mammoth or beautifulsoup4 not installed.'}), 500
+        return jsonify({'error': 'Server is missing required libraries (mammoth / beautifulsoup4). Ask your developer to run: pip install mammoth beautifulsoup4'}), 500
 
     f = request.files.get('docx_file')
-    if not f or not f.filename.lower().endswith('.docx'):
-        return jsonify({'error': 'Please upload a valid .docx file.'}), 400
+    if not f:
+        return jsonify({'error': 'No file was received. Please choose a .docx file and try again.'}), 400
+    if not f.filename.lower().endswith('.docx'):
+        return jsonify({'error': f'"{f.filename}" is not a Word document. Only .docx files are supported (not .doc, .pdf, or .odt).'}), 400
 
     style_map = """
         p[style-name='Heading 1'] => h1:fresh
@@ -268,48 +312,103 @@ def admin_parse_docx():
         r[style-name='Emphasis']  => em
     """
 
-    result = mammoth.convert_to_html(io.BytesIO(f.read()), style_map=style_map)
-    soup = BeautifulSoup(result.value, 'html.parser')
+    import base64
 
-    # Inject the same inline styles Quill uses for headings,
-    # so docx-sourced content renders identically to hand-typed content.
-    HEADING_STYLES = {
-        'h1': 'font-family:Georgia,serif;font-size:1.5em;font-weight:700;color:#2F1341;'
-              'border-bottom:2px solid #e9d5ff;padding-bottom:0.2em;margin:0 0 0.5em;line-height:1.3;',
-        'h2': 'font-family:Georgia,serif;font-size:1.2em;font-weight:700;color:#4A1F5C;'
-              'margin:0.7em 0 0.35em;line-height:1.35;',
-        'h3': 'font-family:Georgia,serif;font-size:1em;font-weight:600;color:#B0522E;'
-              'margin:0.6em 0 0.25em;text-transform:uppercase;letter-spacing:0.04em;',
-    }
-    for tag_name, style in HEADING_STYLES.items():
-        for tag in soup.find_all(tag_name):
-            existing = tag.get('style', '')
-            tag['style'] = (existing + ';' + style).lstrip(';')
+    def convert_image(image):
+        try:
+            with image.open() as img_bytes:
+                encoded = base64.b64encode(img_bytes.read()).decode('ascii')
+            return {'src': f'data:{image.content_type};base64,{encoded}'}
+        except Exception:
+            return {}  # skip unreadable images silently
 
-    chapters, contents = [], []
-    current_title, current_nodes = None, []
+    try:
+        file_bytes = f.read()
+        if len(file_bytes) == 0:
+            return jsonify({'error': 'The uploaded file is empty. Please check the file and try again.'}), 400
 
-    for tag in soup.children:
-        if getattr(tag, 'name', None) == 'h1':
-            if current_title is not None:
-                chapters.append(current_title)
-                contents.append(''.join(str(n) for n in current_nodes))
-            current_title = tag.get_text(strip=True)
-            current_nodes = []
-        else:
-            if str(tag).strip():
-                current_nodes.append(tag)
+        result = mammoth.convert_to_html(
+            io.BytesIO(file_bytes),
+            style_map=style_map,
+            convert_image=mammoth.images.img_element(convert_image)
+        )
+    except Exception as e:
+        err = str(e).lower()
+        if 'zip' in err or 'bad magic' in err or 'not a zip' in err:
+            return jsonify({'error': 'The file appears to be corrupted or is not a valid .docx file. Try re-saving it in Word as "Word Document (.docx)" and upload again.'}), 400
+        if 'password' in err or 'encrypted' in err:
+            return jsonify({'error': 'This document is password-protected. Remove the password in Word (File → Info → Protect Document) and try again.'}), 400
+        return jsonify({'error': f'Could not read the document: {str(e)}'}), 500
 
-    # flush last chapter
-    if current_title is not None:
-        chapters.append(current_title)
-        contents.append(''.join(str(n) for n in current_nodes))
-    elif current_nodes:
-        chapters.append('Full Document')
-        contents.append(''.join(str(n) for n in current_nodes))
+    try:
+        soup = BeautifulSoup(result.value, 'html.parser')
 
-    return jsonify({
-        'chapters': chapters,
-        'contents': contents,
-        'warnings': [w.message for w in result.messages]
-    })
+        # ── Strip inline styles from headings (CSS handles colors) ──
+        for tag_name in ['h1', 'h2', 'h3', 'h4']:
+            for tag in soup.find_all(tag_name):
+                if 'style' in tag.attrs:
+                    del tag.attrs['style']
+
+        # ── Fix interrupted numbered lists ──────────────────────────
+        _fix_interrupted_lists(soup)
+
+        # ── Style tables ─────────────────────────────────────────────
+        for table in soup.find_all('table'):
+            wrapper = soup.new_tag('div', style='overflow-x:auto;margin:1em 0;')
+            table.insert_before(wrapper)
+            table.extract()
+            wrapper.append(table)
+
+            table['style'] = (
+                'width:100%;border-collapse:collapse;'
+                'font-size:0.9em;font-family:Georgia,serif;min-width:400px;'
+            )
+            rows = table.find_all('tr')
+            for i, tr in enumerate(rows):
+                bg = '#f3e8ff' if i == 0 else ('#faf5ff' if i % 2 == 0 else 'white')
+                tr['style'] = f'background:{bg};'
+                for cell in tr.find_all(['td', 'th']):
+                    base = 'padding:0.45rem 0.75rem;border:1px solid #e5e7eb;vertical-align:top;text-align:left;'
+                    if cell.name == 'th' or i == 0:
+                        cell['style'] = base + 'font-weight:700;color:#2F1341;background:#f3e8ff;'
+                    else:
+                        cell['style'] = base
+
+        chapters, contents = [], []
+        current_title, current_nodes = None, []
+
+        for tag in soup.children:
+            if getattr(tag, 'name', None) == 'h1':
+                if current_title is not None:
+                    chapters.append(current_title)
+                    contents.append(''.join(str(n) for n in current_nodes))
+                current_title = tag.get_text(strip=True)
+                current_nodes = []
+            else:
+                if str(tag).strip():
+                    current_nodes.append(tag)
+
+        if current_title is not None:
+            chapters.append(current_title)
+            contents.append(''.join(str(n) for n in current_nodes))
+        elif current_nodes:
+            chapters.append('Full Document')
+            contents.append(''.join(str(n) for n in current_nodes))
+
+        if not chapters:
+            return jsonify({'error': 'No content was found in the document. Make sure the file has text and is not blank.'}), 400
+
+        # Filter mammoth warnings — skip the tr/td/th ones we know are harmless
+        warnings = [
+            w.message for w in result.messages
+            if not any(x in w.message for x in ['tr =>', 'td =>', 'th =>'])
+        ]
+
+        return jsonify({
+            'chapters': chapters,
+            'contents': contents,
+            'warnings': warnings
+        })
+
+    except Exception as e:
+        return jsonify({'error': f'Document was read but could not be processed: {str(e)}'}), 500

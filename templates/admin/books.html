@@ -44,6 +44,7 @@
                     <div class="flex items-center gap-3">
                         <a href="{{ url_for('admin_edit_book', book_id=book.id) }}" class="text-blue-600 hover:text-blue-800" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></a>
                         <a href="{{ url_for('admin_book_purchases', book_id=book.id) }}" class="text-green-600 hover:text-green-800" title="Purchases"><i data-lucide="eye" class="w-4 h-4"></i></a>
+                        <a href="{{ url_for('admin_book_view', book_id=book.id) }}" class="text-purple-600 hover:text-purple-800" title="Preview as reader"><i data-lucide="book-open" class="w-4 h-4"></i></a>
                         <form method="POST" action="{{ url_for('admin_delete_book', book_id=book.id) }}" onsubmit="return confirm('Delete this book?')" class="inline">
                             <button type="submit" class="text-red-600 hover:text-red-800"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </form>
@@ -75,6 +76,9 @@
                 </a>
                 <a href="{{ url_for('admin_book_purchases', book_id=book.id) }}" class="text-green-600 flex items-center gap-1 text-xs font-semibold">
                     <i data-lucide="eye" class="w-3.5 h-3.5"></i> Sales
+                </a>
+                <a href="{{ url_for('admin_book_view', book_id=book.id) }}" class="text-purple-600 flex items-center gap-1 text-xs font-semibold">
+                    <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Preview
                 </a>
                 <form method="POST" action="{{ url_for('admin_delete_book', book_id=book.id) }}" onsubmit="return confirm('Delete?')" class="inline">
                     <button type="submit" class="text-red-600 flex items-center gap-1 text-xs font-semibold">

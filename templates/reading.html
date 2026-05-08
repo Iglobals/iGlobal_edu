@@ -132,6 +132,21 @@
         padding: 0.35rem 0.8rem; color: #4b5563;
         background: #fdf4f8; font-style: italic;
     }
+    /* Tables */
+    .book-page table {
+        width: 100%; border-collapse: collapse;
+        margin: 0.75em 0; font-size: 0.88em;
+        display: block; overflow-x: auto;
+    }
+    .book-page th, .book-page td {
+        padding: 0.4rem 0.65rem;
+        border: 1px solid #e5e7eb;
+        text-align: left; vertical-align: top;
+    }
+    .book-page th, .book-page tr:first-child td {
+        background: #f3e8ff; font-weight: 700; color: #2F1341;
+    }
+    .book-page tr:nth-child(even) td { background: #faf5ff; }
     /* Never clip an image or a block element mid-page — move to next page instead */
     .book-page img,
     .book-page table,

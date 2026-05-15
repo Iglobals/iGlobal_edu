@@ -12,8 +12,11 @@ from datetime import datetime, timedelta
 
 @app.route('/')
 def index():
-    featured_books = Book.query.limit(3).all()
-    return render_template('index.html', featured_books=featured_books)
+    books = db.session.query(
+        Book.id, Book.title, Book.author, Book.category,
+        Book.description, Book.image_url, Book.price_naira, Book.is_free
+    ).limit(3).all()
+    return render_template('index.html', featured_books=books)
 
 @app.route('/about')
 def about():
@@ -23,9 +26,12 @@ def about():
 def search():
     query = request.args.get('q', '')
     category = request.args.get('category', 'all')
-    
-    books_query = Book.query
-    
+
+    books_query = db.session.query(
+        Book.id, Book.title, Book.author, Book.category,
+        Book.image_url, Book.price_naira, Book.is_free
+    )
+
     if query:
         books_query = books_query.filter(
             db.or_(
@@ -34,100 +40,155 @@ def search():
                 Book.category.ilike(f'%{query}%')
             )
         )
-    
+
     if category != 'all':
         books_query = books_query.filter(Book.category.ilike(f'%{category}%'))
-    
+
     books = books_query.all()
     return render_template('search.html', books=books, query=query, category=category)
 
 @app.route('/preview/<int:book_id>')
 def preview(book_id):
-    book = Book.query.get_or_404(book_id)
-    
-    # Send all chapters — frontend will paginate and cap at MAX_PREVIEW_PAGES
-    preview_chapters = book.chapters if book.chapters else []
-    preview_content = book.content if book.content else []
-    
+    # Only fetch metadata + preview_content — never touch full content column
+    book = db.session.query(
+        Book.id, Book.title, Book.author, Book.category, Book.description,
+        Book.image_url, Book.price_naira, Book.is_free,
+        Book.chapters, Book.preview_content
+    ).filter(Book.id == book_id).first_or_404()
+
+    # preview_content holds first 2 chapters; chapters list gives their titles
+    preview_chapters = (book.chapters or [])[:2]
+    preview_content  = book.preview_content or []
+
     # Check if in library (if logged in)
     in_library = False
     if current_user.is_authenticated:
         in_library = LibraryItem.query.filter_by(user_id=current_user.id, book_id=book_id).first() is not None
-    
-    return render_template('preview.html', 
-                         book=book, 
+
+    resp = make_response(render_template('preview.html',
+                         book=book,
                          preview_chapters=preview_chapters,
                          preview_content=preview_content,
-                         in_library=in_library)
+                         in_library=in_library))
+    # Cache preview for 10 minutes — same content for everyone
+    resp.headers['Cache-Control'] = 'public, max-age=600'
+    return resp
 
 @app.route('/library')
 @login_required
 def library():
     filter_type = request.args.get('filter', 'added')
-    
+
+    # Columns needed for book cards — never pull content/chapters
+    _book_cols = (
+        Book.id, Book.title, Book.author, Book.category,
+        Book.image_url, Book.price_naira, Book.is_free
+    )
+
+    purchased_ids = {
+        p.book_id for p in Purchase.query.filter_by(
+            user_id=current_user.id, payment_status='success'
+        ).with_entities(Purchase.book_id).all()
+    }
+
     if filter_type == 'your_books':
-        # Books that are free OR purchased successfully
         library_items = LibraryItem.query.filter_by(user_id=current_user.id).all()
         book_ids = [item.book_id for item in library_items]
-        purchased_ids = [p.book_id for p in Purchase.query.filter_by(user_id=current_user.id, payment_status='success').all()]
-        
-        # Get books that are either free or purchased
-        books = Book.query.filter(
+        books = db.session.query(*_book_cols).filter(
             Book.id.in_(book_ids),
             db.or_(Book.is_free == True, Book.id.in_(purchased_ids))
         ).all()
-        
+
     elif filter_type == 'favorites':
-        # Favorites (subset of your_books)
-        favorites = Favorite.query.filter_by(user_id=current_user.id).all()
-        fav_book_ids = [fav.book_id for fav in favorites]
-        
-        # Only show favorites that user has access to
-        library_items = LibraryItem.query.filter_by(user_id=current_user.id).all()
-        library_book_ids = [item.book_id for item in library_items]
-        purchased_ids = [p.book_id for p in Purchase.query.filter_by(user_id=current_user.id, payment_status='success').all()]
-        
-        books = Book.query.filter(
+        fav_book_ids = [
+            f.book_id for f in Favorite.query.filter_by(user_id=current_user.id).all()
+        ]
+        library_book_ids = [
+            i.book_id for i in LibraryItem.query.filter_by(user_id=current_user.id).all()
+        ]
+        books = db.session.query(*_book_cols).filter(
             Book.id.in_(fav_book_ids),
             Book.id.in_(library_book_ids),
             db.or_(Book.is_free == True, Book.id.in_(purchased_ids))
         ).all()
-        
-    else:  # 'added' - default
-        # All books added to library (free or paid, purchased or not)
+
+    else:  # 'added' — default
         library_items = LibraryItem.query.filter_by(user_id=current_user.id).all()
-        books = [item.book for item in library_items]
-    
-    # Check purchase status for each book
-    purchased_ids = [p.book_id for p in Purchase.query.filter_by(user_id=current_user.id, payment_status='success').all()]
-    for book in books:
-        book.is_purchased = book.id in purchased_ids or book.is_free
-    
-    return render_template('library.html', books=books, filter_type=filter_type)
+        lib_book_ids  = [item.book_id for item in library_items]
+        books = db.session.query(*_book_cols).filter(Book.id.in_(lib_book_ids)).all()
+
+    # Attach is_purchased flag (rows are named tuples, so we build plain dicts)
+    book_list = []
+    for b in books:
+        d = b._asdict() if hasattr(b, '_asdict') else dict(b)
+        d['is_purchased'] = b.id in purchased_ids or b.is_free
+        book_list.append(d)
+
+    return render_template('library.html', books=book_list, filter_type=filter_type)
 
 @app.route('/reading/<int:book_id>')
 @login_required
 def reading(book_id):
-    book = Book.query.get_or_404(book_id)
-    
+    # Only fetch metadata — content is loaded on demand via /api/book/<id>/chapter/<n>
+    book = db.session.query(
+        Book.id, Book.title, Book.author, Book.category,
+        Book.is_free, Book.chapters
+    ).filter(Book.id == book_id).first_or_404()
+
     # Check if book is in library
     library_item = LibraryItem.query.filter_by(user_id=current_user.id, book_id=book_id).first()
     if not library_item:
         flash('Please add this book to your library first.', 'warning')
         return redirect(url_for('preview', book_id=book_id))
-    
+
     # Check if user has access (free or purchased)
     if not book.is_free:
         purchase = Purchase.query.filter_by(user_id=current_user.id, book_id=book_id, payment_status='success').first()
         if not purchase:
             flash('You need to purchase this book to read it.', 'warning')
             return redirect(url_for('library', filter='added'))
-    
+
     page = request.args.get('page', 1, type=int)
     reviews = Review.query.filter_by(book_id=book_id).order_by(Review.created_at.desc()).all()
     notes = Note.query.filter_by(user_id=current_user.id, book_id=book_id).all()
-    
-    return render_template('reading.html', book=book, page=page, reviews=reviews, notes=notes)
+
+    resp = make_response(render_template('reading.html', book=book, page=page, reviews=reviews, notes=notes))
+    # Private — per-user, but still cacheable in the browser for 5 min
+    resp.headers['Cache-Control'] = 'private, max-age=300'
+    return resp
+
+
+@app.route('/api/book/<int:book_id>/chapter/<int:chapter_index>')
+@login_required
+def get_chapter(book_id, chapter_index):
+    """Return a single chapter's HTML. Only accessible to users with read access."""
+    book = db.session.query(
+        Book.id, Book.is_free, Book.content
+    ).filter(Book.id == book_id).first_or_404()
+
+    # Access check
+    if not book.is_free:
+        purchase = Purchase.query.filter_by(
+            user_id=current_user.id, book_id=book_id, payment_status='success'
+        ).first()
+        if not purchase:
+            return jsonify({'error': 'Access denied'}), 403
+
+    content = book.content or []
+    if chapter_index < 0 or chapter_index >= len(content):
+        return jsonify({'error': 'Chapter not found'}), 404
+
+    resp = jsonify({'html': content[chapter_index], 'total': len(content)})
+    resp.headers['Cache-Control'] = 'private, max-age=3600'
+    return resp
+
+def _get_client_ip():
+    """Get real client IP, respecting reverse-proxy headers."""
+    forwarded = request.headers.get('X-Forwarded-For', '')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.remote_addr or '0.0.0.0'
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -145,12 +206,21 @@ def login():
         elif not check_password_hash(user.password_hash, password):
             flash('Incorrect password. Please try again.', 'danger')
         else:
-            remember = request.form.get('remember', False)
-            # If there's already an active session token in the DB, block the new login
-            if user.session_token:
-                flash('This account is currently logged in on another device. Please log out there first before signing in here.', 'danger')
+            client_ip = _get_client_ip()
+
+            # IP lock check — if a different IP is already locked, block login
+            if user.locked_ip and user.locked_ip != client_ip:
+                flash(
+                    'This account is locked to another device. '
+                    'Please contact support to unlock your account.',
+                    'danger'
+                )
                 return render_template('login.html')
-            # No active session — issue a new token and log in
+
+            remember = request.form.get('remember', False)
+            # Lock to this IP on first login (or same IP returning)
+            if not user.locked_ip:
+                user.locked_ip = client_ip
             user.session_token = secrets.token_hex(32)
             db.session.commit()
             login_user(user, remember=remember)
@@ -600,32 +670,27 @@ _AUTH_ENDPOINTS = {'login', 'signup', 'logout', 'forgot_password',
 
 @app.before_request
 def enforce_single_session():
-    """Safety net: if the stored session token no longer matches the DB
-    (e.g. admin cleared it), log the user out gracefully."""
+    """Block requests from IPs that don't match the user's locked IP."""
     if not current_user.is_authenticated:
         return
     if request.endpoint in _AUTH_ENDPOINTS:
         return
-    if request.path.startswith('/api/') or request.path.startswith('/static/'):
+    if request.path.startswith('/static/'):
         return
+    if current_user.is_admin:
+        return  # admins are never IP-locked
 
-    stored = session.get('user_session_token')
-    try:
-        from sqlalchemy import text
-        row = db.session.execute(
-            text('SELECT session_token FROM users WHERE id = :uid'),
-            {'uid': current_user.id}
-        ).fetchone()
-        db_token = row[0] if row else None
-    except Exception:
-        return
-
-    # Only log out if DB token is None (explicit logout elsewhere) or mismatched
-    if db_token is None or (stored and stored != db_token):
-        logout_user()
-        session.pop('user_session_token', None)
-        flash('Your session has ended. Please log in again.', 'danger')
-        return redirect(url_for('login'))
+    if current_user.locked_ip:
+        client_ip = _get_client_ip()
+        if client_ip != current_user.locked_ip:
+            logout_user()
+            session.clear()
+            flash(
+                'Access from a new device was detected. '
+                'Please contact support to unlock your account.',
+                'danger'
+            )
+            return redirect(url_for('login'))
 
 
 # ── Paystack Webhook ──────────────────────────────────────────────────────

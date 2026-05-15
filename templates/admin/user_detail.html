@@ -23,6 +23,28 @@
     </div>
 </div>
 
+<!-- Device / IP Lock -->
+<div class="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div>
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Device Lock (IP)</p>
+        {% if user.locked_ip %}
+            <p class="text-sm font-mono text-gray-800">{{ user.locked_ip }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">User is locked to this IP address.</p>
+        {% else %}
+            <p class="text-sm text-gray-400 italic">No IP lock set — user can log in from any device.</p>
+        {% endif %}
+    </div>
+    {% if user.locked_ip %}
+    <form method="POST" action="{{ url_for('admin_unlock_ip', user_id=user.id) }}"
+          onsubmit="return confirm('Clear IP lock for {{ user.full_name }}? They will be able to log in from any device.')">
+        <button type="submit"
+            class="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#B0522E] rounded-lg hover:bg-[#c96a3f]">
+            <i data-lucide="unlock" class="w-3.5 h-3.5"></i> Clear IP Lock
+        </button>
+    </form>
+    {% endif %}
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
     <!-- Purchases -->
     <div class="bg-white rounded-lg shadow">

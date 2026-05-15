@@ -16,6 +16,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     session_token = db.Column(db.String(64), nullable=True)   # single-device enforcement
+    locked_ip = db.Column(db.String(45), nullable=True)       # IP-based device lock
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     reviews = db.relationship('Review', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -39,6 +40,8 @@ class Book(db.Model):
     is_free = db.Column(db.Boolean, default=False)
     chapters = db.Column(db.JSON)
     content = db.Column(db.JSON)
+    # First 2 chapters only — served to unauthenticated preview visitors
+    preview_content = db.Column(db.JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     reviews = db.relationship('Review', backref='book', lazy=True, cascade='all, delete-orphan')

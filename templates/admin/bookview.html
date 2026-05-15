@@ -84,7 +84,7 @@
         padding: 1.5rem 3rem; line-height: 1.8; color: #1a1a2e;
         font-size: 13px; font-family: Georgia, 'Times New Roman', serif;
         height: calc(100vh - 185px); /* topbar+progress+nav+admin strip+admin topbar */
-        overflow: hidden; box-sizing: border-box;
+        overflow-x: auto; overflow-y: hidden; box-sizing: border-box;
     }
     .book-page h1 { font-size: 1.5em; font-weight: 700; color: #2F1341; margin: 0 0 0.5em; border-bottom: 2px solid #e9d5ff; padding-bottom: 0.2em; line-height: 1.3; }
     .book-page h2 { font-size: 1.2em; font-weight: 700; color: #4A1F5C; margin: 0.7em 0 0.35em; line-height: 1.35; }
@@ -95,12 +95,13 @@
     .book-page ul, .book-page ol { padding-left: 1.4em; margin-bottom: 0.6em; }
     .book-page li { margin-bottom: 0.15em; }
     .book-page blockquote { border-left: 3px solid #6B2D5C; margin: 0.6em 0; padding: 0.35rem 0.8rem; color: #4b5563; background: #fdf4f8; font-style: italic; }
-    .book-page table { width: 100%; border-collapse: collapse; margin: 0.75em 0; font-size: 0.88em; display: block; overflow-x: auto; }
-    .book-page th, .book-page td { padding: 0.4rem 0.65rem; border: 1px solid #e5e7eb; text-align: left; vertical-align: top; }
+    .book-page table { width: 100%; border-collapse: collapse; margin: 0.75em 0; font-size: 0.88em; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .book-page th, .book-page td { padding: 0.4rem 0.65rem; border: 1px solid #e5e7eb; text-align: left; vertical-align: top; white-space: nowrap; }
     .book-page th, .book-page tr:first-child td { background: #f3e8ff; font-weight: 700; color: #2F1341; }
     .book-page tr:nth-child(even) td { background: #faf5ff; }
+    .book-page div[style*="overflow-x"] { overflow-x: auto !important; -webkit-overflow-scrolling: touch; max-width: 100%; }
     .book-page img { max-width: 100%; max-height: 85vh; height: auto; display: block; object-fit: contain; }
-    .book-page img, .book-page table, .book-page blockquote, .book-page figure, .book-page div { break-inside: avoid; page-break-inside: avoid; }
+    .book-page img, .book-page table, .book-page blockquote, .book-page figure { break-inside: avoid; page-break-inside: avoid; }
 
     @media(max-width: 768px) { .book-page { padding: 1.25rem 1.25rem; font-size: 12px; height: calc(100vh - 180px); } }
     @media(max-width: 480px) { .reading-area { padding: 0.4rem; } .book-page { padding: 1rem 0.85rem; font-size: 12px; height: calc(100vh - 175px); } }
@@ -214,32 +215,70 @@
 const bookData = {
     id: {{ book.id }},
     chapters: {{ book.chapters | tojson }},
-    content: {{ book.content | tojson }}
+    totalChapters: {{ (book.chapters or []) | length }}
+    // content is NOT embedded — fetched on demand from /api/admin/book/<id>/chapter/<n>
 };
 
 let chapterIndex = 0, subPage = 0, subPages = [], fontSize = 13;
 let desktopPanelOpen = false;
-let allChapterSubPages = [], chapterPageOffsets = [], totalGlobalPages = 0;
+
+// Cache fetched chapter HTML so navigating back doesn't re-fetch
+const chapterCache = {};
+
+async function fetchChapter(idx) {
+    if (chapterCache[idx] !== undefined) return chapterCache[idx];
+    try {
+        const r = await fetch(`/api/admin/book/${bookData.id}/chapter/${idx}`);
+        if (!r.ok) throw new Error('fetch failed');
+        const data = await r.json();
+        chapterCache[idx] = data.html;
+        return data.html;
+    } catch (e) {
+        return '<p style="color:#c00;">Failed to load chapter. Please refresh.</p>';
+    }
+}
 
 function paginateChapter(htmlContent) {
     const el = document.getElementById('pageContent');
     const pageH = el.clientHeight;
+
     const tmp = document.createElement('div');
     tmp.innerHTML = htmlContent;
+
+    tmp.querySelectorAll('table').forEach(t => {
+        t.style.cssText = 'width:100%;border-collapse:collapse;font-size:0.88em;font-family:Georgia,serif;margin:0.5em 0;';
+        t.querySelectorAll('tr').forEach((tr, ri) => {
+            if (!tr.getAttribute('style')) {
+                tr.style.background = ri % 2 === 0 ? '#faf5ff' : 'white';
+            }
+            tr.querySelectorAll('td,th').forEach(cell => {
+                if (!cell.getAttribute('style')) {
+                    cell.style.cssText = 'padding:0.4rem 0.65rem;border:1px solid #e5e7eb;text-align:left;vertical-align:top;white-space:nowrap;';
+                    if (cell.tagName === 'TH') {
+                        cell.style.fontWeight = '700';
+                        cell.style.color = '#2F1341';
+                        cell.style.background = '#f3e8ff';
+                    }
+                }
+            });
+        });
+        const parent = t.parentElement;
+        if (parent && parent !== tmp && parent.tagName === 'DIV') {
+            parent.replaceWith(t);
+        }
+    });
+
+    tmp.querySelectorAll('img').forEach(img => {
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = (pageH * 0.85) + 'px';
+        img.style.height = 'auto';
+        img.style.display = 'block';
+        img.style.objectFit = 'contain';
+    });
+
     const nodes = Array.from(tmp.childNodes).filter(n =>
         n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim())
     );
-    nodes.forEach(n => {
-        if (n.nodeType === 1 && n.querySelectorAll) {
-            n.querySelectorAll('img').forEach(img => {
-                if (!img.style.maxWidth) img.style.maxWidth = '100%';
-                if (img.naturalHeight && img.naturalHeight > pageH * 0.85) {
-                    img.style.maxHeight = (pageH * 0.85) + 'px';
-                    img.style.width = 'auto';
-                }
-            });
-        }
-    });
     const pages = [];
     while (nodes.length > 0) {
         el.innerHTML = '';
@@ -259,16 +298,6 @@ function paginateChapter(htmlContent) {
     return pages.length ? pages : [htmlContent];
 }
 
-function buildAllPages() {
-    allChapterSubPages = bookData.content.map(c => paginateChapter(c || ''));
-    chapterPageOffsets = [];
-    let offset = 0;
-    allChapterSubPages.forEach(sp => { chapterPageOffsets.push(offset); offset += sp.length; });
-    totalGlobalPages = offset;
-}
-
-function globalPageNum() { return chapterPageOffsets[chapterIndex] + subPage + 1; }
-
 function renderPage() {
     const el = document.getElementById('pageContent');
     el.classList.remove('fade-in'); el.classList.add('fade-out');
@@ -276,24 +305,54 @@ function renderPage() {
         el.innerHTML = subPages[subPage] || '';
         el.classList.remove('fade-out'); el.classList.add('fade-in');
         lucide.createIcons();
-        document.getElementById('prevBtn').disabled = chapterIndex === 0 && subPage === 0;
-        document.getElementById('nextBtn').disabled = chapterIndex === bookData.chapters.length - 1 && subPage === subPages.length - 1;
-        document.getElementById('currentPageNum').textContent = globalPageNum();
-        document.getElementById('totalPageNum').textContent   = totalGlobalPages;
-        document.getElementById('pageHeaderChapter').textContent = bookData.chapters[chapterIndex] || `Chapter ${chapterIndex + 1}`;
+
+        const isFirst = chapterIndex === 0 && subPage === 0;
+        const isLast  = chapterIndex === bookData.totalChapters - 1 && subPage === subPages.length - 1;
+        document.getElementById('prevBtn').disabled = isFirst;
+        document.getElementById('nextBtn').disabled = isLast;
+
+        document.getElementById('currentPageNum').textContent = `Ch.${chapterIndex + 1} p.${subPage + 1}`;
+        document.getElementById('totalPageNum').textContent   = `${bookData.totalChapters} ch.`;
+        document.getElementById('pageHeaderChapter').textContent = (bookData.chapters || [])[chapterIndex] || `Chapter ${chapterIndex + 1}`;
         document.getElementById('pageHeaderNum').textContent = '';
-        document.getElementById('progressFill').style.width = (globalPageNum() / totalGlobalPages * 96 + 2) + '%';
+
+        const pct = ((chapterIndex + (subPage + 1) / Math.max(subPages.length, 1)) / bookData.totalChapters) * 96 + 2;
+        document.getElementById('progressFill').style.width = pct + '%';
         document.getElementById('readingArea').scrollTop = 0;
         renderChapters();
+
+        // Pre-fetch next chapter in background
+        if (subPage === subPages.length - 1 && chapterIndex + 1 < bookData.totalChapters) {
+            fetchChapter(chapterIndex + 1);
+        }
     }, 150);
 }
 
-function loadChapter(idx) { chapterIndex = idx; subPage = 0; subPages = allChapterSubPages[idx] || []; renderPage(); }
-function nextPage() { if (subPage < subPages.length - 1) { subPage++; renderPage(); } else if (chapterIndex < bookData.chapters.length - 1) loadChapter(chapterIndex + 1); }
-function prevPage() { if (subPage > 0) { subPage--; renderPage(); } else if (chapterIndex > 0) { chapterIndex--; subPages = allChapterSubPages[chapterIndex]; subPage = subPages.length - 1; renderPage(); } }
+async function loadChapter(idx) {
+    chapterIndex = idx; subPage = 0;
+    const html = await fetchChapter(idx);
+    subPages = paginateChapter(html);
+    renderPage();
+}
+
+async function nextPage() {
+    if (subPage < subPages.length - 1) { subPage++; renderPage(); }
+    else if (chapterIndex < bookData.totalChapters - 1) await loadChapter(chapterIndex + 1);
+}
+
+async function prevPage() {
+    if (subPage > 0) { subPage--; renderPage(); }
+    else if (chapterIndex > 0) {
+        chapterIndex--;
+        const html = await fetchChapter(chapterIndex);
+        subPages = paginateChapter(html);
+        subPage = subPages.length - 1;
+        renderPage();
+    }
+}
 
 function renderChapters() {
-    const html = bookData.chapters.map((ch, i) =>
+    const html = (bookData.chapters || []).map((ch, i) =>
         `<div class="ch-item ${i === chapterIndex ? 'active' : ''}" onclick="loadChapter(${i})">
             <span style="opacity:0.35;font-size:0.72rem;font-weight:700;margin-right:0.4rem;">${String(i+1).padStart(2,'0')}</span>${ch}
         </div>`).join('');
@@ -301,10 +360,13 @@ function renderChapters() {
     document.getElementById('chapterListMobile').innerHTML  = html;
 }
 
-function changeFontSize(dir) {
+async function changeFontSize(dir) {
     fontSize = Math.max(11, Math.min(22, fontSize + dir * 1.5));
     document.getElementById('pageContent').style.fontSize = fontSize + 'px';
-    buildAllPages(); subPages = allChapterSubPages[chapterIndex]; subPage = 0; renderPage();
+    const html = await fetchChapter(chapterIndex);
+    subPages = paginateChapter(html);
+    subPage = 0;
+    renderPage();
 }
 
 function toggleChapters() { window.innerWidth < 768 ? openChapterDrawer() : (desktopPanelOpen ? closePanelDesktop() : openPanelDesktop()); }
@@ -327,17 +389,20 @@ document.addEventListener('touchend', e => {
 }, { passive: true });
 
 let resizeTimer;
-window.addEventListener('resize', () => {
+window.addEventListener('resize', async () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => { buildAllPages(); subPages = allChapterSubPages[chapterIndex]; subPage = Math.min(subPage, subPages.length - 1); renderPage(); }, 300);
+    resizeTimer = setTimeout(async () => {
+        const html = await fetchChapter(chapterIndex);
+        subPages = paginateChapter(html);
+        subPage = Math.min(subPage, subPages.length - 1);
+        renderPage();
+    }, 300);
 });
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
     lucide.createIcons();
-    buildAllPages();
-    subPages = allChapterSubPages[0] || [];
-    renderPage();
     renderChapters();
+    await loadChapter(0);
 });
 </script>
 {% endblock %}

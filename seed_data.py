@@ -349,6 +349,8 @@ def seed_books():
         # Add new books
         print(f"\n📚 Adding {len(books_data)} books...")
         for book_data in books_data:
+            # preview_content = first 2 chapters only
+            book_data['preview_content'] = book_data.get('content', [])[:2]
             book = Book(**book_data)
             db.session.add(book)
         

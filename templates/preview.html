@@ -154,7 +154,8 @@
         line-height: 1.85;
         color: #1a1a2e;
         font-family: Georgia, 'Times New Roman', serif;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
     }
     .carousel-page h1 {
         font-size: 1.45em; font-weight: 700; color: #2F1341;
@@ -182,16 +183,24 @@
         width: 100%; border-collapse: collapse;
         margin: 0.75em 0; font-size: 0.85em;
         display: block; overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
     .carousel-page th, .carousel-page td {
         padding: 0.35rem 0.6rem;
         border: 1px solid #e5e7eb;
         text-align: left; vertical-align: top;
+        white-space: nowrap;
     }
     .carousel-page th, .carousel-page tr:first-child td {
         background: #f3e8ff; font-weight: 700; color: #2F1341;
     }
     .carousel-page tr:nth-child(even) td { background: #faf5ff; }
+    /* Table wrapper divs from docx parser */
+    .carousel-page div[style*="overflow-x"] {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+    }
     /* Never clip images or block elements mid-page */
     .carousel-page img,
     .carousel-page table,
@@ -390,13 +399,45 @@ function paginateChapter(htmlContent) {
         'position:fixed','top:-9999px','left:-9999px',
         `width:${pageW}px`,
         'font-size:0.93rem','line-height:1.85',
-        'font-family:Inter,sans-serif',
+        'font-family:Georgia,serif',
         'visibility:hidden','pointer-events:none'
     ].join(';');
     document.body.appendChild(probe);
 
     const tmp = document.createElement('div');
     tmp.innerHTML = htmlContent;
+
+    // Style tables inline and unwrap docx overflow divs
+    tmp.querySelectorAll('table').forEach(t => {
+        t.style.cssText = 'width:100%;border-collapse:collapse;font-size:0.88em;font-family:Georgia,serif;margin:0.5em 0;';
+        t.querySelectorAll('tr').forEach((tr, ri) => {
+            if (!tr.getAttribute('style')) {
+                tr.style.background = ri % 2 === 0 ? '#faf5ff' : 'white';
+            }
+            tr.querySelectorAll('td,th').forEach(cell => {
+                if (!cell.getAttribute('style')) {
+                    cell.style.cssText = 'padding:0.35rem 0.6rem;border:1px solid #e5e7eb;text-align:left;vertical-align:top;white-space:nowrap;';
+                    if (cell.tagName === 'TH') {
+                        cell.style.fontWeight = '700';
+                        cell.style.color = '#2F1341';
+                        cell.style.background = '#f3e8ff';
+                    }
+                }
+            });
+        });
+        const parent = t.parentElement;
+        if (parent && parent !== tmp && parent.tagName === 'DIV') {
+            parent.replaceWith(t);
+        }
+    });
+
+    tmp.querySelectorAll('img').forEach(img => {
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = (pageH * 0.85) + 'px';
+        img.style.height = 'auto';
+        img.style.display = 'block';
+    });
+
     const nodes = Array.from(tmp.childNodes).filter(n =>
         n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim())
     );
@@ -469,7 +510,6 @@ function updateCarousel() {
     document.querySelector('.carousel-nav.prev').style.opacity = currentPage === 0 ? '0.35' : '1';
     document.querySelector('.carousel-nav.next').style.opacity = currentPage === allPages.length - 1 ? '0.35' : '1';
 
-    // Simple "Page X of Y"
     document.getElementById('carouselPageLabel').textContent =
         `Preview — Page ${currentPage + 1} of ${allPages.length}`;
 }

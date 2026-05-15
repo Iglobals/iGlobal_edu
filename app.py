@@ -28,6 +28,15 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 app.config['PAYSTACK_PUBLIC_KEY'] = os.environ.get('PAYSTACK_PUBLIC_KEY', '')
 app.config['PAYSTACK_SECRET_KEY'] = os.environ.get('PAYSTACK_SECRET_KEY', '')
 
+# Cloudinary configuration
+import cloudinary
+cloudinary.config(
+    cloud_name  = os.environ.get('CLOUDINARY_CLOUD_NAME', ''),
+    api_key     = os.environ.get('CLOUDINARY_API_KEY', ''),
+    api_secret  = os.environ.get('CLOUDINARY_API_SECRET', ''),
+    secure      = True
+)
+
 # Initialize extensions with app
 db.init_app(app)
 login_manager.init_app(app)

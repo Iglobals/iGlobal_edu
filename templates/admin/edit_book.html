@@ -400,6 +400,31 @@ let chapterEditors = [];   // parallel array to .chapter-item DOM nodes
 let importedChapters = []; // { title, content } from last docx parse
 let existingChapters = []; // snapshot of current chapters at modal open time
 
+// ── Cloudinary image upload handler for Quill ─────────────────────────────
+function quillImageUpload(editor) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = () => {
+        const file = input.files[0];
+        if (!file) return;
+        const fd = new FormData();
+        fd.append('image', file);
+        fetch('{{ url_for("admin_upload_image") }}', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.url) {
+                const range = editor.getSelection(true);
+                editor.insertEmbed(range.index, 'image', data.url, 'user');
+            } else {
+                alert('Image upload failed: ' + (data.error || 'unknown error'));
+            }
+        })
+        .catch(() => alert('Image upload failed. Please try again.'));
+    };
+    input.click();
+}
+
 const TOOLBAR = [
     [{ 'header': [1, 2, 3, 4, false] }],
     ['blockquote', 'code-block'],
@@ -412,7 +437,15 @@ const TOOLBAR = [
 ];
 
 function createQuill(el) {
-    const editor = new Quill(el, { theme: 'snow', modules: { toolbar: TOOLBAR } });
+    const editor = new Quill(el, {
+        theme: 'snow',
+        modules: {
+            toolbar: {
+                container: TOOLBAR,
+                handlers: { image: function() { quillImageUpload(this.quill); } }
+            }
+        }
+    });
 
     // Prevent Quill from scrolling the page to the editor on paste or image insert.
     // We lock the window scroll position for the duration of the text-change event.

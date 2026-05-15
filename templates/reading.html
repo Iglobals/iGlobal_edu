@@ -104,7 +104,8 @@
         font-size: 13px;
         font-family: Georgia, 'Times New Roman', serif;
         height: calc(100vh - 125px);
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
         box-sizing: border-box;
     }
     /* Heading hierarchy — color + size, clearly distinct from body */
@@ -137,14 +138,23 @@
         width: 100%; border-collapse: collapse;
         margin: 0.75em 0; font-size: 0.88em;
         display: block; overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
     .book-page th, .book-page td {
         padding: 0.4rem 0.65rem;
         border: 1px solid #e5e7eb;
         text-align: left; vertical-align: top;
+        white-space: nowrap;
     }
     .book-page th, .book-page tr:first-child td {
         background: #f3e8ff; font-weight: 700; color: #2F1341;
+    }
+    .book-page tr:nth-child(even) td { background: #faf5ff; }
+    /* Table wrapper divs from docx parser */
+    .book-page div[style*="overflow-x"] {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
     }
     .book-page tr:nth-child(even) td { background: #faf5ff; }
     /* Never clip an image or a block element mid-page — move to next page instead */
@@ -369,106 +379,112 @@
 const bookData = {
     id: {{ book.id }},
     chapters: {{ book.chapters | tojson }},
-    content: {{ book.content | tojson }}
+    totalChapters: {{ (book.chapters or []) | length }}
+    // content is NOT embedded — fetched on demand from /api/book/<id>/chapter/<n>
 };
 
 // ── Config ─────────────────────────────────────────────────────────────────
-// Approx words per page. Increase = fewer pages (longer scroll per page).
-// Decrease = more pages (shorter scroll per page).
-// Default 350 feels like a comfortable A4-ish page on most screens.
 const WORDS_PER_PAGE = 200;
 
 // ── State ──────────────────────────────────────────────────────────────────
 let chapterIndex  = {{ page - 1 }};
 let subPage       = 0;
 let subPages      = [];
-let fontSize      = 13;    /* small default — user zooms with A+/A- */
+let fontSize      = 13;
 let desktopPanelOpen = false;
 let currentRating = 0;
-let allChapterSubPages = [];
-let chapterPageOffsets = [];
-let totalGlobalPages   = 0;
+
+// Cache fetched chapter HTML so we don't re-fetch on back navigation
+const chapterCache = {};
+
+// ── Chapter fetch ──────────────────────────────────────────────────────────
+async function fetchChapter(idx) {
+    if (chapterCache[idx] !== undefined) return chapterCache[idx];
+    try {
+        const r = await fetch(`/api/book/{{ book.id }}/chapter/${idx}`);
+        if (!r.ok) throw new Error('fetch failed');
+        const data = await r.json();
+        chapterCache[idx] = data.html;
+        return data.html;
+    } catch (e) {
+        return '<p style="color:#c00;">Failed to load chapter. Please refresh.</p>';
+    }
+}
 
 // ── Pagination ────────────────────────────────────────────────────────────
-// Renders nodes into the real .book-page, measures overflow after each node.
-// Images are given their natural height immediately (avoids async load issues).
-// A node that alone exceeds the page gets its own page (no infinite loop).
+// Pre-processes HTML so tables and images are always top-level nodes,
+// then measures each node against the page height. Tables/images that
+// don't fit alongside text get their own page naturally in the flow.
 function paginateChapter(htmlContent) {
     const el = document.getElementById('pageContent');
-    const pageH = el.clientHeight;   // the fixed CSS height of .book-page
+    const pageH = el.clientHeight;
 
+    // ── 1. Parse and flatten: unwrap docx table divs, style tables inline ──
     const tmp = document.createElement('div');
     tmp.innerHTML = htmlContent;
+
+    // Style every table with full inline styles so they render correctly
+    // regardless of whether CSS classes are present
+    tmp.querySelectorAll('table').forEach(t => {
+        t.style.cssText = 'width:100%;border-collapse:collapse;font-size:0.88em;font-family:Georgia,serif;margin:0.5em 0;';
+        t.querySelectorAll('tr').forEach((tr, ri) => {
+            if (!tr.getAttribute('style')) {
+                tr.style.background = ri % 2 === 0 ? '#faf5ff' : 'white';
+            }
+            tr.querySelectorAll('td,th').forEach(cell => {
+                // Preserve existing inline styles from the docx parser — only fill in base styles if absent
+                if (!cell.getAttribute('style')) {
+                    cell.style.cssText = 'padding:0.4rem 0.65rem;border:1px solid #e5e7eb;text-align:left;vertical-align:top;white-space:nowrap;';
+                    if (cell.tagName === 'TH') {
+                        cell.style.fontWeight = '700';
+                        cell.style.color = '#2F1341';
+                        cell.style.background = '#f3e8ff';
+                    }
+                }
+            });
+        });
+        // Unwrap from docx overflow-x div — make table a direct child
+        const parent = t.parentElement;
+        if (parent && parent !== tmp && parent.tagName === 'DIV') {
+            parent.replaceWith(t);
+        }
+    });
+
+    // Constrain images
+    tmp.querySelectorAll('img').forEach(img => {
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = (pageH * 0.85) + 'px';
+        img.style.height = 'auto';
+        img.style.display = 'block';
+        img.style.objectFit = 'contain';
+    });
+
+    // ── 2. Collect top-level nodes ──
     const nodes = Array.from(tmp.childNodes).filter(n =>
         n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim())
     );
 
-    // Pre-set explicit dimensions on images so layout is synchronous
-    nodes.forEach(n => {
-        if (n.nodeType === 1) {
-            n.querySelectorAll && n.querySelectorAll('img').forEach(img => {
-                if (!img.style.maxWidth) img.style.maxWidth = '100%';
-                // If natural size known, constrain height so it doesn't exceed page
-                if (img.naturalHeight && img.naturalHeight > pageH * 0.85) {
-                    img.style.maxHeight = (pageH * 0.85) + 'px';
-                    img.style.width = 'auto';
-                }
-            });
-        }
-    });
-
+    // ── 3. Paginate: fill pages until overflow, then start a new page ──
     const pages = [];
-
     while (nodes.length > 0) {
         el.innerHTML = '';
         let lastFit = 0;
-
         for (let i = 0; i < nodes.length; i++) {
             el.appendChild(nodes[i].cloneNode(true));
-
-            // Force layout recalc
             void el.offsetHeight;
-
-            const overflows = el.scrollHeight > pageH + 2; // +2px tolerance
-
-            if (overflows) {
-                if (i === 0) {
-                    // This single node is bigger than the page — give it its own page
-                    // but cap images to fit
-                    lastFit = 1;
-                } else {
-                    // Don't include this node — it caused the overflow
-                    lastFit = i;
-                }
+            if (el.scrollHeight > pageH + 2) {
+                lastFit = i === 0 ? 1 : i; // single oversized node gets its own page
                 break;
             }
             lastFit = i + 1;
         }
-
         const w = document.createElement('div');
         for (let i = 0; i < lastFit; i++) w.appendChild(nodes[i].cloneNode(true));
         pages.push(w.innerHTML);
         nodes.splice(0, lastFit);
     }
-
     el.innerHTML = '';
     return pages.length ? pages : [htmlContent];
-}
-
-function buildAllPages() {
-    allChapterSubPages = [];
-    // Paginate each chapter sequentially (synchronous, uses real DOM)
-    for (let i = 0; i < bookData.content.length; i++) {
-        allChapterSubPages.push(paginateChapter(bookData.content[i] || ''));
-    }
-    chapterPageOffsets = [];
-    let offset = 0;
-    allChapterSubPages.forEach(sp => { chapterPageOffsets.push(offset); offset += sp.length; });
-    totalGlobalPages = offset;
-}
-
-function globalPageNum() {
-    return chapterPageOffsets[chapterIndex] + subPage + 1;
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
@@ -484,42 +500,54 @@ function renderPage() {
         lucide.createIcons();
 
         const isFirst = chapterIndex === 0 && subPage === 0;
-        const isLast  = chapterIndex === bookData.chapters.length - 1 && subPage === subPages.length - 1;
+        const isLast  = chapterIndex === bookData.totalChapters - 1 && subPage === subPages.length - 1;
         document.getElementById('prevBtn').disabled = isFirst;
         document.getElementById('nextBtn').disabled = isLast;
 
-        document.getElementById('currentPageNum').textContent = globalPageNum();
-        document.getElementById('totalPageNum').textContent   = totalGlobalPages;
+        // Global page counter: sum of sub-pages in previous chapters + current sub-page
+        // We track this simply as chapter * avg — exact count needs all chapters loaded.
+        // Instead show "Chapter X, Page Y"
+        document.getElementById('currentPageNum').textContent =
+            `Ch.${chapterIndex + 1} p.${subPage + 1}`;
+        document.getElementById('totalPageNum').textContent =
+            `${bookData.totalChapters} ch.`;
 
-        const chName = bookData.chapters[chapterIndex] || `Chapter ${chapterIndex + 1}`;
+        const chName = (bookData.chapters || [])[chapterIndex] || `Chapter ${chapterIndex + 1}`;
         document.getElementById('pageHeaderChapter').textContent = chName;
         document.getElementById('pageHeaderNum').textContent = '';
 
-        const pct = (globalPageNum() / totalGlobalPages) * 96 + 2;
+        const pct = ((chapterIndex + (subPage + 1) / Math.max(subPages.length, 1)) / bookData.totalChapters) * 96 + 2;
         document.getElementById('progressFill').style.width = pct + '%';
 
         document.getElementById('readingArea').scrollTop = 0;
         renderChapters();
+
+        // Pre-fetch next chapter in background
+        if (subPage === subPages.length - 1 && chapterIndex + 1 < bookData.totalChapters) {
+            fetchChapter(chapterIndex + 1);
+        }
     }, 150);
 }
 
-function loadChapter(idx) {
+async function loadChapter(idx) {
     chapterIndex = idx;
     subPage = 0;
-    subPages = allChapterSubPages[idx] || [];
+    const html = await fetchChapter(idx);
+    subPages = paginateChapter(html);
     renderPage();
 }
 
-function nextPage() {
+async function nextPage() {
     if (subPage < subPages.length - 1) { subPage++; renderPage(); }
-    else if (chapterIndex < bookData.chapters.length - 1) loadChapter(chapterIndex + 1);
+    else if (chapterIndex < bookData.totalChapters - 1) await loadChapter(chapterIndex + 1);
 }
 
-function prevPage() {
+async function prevPage() {
     if (subPage > 0) { subPage--; renderPage(); }
     else if (chapterIndex > 0) {
         chapterIndex--;
-        subPages = allChapterSubPages[chapterIndex];
+        const html = await fetchChapter(chapterIndex);
+        subPages = paginateChapter(html);
         subPage = subPages.length - 1;
         renderPage();
     }
@@ -527,7 +555,7 @@ function prevPage() {
 
 // ── Chapter list ───────────────────────────────────────────────────────────
 function renderChapters() {
-    const html = bookData.chapters.map((ch, i) =>
+    const html = (bookData.chapters || []).map((ch, i) =>
         `<div class="ch-item ${i === chapterIndex ? 'active' : ''}" onclick="loadChapter(${i})">
             <span style="opacity:0.35;font-size:0.72rem;font-weight:700;margin-right:0.4rem;">${String(i+1).padStart(2,'0')}</span>${ch}
         </div>`
@@ -537,11 +565,11 @@ function renderChapters() {
 }
 
 // ── Font size ──────────────────────────────────────────────────────────────
-function changeFontSize(dir) {
+async function changeFontSize(dir) {
     fontSize = Math.max(11, Math.min(22, fontSize + dir * 1.5));
     document.getElementById('pageContent').style.fontSize = fontSize + 'px';
-    buildAllPages();
-    subPages = allChapterSubPages[chapterIndex];
+    const html = await fetchChapter(chapterIndex);
+    subPages = paginateChapter(html);
     subPage = 0;
     renderPage();
 }
@@ -610,7 +638,7 @@ document.addEventListener('keydown', e => {
 
 // ── Touch swipe ────────────────────────────────────────────────────────────
 let touchStartX = 0;
-document.getElementById('readingArea') && document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
 document.addEventListener('touchend', e => {
     const dx = e.changedTouches[0].screenX - touchStartX;
     if (dx < -60) nextPage();
@@ -619,23 +647,21 @@ document.addEventListener('touchend', e => {
 
 // ── Re-paginate on resize ──────────────────────────────────────────────────
 let resizeTimer;
-window.addEventListener('resize', () => {
+window.addEventListener('resize', async () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-        buildAllPages();
-        subPages = allChapterSubPages[chapterIndex];
+    resizeTimer = setTimeout(async () => {
+        const html = await fetchChapter(chapterIndex);
+        subPages = paginateChapter(html);
         subPage = Math.min(subPage, subPages.length - 1);
         renderPage();
     }, 300);
 });
 
 // ── Boot ───────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
     lucide.createIcons();
-    buildAllPages();
-    subPages = allChapterSubPages[chapterIndex];
-    renderPage();
     renderChapters();
+    await loadChapter(chapterIndex);
 });
 </script>
 {% endblock %}

@@ -6,6 +6,7 @@ from models import User, Book, Review, Purchase
 from datetime import datetime
 import re
 import io
+import os
 
 def admin_required(f):
     @wraps(f)
@@ -44,8 +45,17 @@ def admin_dashboard():
 @login_required
 @admin_required
 def admin_books():
-    books = Book.query.order_by(Book.created_at.desc()).all()
-    return render_template('admin/books.html', books=books)
+    # Lean query — no content/chapters JSON, just metadata + aggregated counts
+    from sqlalchemy import func
+    rows = db.session.query(
+        Book.id, Book.title, Book.author, Book.category,
+        Book.image_url, Book.price_naira, Book.is_free, Book.created_at,
+        func.json_array_length(Book.chapters).label('chapter_count'),
+        func.count(Purchase.id).filter(Purchase.payment_status == 'success').label('sales_count')
+    ).outerjoin(Purchase, Purchase.book_id == Book.id)\
+     .group_by(Book.id)\
+     .order_by(Book.created_at.desc()).all()
+    return render_template('admin/books.html', books=rows)
 
 @app.route('/admin/books/create', methods=['GET', 'POST'])
 @login_required
@@ -84,7 +94,8 @@ def admin_create_book():
             price_naira=price_naira,
             is_free=is_free,
             chapters=chapters,
-            content=content
+            content=content,
+            preview_content=content[:2] if content else []
         )
         
         db.session.add(book)
@@ -116,6 +127,7 @@ def admin_edit_book(book_id):
         
         book.chapters = [title.strip() for title in chapter_titles if title.strip()]
         book.content = [content.strip() for content in chapter_contents if content.strip()]
+        book.preview_content = book.content[:2]
         
         db.session.commit()
         
@@ -141,8 +153,29 @@ def admin_delete_book(book_id):
 @login_required
 @admin_required
 def admin_book_view(book_id):
-    book = Book.query.get_or_404(book_id)
+    # Only metadata — content fetched on demand via /api/admin/book/<id>/chapter/<n>
+    book = db.session.query(
+        Book.id, Book.title, Book.author, Book.chapters
+    ).filter(Book.id == book_id).first_or_404()
     return render_template('admin/bookview.html', book=book)
+
+
+@app.route('/api/admin/book/<int:book_id>/chapter/<int:chapter_index>')
+@login_required
+@admin_required
+def admin_get_chapter(book_id, chapter_index):
+    """Admin-only chapter fetch — no purchase check needed."""
+    book = db.session.query(
+        Book.id, Book.content
+    ).filter(Book.id == book_id).first_or_404()
+
+    content = book.content or []
+    if chapter_index < 0 or chapter_index >= len(content):
+        return jsonify({'error': 'Chapter not found'}), 404
+
+    resp = jsonify({'html': content[chapter_index], 'total': len(content)})
+    resp.headers['Cache-Control'] = 'private, max-age=3600'
+    return resp
 
 
 @app.route('/admin/books/<int:book_id>/purchases')
@@ -189,10 +222,21 @@ def admin_user_detail(user_id):
     user = User.query.get_or_404(user_id)
     purchases = Purchase.query.filter_by(user_id=user_id, payment_status='success').all()
     reviews = Review.query.filter_by(user_id=user_id).all()
-    
+
     total_spent = sum(p.amount_paid for p in purchases)
-    
+
     return render_template('admin/user_detail.html', user=user, purchases=purchases, reviews=reviews, total_spent=total_spent)
+
+
+@app.route('/admin/users/<int:user_id>/unlock-ip', methods=['POST'])
+@login_required
+@admin_required
+def admin_unlock_ip(user_id):
+    user = User.query.get_or_404(user_id)
+    user.locked_ip = None
+    db.session.commit()
+    flash(f'IP lock cleared for {user.full_name}. They can now log in from any device.', 'success')
+    return redirect(url_for('admin_user_detail', user_id=user_id))
 
 def process_whole_content(content):
     """
@@ -244,8 +288,34 @@ def admin_settings():
         # Handle settings update
         flash('Settings updated successfully!', 'success')
         return redirect(url_for('admin_settings'))
-    
+
     return render_template('admin/settings.html')
+
+
+@app.route('/admin/upload-image', methods=['POST'])
+@login_required
+@admin_required
+def admin_upload_image():
+    """Upload an image file from the Quill editor to Cloudinary and return the URL."""
+    import cloudinary.uploader
+
+    f = request.files.get('image')
+    if not f:
+        return jsonify({'error': 'No file received'}), 400
+
+    allowed = {'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'}
+    if f.mimetype not in allowed:
+        return jsonify({'error': 'Unsupported file type'}), 400
+
+    try:
+        result = cloudinary.uploader.upload(
+            f.stream,
+            folder='iglobals/books',
+            resource_type='image'
+        )
+        return jsonify({'url': result['secure_url']})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 def _fix_interrupted_lists(soup):
@@ -316,11 +386,23 @@ def admin_parse_docx():
 
     def convert_image(image):
         try:
+            import cloudinary.uploader
             with image.open() as img_bytes:
-                encoded = base64.b64encode(img_bytes.read()).decode('ascii')
-            return {'src': f'data:{image.content_type};base64,{encoded}'}
+                data = img_bytes.read()
+            result = cloudinary.uploader.upload(
+                data,
+                folder='iglobals/books',
+                resource_type='image'
+            )
+            return {'src': result['secure_url']}
         except Exception:
-            return {}  # skip unreadable images silently
+            # Fallback to base64 if Cloudinary is not configured
+            try:
+                with image.open() as img_bytes:
+                    encoded = base64.b64encode(img_bytes.read()).decode('ascii')
+                return {'src': f'data:{image.content_type};base64,{encoded}'}
+            except Exception:
+                return {}
 
     try:
         file_bytes = f.read()

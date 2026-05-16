@@ -423,6 +423,65 @@ function paginateChapter(htmlContent) {
     const tmp = document.createElement('div');
     tmp.innerHTML = htmlContent;
 
+    // ── 1. Parse Markdown Tables ──
+    // Convert markdown tables in <pre> or <p> tags back to HTML tables
+    tmp.querySelectorAll('pre, p').forEach(el => {
+        let text = el.innerText || el.textContent;
+        if (text.includes('|') && text.includes('---')) {
+            const lines = text.trim().split(/\r?\n/);
+            if (lines.length >= 2) {
+                const header = lines[0].trim();
+                const separator = lines[1].trim();
+                if (header.includes('|') && separator.includes('|') && /^[|:-\s]+$/.test(separator)) {
+                    const table = document.createElement('table');
+                    lines.forEach((line, i) => {
+                        if (i === 1) return; // skip separator
+                        let l = line.trim();
+                        if (l.startsWith('|')) l = l.slice(1);
+                        if (l.endsWith('|')) l = l.slice(0, -1);
+                        const cells = l.split('|');
+                        const tr = document.createElement('tr');
+                        cells.forEach(cell => {
+                            const td = document.createElement(i === 0 ? 'th' : 'td');
+                            td.textContent = cell.trim();
+                            tr.appendChild(td);
+                        });
+                        table.appendChild(tr);
+                    });
+                    el.replaceWith(table);
+                }
+            }
+        }
+    });
+
+    // ── 2. Unwrap blocks from <p> tags ──
+    // Quill wraps img and pre in <p>. We need them as top-level nodes for pagination.
+    tmp.querySelectorAll('p').forEach(p => {
+        const hasBlock = p.querySelector('img, pre, table');
+        if (!hasBlock) return;
+        
+        const frag = document.createDocumentFragment();
+        Array.from(p.childNodes).forEach(child => {
+            if (child.tagName === 'IMG' || child.tagName === 'PRE' || child.tagName === 'TABLE') {
+                frag.appendChild(child);
+            } else {
+                let last = frag.lastElementChild;
+                if (!last || last.tagName !== 'P') {
+                    last = document.createElement('p');
+                    frag.appendChild(last);
+                }
+                last.appendChild(child);
+            }
+        });
+        
+        Array.from(frag.childNodes).forEach(child => {
+            if (child.tagName === 'P' && child.textContent.trim() === '' && child.innerHTML.trim() === '') {
+                frag.removeChild(child);
+            }
+        });
+        p.replaceWith(frag);
+    });
+
     // Style every table with full inline styles so they render correctly
     // regardless of whether CSS classes are present
     tmp.querySelectorAll('table').forEach(t => {
@@ -459,7 +518,7 @@ function paginateChapter(htmlContent) {
         img.style.objectFit = 'contain';
     });
 
-    // ── 2. Collect top-level nodes ──
+    // ── 3. Collect top-level nodes ──
     const nodes = Array.from(tmp.childNodes).filter(n =>
         n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim())
     );

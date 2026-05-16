@@ -1044,6 +1044,37 @@ function refreshTablePreview(chapterItem, htmlContent) {
     // Parse the HTML and find tables
     const tmp = document.createElement('div');
     tmp.innerHTML = htmlContent || '';
+
+    // Convert markdown tables in <pre> or <p> tags back to HTML tables for preview
+    tmp.querySelectorAll('pre, p').forEach(el => {
+        let text = el.innerText || el.textContent;
+        if (text.includes('|') && text.includes('---')) {
+            const lines = text.trim().split(/\r?\n/);
+            if (lines.length >= 2) {
+                const header = lines[0].trim();
+                const separator = lines[1].trim();
+                if (header.includes('|') && separator.includes('|') && /^[|:-\s]+$/.test(separator)) {
+                    const table = document.createElement('table');
+                    lines.forEach((line, i) => {
+                        if (i === 1) return; // skip separator
+                        let l = line.trim();
+                        if (l.startsWith('|')) l = l.slice(1);
+                        if (l.endsWith('|')) l = l.slice(0, -1);
+                        const cells = l.split('|');
+                        const tr = document.createElement('tr');
+                        cells.forEach(cell => {
+                            const td = document.createElement(i === 0 ? 'th' : 'td');
+                            td.textContent = cell.trim();
+                            tr.appendChild(td);
+                        });
+                        table.appendChild(tr);
+                    });
+                    el.replaceWith(table);
+                }
+            }
+        }
+    });
+
     const tables = tmp.querySelectorAll('table');
 
     if (tables.length === 0) {

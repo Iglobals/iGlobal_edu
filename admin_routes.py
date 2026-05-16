@@ -434,27 +434,31 @@ def admin_parse_docx():
         # ── Fix interrupted numbered lists ──────────────────────────
         _fix_interrupted_lists(soup)
 
-        # ── Style tables ─────────────────────────────────────────────
+        # ── Convert tables to Markdown ───────────────────────────────
         for table in soup.find_all('table'):
-            wrapper = soup.new_tag('div', style='overflow-x:auto;margin:1em 0;')
-            table.insert_before(wrapper)
-            table.extract()
-            wrapper.append(table)
-
-            table['style'] = (
-                'width:100%;border-collapse:collapse;'
-                'font-size:0.9em;font-family:Georgia,serif;min-width:400px;'
-            )
             rows = table.find_all('tr')
+            if not rows:
+                table.decompose()
+                continue
+            
+            md_lines = []
             for i, tr in enumerate(rows):
-                bg = '#f3e8ff' if i == 0 else ('#faf5ff' if i % 2 == 0 else 'white')
-                tr['style'] = f'background:{bg};'
-                for cell in tr.find_all(['td', 'th']):
-                    base = 'padding:0.45rem 0.75rem;border:1px solid #e5e7eb;vertical-align:top;text-align:left;'
-                    if cell.name == 'th' or i == 0:
-                        cell['style'] = base + 'font-weight:700;color:#2F1341;background:#f3e8ff;'
-                    else:
-                        cell['style'] = base
+                cells = tr.find_all(['td', 'th'])
+                # Get cell text, replace newlines with space, escape pipe characters
+                line = '| ' + ' | '.join(cell.get_text(separator=' ', strip=True).replace('\n', ' ').replace('|', '\\|') for cell in cells) + ' |'
+                md_lines.append(line)
+                
+                # Add markdown header separator after the first row
+                if i == 0:
+                    sep = '|' + '|'.join('---' for _ in cells) + '|'
+                    md_lines.append(sep)
+            
+            md_table = '\n'.join(md_lines)
+            
+            # Replace the table with a <pre> block for Quill
+            pre = soup.new_tag('pre', attrs={'class': 'ql-syntax', 'spellcheck': 'false'})
+            pre.string = md_table
+            table.replace_with(pre)
 
         chapters, contents = [], []
         current_title, current_nodes = None, []

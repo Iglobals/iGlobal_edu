@@ -230,6 +230,10 @@ def login():
             #     return render_template('login.html')
 
             remember = request.form.get('remember', False)
+            # Force remember and permanent session for PWA / Mobile users
+            remember = True
+            session.permanent = True
+            
             # Lock to this IP on first login (or same IP returning)
             # if not user.locked_ip:
             #     user.locked_ip = client_ip

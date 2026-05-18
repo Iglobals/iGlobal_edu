@@ -390,7 +390,20 @@
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register("{{ url_for('sw') }}")
-                .then(reg => console.log('Service Worker registered:', reg))
+                .then(reg => {
+                    console.log('Service Worker registered:', reg);
+                    // Proactively cache main pages if online
+                    if (navigator.onLine) {
+                        const pagesToCache = ['/', '/about', '/search', '/library'];
+                        pagesToCache.forEach(url => {
+                            fetch(url).then(response => {
+                                if (response.ok) {
+                                    caches.open('iglobals-cache-v1').then(cache => cache.put(url, response));
+                                }
+                            }).catch(() => {}); // Ignore network errors during background caching
+                        });
+                    }
+                })
                 .catch(err => console.log('Service Worker registration failed:', err));
         });
     }

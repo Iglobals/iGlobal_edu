@@ -309,7 +309,7 @@
                                 <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Read
                             </a>
                             <span class="sep">|</span>
-                            <button onclick="downloadForOffline({{ book.id }}, this)">
+                            <button onclick="downloadForOffline({{ book.id }}, this)" data-download-btn="{{ book.id }}">
                                 <i data-lucide="download" class="w-3.5 h-3.5"></i> Download
                             </button>
                         {% else %}
@@ -403,5 +403,25 @@
         }
         lucide.createIcons();
     }
+
+    // Check download status on page load
+    window.addEventListener('DOMContentLoaded', () => {
+        if ('caches' in window) {
+            document.querySelectorAll('[data-download-btn]').forEach(async (btn) => {
+                const bookId = btn.getAttribute('data-download-btn');
+                try {
+                    const cache = await caches.open('iglobals-cache-v1');
+                    // If chapter 0 is cached, consider it downloaded
+                    const match = await cache.match(`/api/book/${bookId}/chapter/0`);
+                    if (match) {
+                        btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-green-500"></i> Downloaded';
+                        lucide.createIcons();
+                    }
+                } catch(e) {
+                    console.error('Cache check failed', e);
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

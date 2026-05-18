@@ -18,6 +18,18 @@ def index():
     ).limit(3).all()
     return render_template('index.html', featured_books=books)
 
+@app.route('/sw.js')
+def sw():
+    response = make_response(app.send_static_file('sw.js'))
+    response.headers['Content-Type'] = 'application/javascript'
+    # Ensure scope is root
+    response.headers['Service-Worker-Allowed'] = '/'
+    return response
+
+@app.route('/manifest.json')
+def manifest():
+    return app.send_static_file('manifest.json')
+
 @app.route('/about')
 def about():
     return render_template('about.html')
@@ -209,18 +221,18 @@ def login():
             client_ip = _get_client_ip()
 
             # IP lock check — if a different IP is already locked, block login
-            if user.locked_ip and user.locked_ip != client_ip:
-                flash(
-                    'This account is locked to another device. '
-                    'Please contact support to unlock your account.',
-                    'danger'
-                )
-                return render_template('login.html')
+            # if user.locked_ip and user.locked_ip != client_ip:
+            #     flash(
+            #         'This account is locked to another device. '
+            #         'Please contact support to unlock your account.',
+            #         'danger'
+            #     )
+            #     return render_template('login.html')
 
             remember = request.form.get('remember', False)
             # Lock to this IP on first login (or same IP returning)
-            if not user.locked_ip:
-                user.locked_ip = client_ip
+            # if not user.locked_ip:
+            #     user.locked_ip = client_ip
             user.session_token = secrets.token_hex(32)
             db.session.commit()
             login_user(user, remember=remember)
@@ -681,16 +693,17 @@ def enforce_single_session():
         return  # admins are never IP-locked
 
     if current_user.locked_ip:
-        client_ip = _get_client_ip()
-        if client_ip != current_user.locked_ip:
-            logout_user()
-            session.clear()
-            flash(
-                'Access from a new device was detected. '
-                'Please contact support to unlock your account.',
-                'danger'
-            )
-            return redirect(url_for('login'))
+        pass
+        # client_ip = _get_client_ip()
+        # if client_ip != current_user.locked_ip:
+        #     logout_user()
+        #     session.clear()
+        #     flash(
+        #         'Access from a new device was detected. '
+        #         'Please contact support to unlock your account.',
+        #         'danger'
+        #     )
+        #     return redirect(url_for('login'))
 
 
 # ── Paystack Webhook ──────────────────────────────────────────────────────

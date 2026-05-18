@@ -308,6 +308,10 @@
                             <a href="{{ url_for('reading', book_id=book.id) }}">
                                 <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Read
                             </a>
+                            <span class="sep">|</span>
+                            <button onclick="downloadForOffline({{ book.id }}, this)">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Download
+                            </button>
                         {% else %}
                             <a href="{{ url_for('payment', book_id=book.id) }}">
                                 <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i> Purchase
@@ -370,6 +374,34 @@
             }
         })
         .catch(error => console.error('Error:', error));
+    }
+
+    async function downloadForOffline(bookId, btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i> Saving...';
+        lucide.createIcons();
+        try {
+            // Cache shell pages
+            await fetch(`/reading/${bookId}`);
+            await fetch(`/preview/${bookId}`);
+            
+            // Cache all chapters until 404
+            let idx = 0;
+            while (true) {
+                const resp = await fetch(`/api/book/${bookId}/chapter/${idx}`);
+                if (!resp.ok) break;
+                idx++;
+            }
+            btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-green-500"></i> Downloaded';
+        } catch(e) {
+            console.error('Download failed', e);
+            btn.innerHTML = '<i data-lucide="alert-circle" class="w-3.5 h-3.5 text-red-500"></i> Failed';
+            setTimeout(() => { 
+                btn.innerHTML = originalText; 
+                lucide.createIcons(); 
+            }, 3000);
+        }
+        lucide.createIcons();
     }
 </script>
 {% endblock %}

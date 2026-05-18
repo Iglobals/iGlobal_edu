@@ -1,0 +1,17 @@
+{
+    "name": "iGlobals Educational Services",
+    "short_name": "iGlobals",
+    "description": "Quality JUPEB study materials and past questions.",
+    "start_url": "/library",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#2F1341",
+    "icons": [
+        {
+            "src": "/static/logo.png",
+            "sizes": "192x192 512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

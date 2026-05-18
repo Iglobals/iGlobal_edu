@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}iGlobals Educational Services{% endblock %}</title>
 
+    <!-- PWA Configurations -->
+    <link rel="manifest" href="{{ url_for('manifest') }}">
+    <meta name="theme-color" content="#2F1341">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='logo.png') }}">
+
     <!-- Open Graph defaults (overridden per page) -->
     {% block og_tags %}
     <meta property="og:type"        content="website">
@@ -380,6 +385,15 @@
         const h = document.getElementById('header');
         if (h) h.classList.toggle('shadow-md', window.scrollY > 100);
     });
+</script>
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register("{{ url_for('sw') }}")
+                .then(reg => console.log('Service Worker registered:', reg))
+                .catch(err => console.log('Service Worker registration failed:', err));
+        });
+    }
 </script>
 {% block extra_js %}{% endblock %}
 </body>

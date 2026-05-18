@@ -1,0 +1,64 @@
+const CACHE_NAME = 'iglobals-cache-v1';
+
+const PRECACHE_URLS = [
+    '/static/logo.png',
+    '/static/manifest.json'
+];
+
+self.addEventListener('install', event => {
+    event.waitUntil(
+        caches.open(CACHE_NAME).then(cache => cache.addAll(PRECACHE_URLS))
+    );
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(name => {
+                    if (name !== CACHE_NAME) {
+                        return caches.delete(name);
+                    }
+                })
+            );
+        })
+    );
+    self.clients.claim();
+});
+
+self.addEventListener('fetch', event => {
+    const url = new URL(event.request.url);
+
+    // Skip non-GET requests (e.g. POST to login)
+    if (event.request.method !== 'GET') return;
+
+    // Use Network First, falling back to Cache for most HTML / API requests
+    // This ensures they always get the latest content if online.
+    event.respondWith(
+        fetch(event.request).then(networkResponse => {
+            // Check if we received a valid response
+            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                return networkResponse;
+            }
+
+            // Don't cache opaque responses or non-GET
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => {
+                // We cache pages, api requests, and static assets
+                cache.put(event.request, responseToCache);
+            });
+
+            return networkResponse;
+        }).catch(async () => {
+            // Network failed (offline), try cache
+            const cachedResponse = await caches.match(event.request);
+            if (cachedResponse) {
+                return cachedResponse;
+            }
+            
+            // If offline and requesting an HTML page that's not in cache, we could return a fallback offline page
+            // But for now, we just let it fail gracefully
+        })
+    );
+});

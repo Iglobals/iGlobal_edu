@@ -1,4 +1,4 @@
-# iGlobals Educational Services - Complete Flask Application -you
+# iGlobals Educational Services - Complete Flask Application - vercel
 
 A comprehensive educational platform for JUPEB exam preparation with secure content delivery, payment integration, user management, and full admin dashboard.
 

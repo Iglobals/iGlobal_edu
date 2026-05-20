@@ -127,6 +127,13 @@ class OTPCode(db.Model):
 REFERRAL_COMMISSION_RATE = 0.30   # 30% — change here to update globally
 REFERRAL_COOKIE_DAYS     = 5
 
+class ApprovedAgent(db.Model):
+    __tablename__ = 'approved_agents'
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class ReferralAgent(db.Model):
     __tablename__ = 'referral_agents'

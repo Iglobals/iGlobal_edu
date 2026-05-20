@@ -2,7 +2,7 @@ from flask import render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from functools import wraps
 from app import app, db
-from models import User, Book, Review, Purchase
+from models import User, Book, Review, Purchase, ApprovedAgent
 from datetime import datetime
 import re
 import io
@@ -226,6 +226,39 @@ def admin_user_detail(user_id):
     total_spent = sum(p.amount_paid for p in purchases)
 
     return render_template('admin/user_detail.html', user=user, purchases=purchases, reviews=reviews, total_spent=total_spent)
+
+
+@app.route('/admin/agents/approved', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_approved_agents():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        if not email:
+            flash('Email cannot be empty.', 'danger')
+        elif ApprovedAgent.query.filter_by(email=email).first():
+            flash('This email is already approved.', 'warning')
+        else:
+            new_agent = ApprovedAgent(email=email)
+            db.session.add(new_agent)
+            db.session.commit()
+            flash(f'Email {email} added to approved agents.', 'success')
+        return redirect(url_for('admin_approved_agents'))
+
+    agents = ApprovedAgent.query.order_by(ApprovedAgent.created_at.desc()).all()
+    return render_template('admin/approved_agents.html', agents=agents)
+
+
+@app.route('/admin/agents/approved/<int:agent_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_approved_agent(agent_id):
+    agent = ApprovedAgent.query.get_or_404(agent_id)
+    email = agent.email
+    db.session.delete(agent)
+    db.session.commit()
+    flash(f'Approved agent {email} removed.', 'success')
+    return redirect(url_for('admin_approved_agents'))
 
 
 @app.route('/admin/users/<int:user_id>/unlock-ip', methods=['POST'])

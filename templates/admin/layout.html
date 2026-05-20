@@ -77,6 +77,9 @@
         <a href="{{ url_for('admin_referrals') }}" class="sidebar-link {% if 'admin_referrals' in request.endpoint %}active{% endif %}">
             <i data-lucide="share-2" class="w-4 h-4"></i><span>Referrals</span>
         </a>
+        <a href="{{ url_for('admin_approved_agents') }}" class="sidebar-link {% if 'admin_approved_agents' in request.endpoint %}active{% endif %}">
+            <i data-lucide="user-check" class="w-4 h-4"></i><span>Approved Agents</span>
+        </a>
         <a href="{{ url_for('admin_settings') }}" class="sidebar-link {% if 'admin_settings' in request.endpoint %}active{% endif %}">
             <i data-lucide="settings" class="w-4 h-4"></i><span>Settings</span>
         </a>

@@ -149,6 +149,14 @@
         transform: skewX(-15deg) translateY(-5px);
         background-color: var(--ig-purple-light);
     }
+    
+    @keyframes bulge {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(47, 19, 65, 0.7); }
+        50% { transform: scale(1.15); box-shadow: 0 0 0 15px rgba(47, 19, 65, 0); }
+    }
+    .animate-bulge {
+        animation: bulge 2s ease-in-out infinite;
+    }
 </style>
 {% endblock %}
 
@@ -425,6 +433,11 @@
     </div>
     <div class="absolute bottom-0 left-0 right-0 h-24 bg-[#2F1341]" style="clip-path: polygon(0 100%, 100% 100%, 100% 0, 0 100%);"></div>
 </section>
+
+<!-- PWA Install Button -->
+<button id="pwa-install-btn" class="fixed bottom-6 right-6 z-50 hidden bg-[#2F1341] text-white p-4 rounded-full shadow-2xl items-center justify-center animate-bulge hover:bg-[#4a1e68] transition-colors border-2 border-white" title="Install iGlobals App">
+    <i data-lucide="download" class="w-7 h-7"></i>
+</button>
 {% endblock %}
 
 {% block extra_js %}
@@ -443,6 +456,35 @@
     }
     window.addEventListener('scroll', reveal);
     reveal();
+
+    // PWA Install Prompt Logic
+    let deferredPrompt;
+    const installBtn = document.getElementById('pwa-install-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent default mini-infobar
+        e.preventDefault();
+        deferredPrompt = e;
+        // Show the install button
+        if (installBtn) {
+            installBtn.classList.remove('hidden');
+            installBtn.classList.add('flex');
+        }
+    });
+
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installBtn.classList.add('hidden');
+                    installBtn.classList.remove('flex');
+                }
+                deferredPrompt = null;
+            }
+        });
+    }
 </script>
 {% endblock %}
 

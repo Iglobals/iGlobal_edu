@@ -8,7 +8,7 @@ from flask import (render_template, request, redirect, url_for,
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import app
 from extensions import db
-from models import ReferralAgent, ReferralCommission, Book, Purchase, REFERRAL_COOKIE_DAYS
+from models import ReferralAgent, ReferralCommission, Book, Purchase, REFERRAL_COOKIE_DAYS, ApprovedAgent
 
 AGENT_SESSION_KEY = 'agent_id'
 
@@ -83,6 +83,8 @@ def agent_register():
             flash('Password must be at least 6 characters.', 'danger')
         elif password != confirm:
             flash('Passwords do not match.', 'danger')
+        elif not ApprovedAgent.query.filter_by(email=email).first():
+            flash('Your email is not authorized. Please contact iglobalsedu@gmail.com to get access.', 'danger')
         else:
             agent = ReferralAgent(
                 username=username,
@@ -256,6 +258,11 @@ def agent_google_callback():
 
         agent = ReferralAgent.query.filter_by(email=email).first()
         if not agent:
+            # Check if approved
+            if not ApprovedAgent.query.filter_by(email=email).first():
+                flash('Your email is not authorized. Please contact iglobalsedu@gmail.com to get access.', 'danger')
+                return redirect(url_for('agent_login'))
+
             # Auto-generate unique username
             base = username
             i = 1

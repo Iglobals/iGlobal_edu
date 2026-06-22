@@ -15,8 +15,9 @@ def index():
     books = db.session.query(
         Book.id, Book.title, Book.author, Book.category,
         Book.description, Book.image_url, Book.price_naira, Book.is_free
-    ).limit(3).all()
-    return render_template('index.html', featured_books=books)
+    ).filter(Book.id.in_([11, 16, 13])).all()
+    featured_books = sorted(books, key=lambda x: [11, 16, 13].index(x.id))
+    return render_template('index.html', featured_books=featured_books)
 
 @app.route('/sw.js')
 def sw():

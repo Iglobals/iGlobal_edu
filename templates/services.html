@@ -127,6 +127,121 @@
     .delay-100 { transition-delay: 0.1s; }
     .delay-200 { transition-delay: 0.2s; }
     .delay-300 { transition-delay: 0.3s; }
+
+    /* 3D Hero Component */
+    .hero-3d-container {
+        perspective: 1200px;
+        position: relative;
+        height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .hero-3d-card {
+        position: relative;
+        width: 280px;
+        height: 320px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 1rem;
+        backdrop-filter: blur(10px);
+        transform-style: preserve-3d;
+        transition: transform 0.1s ease-out;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        cursor: pointer;
+    }
+
+    .hero-3d-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+        border-radius: 1rem;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .hero-3d-card:hover::before {
+        opacity: 1;
+    }
+
+    .hero-3d-content {
+        position: relative;
+        z-index: 2;
+        padding: 2rem 1.5rem;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        text-align: center;
+        color: white;
+    }
+
+    .hero-3d-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        display: block;
+        transform: translateZ(50px);
+        transition: transform 0.3s ease;
+    }
+
+    .hero-3d-card:hover .hero-3d-icon {
+        transform: translateZ(50px) scale(1.1) rotateY(10deg);
+    }
+
+    .hero-3d-text {
+        font-weight: 700;
+        font-size: 1.25rem;
+        transform: translateZ(40px);
+        letter-spacing: 0.05em;
+    }
+
+    .hero-3d-card.card-1 {
+        background: linear-gradient(135deg, rgba(176,82,46,0.2) 0%, rgba(200,106,63,0.1) 100%);
+    }
+
+    .hero-3d-card.card-2 {
+        background: linear-gradient(135deg, rgba(47,19,65,0.2) 0%, rgba(74,31,92,0.1) 100%);
+    }
+
+    .hero-3d-card.card-3 {
+        background: linear-gradient(135deg, rgba(255,165,0,0.2) 0%, rgba(255,200,0,0.1) 100%);
+    }
+
+    .hero-3d-glow {
+        position: absolute;
+        inset: 0;
+        border-radius: 1rem;
+        padding: 2px;
+        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .hero-3d-card:hover .hero-3d-glow {
+        opacity: 1;
+        animation: glow-pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 1; }
+    }
+
+    /* Image height as 90% of width */
+    .service-card-img {
+        aspect-ratio: 10 / 9;
+        object-fit: cover;
+    }
+
+    .consultant-card-bg-image {
+        aspect-ratio: auto;
+    }
 </style>
 
 <!-- ========== HERO SECTION ========== -->
@@ -150,22 +265,64 @@
         </svg>
     </div>
 
-    <div class="container mx-auto px-6 relative py-32" style="z-index: 2;">
-        <div class="max-w-4xl">
-            <span class="text-orange-300 text-sm uppercase tracking-widest font-bold mb-6 block reveal inline-block px-4 py-2 bg-white/10 rounded-full">Comprehensive Solutions</span>
-            <h1 class="font-condensed text-6xl md:text-7xl lg:text-8xl font-bold text-white mb-8 leading-tight reveal">
-                Empower Your <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-300 to-orange-200">Educational Journey</span>
-            </h1>
-            <p class="text-xl text-purple-100 mb-12 leading-relaxed max-w-2xl reveal delay-100">
-                Access cutting-edge learning tools, expert consultation, and comprehensive exam preparation resources designed to unlock your full potential.
-            </p>
-            <div class="flex flex-wrap gap-4 reveal delay-200">
-                <a href="#consultants" class="inline-flex items-center gap-2 bg-orange-400 hover:bg-orange-500 text-white px-8 py-4 rounded-lg font-bold uppercase tracking-wider transition-colors">
-                    Meet Consultants <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                </a>
-                <a href="{{ url_for('search') }}" class="inline-flex items-center gap-2 border-2 border-white text-white hover:bg-white hover:text-[#2F1341] px-8 py-4 rounded-lg font-bold uppercase tracking-wider transition-colors">
-                    Browse Resources <i data-lucide="book-open" class="w-5 h-5"></i>
-                </a>
+    <div class="container mx-auto px-6 relative" style="z-index: 2;">
+        <div class="grid md:grid-cols-2 gap-12 items-center py-20">
+            <!-- Left: Content -->
+            <div class="max-w-2xl">
+                <span class="text-orange-300 text-sm uppercase tracking-widest font-bold mb-6 block reveal inline-block px-4 py-2 bg-white/10 rounded-full">Comprehensive Solutions</span>
+                <h1 class="font-condensed text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 leading-tight reveal">
+                    Empower Your <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-300 to-orange-200">Educational</span> Journey
+                </h1>
+                <p class="text-lg text-purple-100 mb-12 leading-relaxed reveal delay-100">
+                    Access cutting-edge learning tools, expert consultation, and comprehensive exam preparation resources designed to unlock your full potential.
+                </p>
+                <div class="flex flex-wrap gap-4 reveal delay-200">
+                    <a href="#consultants" class="inline-flex items-center gap-2 bg-orange-400 hover:bg-orange-500 text-white px-8 py-4 rounded-lg font-bold uppercase tracking-wider transition-colors">
+                        Meet Consultants <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    </a>
+                    <a href="{{ url_for('search') }}" class="inline-flex items-center gap-2 border-2 border-white text-white hover:bg-white hover:text-[#2F1341] px-8 py-4 rounded-lg font-bold uppercase tracking-wider transition-colors">
+                        Browse Resources <i data-lucide="book-open" class="w-5 h-5"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right: 3D Cards -->
+            <div class="hero-3d-container reveal delay-300">
+                <!-- Card 1: eBooks -->
+                <div class="hero-3d-card card-1" data-3d-card="1">
+                    <div class="hero-3d-glow"></div>
+                    <div class="hero-3d-content">
+                        <div>
+                            <span class="hero-3d-icon">📚</span>
+                            <div class="hero-3d-text">eBooks Library</div>
+                        </div>
+                        <p class="text-sm text-purple-200">500+ Resources</p>
+                    </div>
+                </div>
+
+                <!-- Card 2: iTest -->
+                <div class="hero-3d-card card-2" data-3d-card="2" style="position: absolute; transform: translateX(-120px) translateY(60px);">
+                    <div class="hero-3d-glow"></div>
+                    <div class="hero-3d-content">
+                        <div>
+                            <span class="hero-3d-icon">✏️</span>
+                            <div class="hero-3d-text">iTest Platform</div>
+                        </div>
+                        <p class="text-sm text-purple-200">Create & Proctor</p>
+                    </div>
+                </div>
+
+                <!-- Card 3: Consultation -->
+                <div class="hero-3d-card card-3" data-3d-card="3" style="position: absolute; transform: translateX(120px) translateY(60px);">
+                    <div class="hero-3d-glow"></div>
+                    <div class="hero-3d-content">
+                        <div>
+                            <span class="hero-3d-icon">🎓</span>
+                            <div class="hero-3d-text">Consultation</div>
+                        </div>
+                        <p class="text-sm text-purple-200">Expert Guidance</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -177,8 +334,8 @@
         <div class="grid md:grid-cols-3 gap-8 mb-20">
             <!-- Service 1: Ebooks Library -->
             <div class="bg-gray-50 rounded-lg overflow-hidden shadow-lg reveal hover:shadow-xl transition-shadow">
-                <div class="h-48 bg-gradient-to-br from-[#2F1341] to-[#4A1F5C] overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-150784272343-583f20270319?w=600&q=80" alt="eBooks Library" class="w-full h-full object-cover hover:scale-110 transition-transform duration-500">
+                <div class="bg-gradient-to-br from-[#2F1341] to-[#4A1F5C] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-150784272343-583f20270319?w=600&q=80" alt="eBooks Library" class="service-card-img w-full hover:scale-110 transition-transform duration-500">
                 </div>
                 <div class="p-8">
                     <h3 class="font-condensed text-2xl font-bold text-[#2F1341] mb-3">eBooks Library for JUPEB</h3>
@@ -207,8 +364,8 @@
 
             <!-- Service 2: iTest Platform -->
             <div class="bg-gray-50 rounded-lg overflow-hidden shadow-lg reveal delay-100 hover:shadow-xl transition-shadow">
-                <div class="h-48 bg-gradient-to-br from-[#B0522E] to-[#C86A3F] overflow-hidden">
-                    <img src="https://cdn.builder.io/api/v1/image/assets%2Ffc536d4b807e44e2b49bced22f2943e8%2F80902a2966dd43d1afcda9c816eca7b6?format=webp&width=800&height=1200" alt="iTest Platform" class="w-full h-full object-cover hover:scale-110 transition-transform duration-500">
+                <div class="bg-gradient-to-br from-[#B0522E] to-[#C86A3F] overflow-hidden">
+                    <img src="https://cdn.builder.io/api/v1/image/assets%2Ffc536d4b807e44e2b49bced22f2943e8%2F80902a2966dd43d1afcda9c816eca7b6?format=webp&width=800&height=1200" alt="iTest Platform" class="service-card-img w-full hover:scale-110 transition-transform duration-500">
                 </div>
                 <div class="p-8">
                     <h3 class="font-condensed text-2xl font-bold text-[#2F1341] mb-3">iTest Platform</h3>
@@ -237,8 +394,8 @@
 
             <!-- Service 3: JUPEB Consultation -->
             <div class="bg-gray-50 rounded-lg overflow-hidden shadow-lg reveal delay-200 hover:shadow-xl transition-shadow">
-                <div class="h-48 bg-gradient-to-br from-[#2F1341] to-[#4A1F5C] overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80" alt="JUPEB Consultation" class="w-full h-full object-cover hover:scale-110 transition-transform duration-500">
+                <div class="bg-gradient-to-br from-[#2F1341] to-[#4A1F5C] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80" alt="JUPEB Consultation" class="service-card-img w-full hover:scale-110 transition-transform duration-500">
                 </div>
                 <div class="p-8">
                     <h3 class="font-condensed text-2xl font-bold text-[#2F1341] mb-3">JUPEB Consultation</h3>
@@ -353,6 +510,38 @@
     }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // 3D Hero Cards interaction
+    const heroCards = document.querySelectorAll('.hero-3d-card');
+    const heroContainer = document.querySelector('.hero-3d-container');
+
+    if (heroContainer) {
+        heroContainer.addEventListener('mousemove', (e) => {
+            const rect = heroContainer.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const rotateX = (mouseY - centerY) / 10;
+            const rotateY = (centerX - mouseX) / 10;
+
+            heroCards.forEach(card => {
+                card.style.transform = `
+                    ${card.getAttribute('style')}
+                    rotateX(${rotateX}deg)
+                    rotateY(${rotateY}deg)
+                `;
+            });
+        });
+
+        heroContainer.addEventListener('mouseleave', () => {
+            heroCards.forEach(card => {
+                const originalTransform = card.getAttribute('style') || '';
+                card.style.transform = originalTransform.replace(/rotateX\([^)]*\)/g, '').replace(/rotateY\([^)]*\)/g, '');
+            });
+        });
+    }
 
     // Initialize VanillaTilt for consultant cards
     window.addEventListener('load', () => {

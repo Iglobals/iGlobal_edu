@@ -15,7 +15,7 @@
     .consultant-card-img {
         position: relative;
         width: 100%;
-        height: 240px;
+        height: 320px;
         transform-style: preserve-3d;
         margin-bottom: 1.25rem;
         border-radius: 0.75rem;
@@ -67,15 +67,7 @@
     }
 
     .consultant-number {
-        color: #2F1341;
-        font-family: 'Roboto Condensed', sans-serif;
-        font-size: 3rem;
-        font-weight: 700;
-        line-height: 1;
-        opacity: 0.15;
-        position: absolute;
-        top: -10px;
-        right: 10px;
+        display: none;
     }
 
     .consultant-name {
@@ -102,23 +94,22 @@
     .contact-btn {
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: center;
         margin-top: 1rem;
-        padding: 0.5rem 1rem;
-        background-color: #2F1341;
+        width: 50px;
+        height: 50px;
+        background-color: #25D366;
         color: white;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        border-radius: 50%;
+        border: none;
+        font-size: 1.5rem;
         transition: all 0.3s ease;
         text-decoration: none;
     }
 
     .contact-btn:hover {
-        background-color: #4A1F5C;
-        transform: translateY(-2px);
+        background-color: #1da452;
+        transform: scale(1.1);
     }
 
     .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.5,0,0,1); }
@@ -128,119 +119,24 @@
     .delay-200 { transition-delay: 0.2s; }
     .delay-300 { transition-delay: 0.3s; }
 
-    /* 3D Hero Component */
+    /* 3D Hero Component - Hidden */
     .hero-3d-container {
-        perspective: 1200px;
-        position: relative;
-        height: 400px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        display: none;
     }
 
-    .hero-3d-card {
-        position: relative;
-        width: 280px;
-        height: 320px;
-        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-        border: 1px solid rgba(255,255,255,0.2);
-        border-radius: 1rem;
-        backdrop-filter: blur(10px);
-        transform-style: preserve-3d;
-        transition: transform 0.1s ease-out;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-        cursor: pointer;
-    }
-
-    .hero-3d-card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
-        border-radius: 1rem;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .hero-3d-card:hover::before {
-        opacity: 1;
-    }
-
-    .hero-3d-content {
-        position: relative;
-        z-index: 2;
-        padding: 2rem 1.5rem;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        text-align: center;
-        color: white;
-    }
-
-    .hero-3d-icon {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        display: block;
-        transform: translateZ(50px);
-        transition: transform 0.3s ease;
-    }
-
-    .hero-3d-card:hover .hero-3d-icon {
-        transform: translateZ(50px) scale(1.1) rotateY(10deg);
-    }
-
-    .hero-3d-text {
-        font-weight: 700;
-        font-size: 1.25rem;
-        transform: translateZ(40px);
-        letter-spacing: 0.05em;
-    }
-
-    .hero-3d-card.card-1 {
-        background: linear-gradient(135deg, rgba(176,82,46,0.2) 0%, rgba(200,106,63,0.1) 100%);
-    }
-
-    .hero-3d-card.card-2 {
-        background: linear-gradient(135deg, rgba(47,19,65,0.2) 0%, rgba(74,31,92,0.1) 100%);
-    }
-
-    .hero-3d-card.card-3 {
-        background: linear-gradient(135deg, rgba(255,165,0,0.2) 0%, rgba(255,200,0,0.1) 100%);
-    }
-
-    .hero-3d-glow {
-        position: absolute;
-        inset: 0;
-        border-radius: 1rem;
-        padding: 2px;
-        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .hero-3d-card:hover .hero-3d-glow {
-        opacity: 1;
-        animation: glow-pulse 1s ease-in-out infinite;
-    }
-
-    @keyframes glow-pulse {
-        0%, 100% { opacity: 0.5; }
-        50% { opacity: 1; }
-    }
-
-    /* Image height as 90% of width */
+    /* Image height as 60% of width */
     .service-card-img {
-        aspect-ratio: 10 / 9;
-        object-fit: cover;
+        width: 60%;
+        height: auto;
+        object-fit: contain;
+        margin: 0 auto;
+        display: block;
     }
 
     .consultant-card-bg-image {
-        aspect-ratio: auto;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 </style>
 
@@ -286,44 +182,6 @@
                 </div>
             </div>
 
-            <!-- Right: 3D Cards -->
-            <div class="hero-3d-container reveal delay-300">
-                <!-- Card 1: eBooks -->
-                <div class="hero-3d-card card-1" data-3d-card="1">
-                    <div class="hero-3d-glow"></div>
-                    <div class="hero-3d-content">
-                        <div>
-                            <span class="hero-3d-icon">📚</span>
-                            <div class="hero-3d-text">eBooks Library</div>
-                        </div>
-                        <p class="text-sm text-purple-200">500+ Resources</p>
-                    </div>
-                </div>
-
-                <!-- Card 2: iTest -->
-                <div class="hero-3d-card card-2" data-3d-card="2" style="position: absolute; transform: translateX(-120px) translateY(60px);">
-                    <div class="hero-3d-glow"></div>
-                    <div class="hero-3d-content">
-                        <div>
-                            <span class="hero-3d-icon">✏️</span>
-                            <div class="hero-3d-text">iTest Platform</div>
-                        </div>
-                        <p class="text-sm text-purple-200">Create & Proctor</p>
-                    </div>
-                </div>
-
-                <!-- Card 3: Consultation -->
-                <div class="hero-3d-card card-3" data-3d-card="3" style="position: absolute; transform: translateX(120px) translateY(60px);">
-                    <div class="hero-3d-glow"></div>
-                    <div class="hero-3d-content">
-                        <div>
-                            <span class="hero-3d-icon">🎓</span>
-                            <div class="hero-3d-text">Consultation</div>
-                        </div>
-                        <p class="text-sm text-purple-200">Expert Guidance</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </section>
@@ -444,14 +302,13 @@
                     </div>
                 </div>
                 <div class="consultant-info">
-                    <div class="consultant-number">01</div>
                     <div class="consultant-name">Ajayi Ayomipo Olamipo</div>
                     <a href="https://wa.me/234813592473" class="consultant-contact" target="_blank">
                         <i data-lucide="phone" class="w-4 h-4"></i>
                         +234 813 5924 737
                     </a>
-                    <a href="https://wa.me/234813592473" class="contact-btn" target="_blank">
-                        Message on WhatsApp <i data-lucide="message-circle" class="w-4 h-4"></i>
+                    <a href="https://wa.me/234813592473" class="contact-btn" target="_blank" title="Message on WhatsApp">
+                        <i data-lucide="message-circle" class="w-6 h-6"></i>
                     </a>
                 </div>
             </div>
@@ -465,14 +322,13 @@
                     </div>
                 </div>
                 <div class="consultant-info">
-                    <div class="consultant-number">02</div>
                     <div class="consultant-name">Jomiloju Ayo-Yusuf</div>
                     <a href="https://wa.me/2349136719724" class="consultant-contact" target="_blank">
                         <i data-lucide="phone" class="w-4 h-4"></i>
                         +234 913 671 9724
                     </a>
-                    <a href="https://wa.me/2349136719724" class="contact-btn" target="_blank">
-                        Message on WhatsApp <i data-lucide="message-circle" class="w-4 h-4"></i>
+                    <a href="https://wa.me/2349136719724" class="contact-btn" target="_blank" title="Message on WhatsApp">
+                        <i data-lucide="message-circle" class="w-6 h-6"></i>
                     </a>
                 </div>
             </div>
@@ -486,14 +342,13 @@
                     </div>
                 </div>
                 <div class="consultant-info">
-                    <div class="consultant-number">03</div>
                     <div class="consultant-name">Makinde Temiloluwa David</div>
                     <a href="https://wa.me/2347026622732" class="consultant-contact" target="_blank">
                         <i data-lucide="phone" class="w-4 h-4"></i>
                         +234 702 662 2732
                     </a>
-                    <a href="https://wa.me/2347026622732" class="contact-btn" target="_blank">
-                        Message on WhatsApp <i data-lucide="message-circle" class="w-4 h-4"></i>
+                    <a href="https://wa.me/2347026622732" class="contact-btn" target="_blank" title="Message on WhatsApp">
+                        <i data-lucide="message-circle" class="w-6 h-6"></i>
                     </a>
                 </div>
             </div>
@@ -511,37 +366,6 @@
 
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-    // 3D Hero Cards interaction
-    const heroCards = document.querySelectorAll('.hero-3d-card');
-    const heroContainer = document.querySelector('.hero-3d-container');
-
-    if (heroContainer) {
-        heroContainer.addEventListener('mousemove', (e) => {
-            const rect = heroContainer.getBoundingClientRect();
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-
-            const rotateX = (mouseY - centerY) / 10;
-            const rotateY = (centerX - mouseX) / 10;
-
-            heroCards.forEach(card => {
-                card.style.transform = `
-                    ${card.getAttribute('style')}
-                    rotateX(${rotateX}deg)
-                    rotateY(${rotateY}deg)
-                `;
-            });
-        });
-
-        heroContainer.addEventListener('mouseleave', () => {
-            heroCards.forEach(card => {
-                const originalTransform = card.getAttribute('style') || '';
-                card.style.transform = originalTransform.replace(/rotateX\([^)]*\)/g, '').replace(/rotateY\([^)]*\)/g, '');
-            });
-        });
-    }
 
     // Initialize VanillaTilt for consultant cards
     window.addEventListener('load', () => {

@@ -110,6 +110,7 @@
             <div class="hidden lg:flex items-center space-x-8">
                 <a href="{{ url_for('index') }}" class="nav-link text-sm uppercase tracking-wider {% if request.endpoint == 'index' %}active-link{% endif %}">Home</a>
                 <a href="{{ url_for('about') }}" class="nav-link text-sm uppercase tracking-wider {% if request.endpoint == 'about' %}active-link{% endif %}">About Us</a>
+                <a href="{{ url_for('services') }}" class="nav-link text-sm uppercase tracking-wider {% if request.endpoint == 'services' %}active-link{% endif %}">Services</a>
                 <a href="{{ url_for('search') }}" class="nav-link text-sm uppercase tracking-wider {% if request.endpoint == 'search' %}active-link{% endif %}">Search</a>
                 {% if current_user.is_authenticated %}
                 <a href="{{ url_for('library') }}" class="nav-link text-sm uppercase tracking-wider {% if request.endpoint == 'library' %}active-link{% endif %}">Library</a>
@@ -169,6 +170,10 @@
         <a href="{{ url_for('about') }}"
            class="sidebar-link {% if request.endpoint == 'about' %}active-sidebar{% endif %}">
             About Us
+        </a>
+        <a href="{{ url_for('services') }}"
+           class="sidebar-link {% if request.endpoint == 'services' %}active-sidebar{% endif %}">
+            Services
         </a>
         <a href="{{ url_for('search') }}"
            class="sidebar-link {% if request.endpoint == 'search' %}active-sidebar{% endif %}">
@@ -312,6 +317,7 @@
                 <ul class="space-y-3 text-purple-200 text-sm">
                     <li><a href="{{ url_for('index') }}" class="hover:text-white transition-colors">Home</a></li>
                     <li><a href="{{ url_for('about') }}" class="hover:text-white transition-colors">About Us</a></li>
+                    <li><a href="{{ url_for('services') }}" class="hover:text-white transition-colors">Services</a></li>
                     <li><a href="{{ url_for('search') }}" class="hover:text-white transition-colors">Search</a></li>
                     <li><a href="{{ url_for('login') }}" class="hover:text-white transition-colors">Login</a></li>
                 </ul>

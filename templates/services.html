@@ -15,7 +15,7 @@
     .consultant-card-img {
         position: relative;
         width: 100%;
-        height: 240px;
+        height: 320px;
         transform-style: preserve-3d;
         margin-bottom: 1.25rem;
         border-radius: 0.75rem;
@@ -67,15 +67,7 @@
     }
 
     .consultant-number {
-        color: #2F1341;
-        font-family: 'Roboto Condensed', sans-serif;
-        font-size: 3rem;
-        font-weight: 700;
-        line-height: 1;
-        opacity: 0.15;
-        position: absolute;
-        top: -10px;
-        right: 10px;
+        display: none;
     }
 
     .consultant-name {
@@ -102,23 +94,22 @@
     .contact-btn {
         display: inline-flex;
         align-items: center;
-        gap: 0.5rem;
+        justify-content: center;
         margin-top: 1rem;
-        padding: 0.5rem 1rem;
-        background-color: #2F1341;
+        width: 50px;
+        height: 50px;
+        background-color: #25D366;
         color: white;
-        border-radius: 0.375rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
+        border-radius: 50%;
+        border: none;
+        font-size: 1.5rem;
         transition: all 0.3s ease;
         text-decoration: none;
     }
 
     .contact-btn:hover {
-        background-color: #4A1F5C;
-        transform: translateY(-2px);
+        background-color: #1da452;
+        transform: scale(1.1);
     }
 
     .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.5,0,0,1); }
@@ -128,146 +119,124 @@
     .delay-200 { transition-delay: 0.2s; }
     .delay-300 { transition-delay: 0.3s; }
 
-    /* 3D Hero Component */
+    /* 3D Hero Component - Hidden */
     .hero-3d-container {
-        perspective: 1200px;
+        display: none;
+    }
+
+    /* Sprout-style service cards */
+    .sprout-cards {
+        display: flex;
+        gap: 28px;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 0;
+    }
+
+    .sprout-card {
         position: relative;
-        height: 400px;
+        width: 380px;
+        height: 460px;
+        border-radius: 20px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .sprout-card__img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .sprout-card__title {
+        position: absolute;
+        top: 24px;
+        left: 24px;
+        color: #fff;
+        font-size: 22px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-shadow: 0 1px 6px rgba(0,0,0,0.25);
+    }
+
+    .sprout-card__arrow {
+        font-weight: 600;
+        transition: transform 0.25s ease;
+    }
+
+    .sprout-card:hover .sprout-card__arrow {
+        transform: translateX(4px);
+    }
+
+    .sprout-card__info {
+        position: absolute;
+        bottom: 24px;
+        left: 20px;
+        right: 20px;
+        background: #fff;
+        border-radius: 16px;
+        padding: 18px;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: pointer;
+    }
+
+    .sprout-card__info:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 14px 32px rgba(0,0,0,0.2);
+    }
+
+    .sprout-card__icon {
+        flex-shrink: 0;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #eef2f7;
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
-    .hero-3d-card {
-        position: relative;
-        width: 280px;
-        height: 320px;
-        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-        border: 1px solid rgba(255,255,255,0.2);
-        border-radius: 1rem;
-        backdrop-filter: blur(10px);
-        transform-style: preserve-3d;
-        transition: transform 0.1s ease-out;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-        cursor: pointer;
+    .sprout-card__icon svg {
+        width: 20px;
+        height: 20px;
     }
 
-    .hero-3d-card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
-        border-radius: 1rem;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.3s ease;
+    .sprout-card__text {
+        margin: 0;
+        color: #1a2b4c;
+        font-size: 14.5px;
+        line-height: 1.5;
     }
 
-    .hero-3d-card:hover::before {
-        opacity: 1;
-    }
-
-    .hero-3d-content {
-        position: relative;
-        z-index: 2;
-        padding: 2rem 1.5rem;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        text-align: center;
-        color: white;
-    }
-
-    .hero-3d-icon {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        display: block;
-        transform: translateZ(50px);
-        transition: transform 0.3s ease;
-    }
-
-    .hero-3d-card:hover .hero-3d-icon {
-        transform: translateZ(50px) scale(1.1) rotateY(10deg);
-    }
-
-    .hero-3d-text {
-        font-weight: 700;
-        font-size: 1.25rem;
-        transform: translateZ(40px);
-        letter-spacing: 0.05em;
-    }
-
-    .hero-3d-card.card-1 {
-        background: linear-gradient(135deg, rgba(176,82,46,0.2) 0%, rgba(200,106,63,0.1) 100%);
-    }
-
-    .hero-3d-card.card-2 {
-        background: linear-gradient(135deg, rgba(47,19,65,0.2) 0%, rgba(74,31,92,0.1) 100%);
-    }
-
-    .hero-3d-card.card-3 {
-        background: linear-gradient(135deg, rgba(255,165,0,0.2) 0%, rgba(255,200,0,0.1) 100%);
-    }
-
-    .hero-3d-glow {
-        position: absolute;
-        inset: 0;
-        border-radius: 1rem;
-        padding: 2px;
-        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .hero-3d-card:hover .hero-3d-glow {
-        opacity: 1;
-        animation: glow-pulse 1s ease-in-out infinite;
-    }
-
-    @keyframes glow-pulse {
-        0%, 100% { opacity: 0.5; }
-        50% { opacity: 1; }
-    }
-
-    /* Image height as 90% of width */
-    .service-card-img {
-        aspect-ratio: 10 / 9;
-        object-fit: cover;
+    @media (max-width: 768px) {
+        .sprout-card {
+            width: 100%;
+            max-width: 380px;
+        }
     }
 
     .consultant-card-bg-image {
-        aspect-ratio: auto;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
     }
 </style>
 
 <!-- ========== HERO SECTION ========== -->
-<section class="relative min-h-[700px] flex items-center overflow-hidden bg-gradient-to-br from-[#2F1341] via-[#3D1E52] to-[#2F1341]">
-    <!-- Animated background elements -->
-    <div class="absolute inset-0 overflow-hidden">
-        <div class="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
-        <div class="absolute top-1/2 left-1/3 w-64 h-64 bg-orange-400/5 rounded-full blur-3xl"></div>
-    </div>
-
-    <!-- Grid pattern overlay -->
-    <div class="absolute inset-0 opacity-5">
-        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="0.5"/>
-                </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-    </div>
+<section class="relative min-h-[700px] flex items-center overflow-hidden" style="background-image: url('https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&q=80'); background-size: cover; background-position: center;">
+    <!-- Dark purple overlay -->
+    <div class="absolute inset-0 bg-[#2F1341]/85"></div>
 
     <div class="container mx-auto px-6 relative" style="z-index: 2;">
-        <div class="grid md:grid-cols-2 gap-12 items-center py-20">
-            <!-- Left: Content -->
+        <div class="py-20 flex flex-col items-center justify-center text-center">
+            <!-- Content -->
             <div class="max-w-2xl">
                 <span class="text-orange-300 text-sm uppercase tracking-widest font-bold mb-6 block reveal inline-block px-4 py-2 bg-white/10 rounded-full">Comprehensive Solutions</span>
                 <h1 class="font-condensed text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 leading-tight reveal">
@@ -276,7 +245,7 @@
                 <p class="text-lg text-purple-100 mb-12 leading-relaxed reveal delay-100">
                     Access cutting-edge learning tools, expert consultation, and comprehensive exam preparation resources designed to unlock your full potential.
                 </p>
-                <div class="flex flex-wrap gap-4 reveal delay-200">
+                <div class="flex flex-wrap gap-4 reveal delay-200 justify-center">
                     <a href="#consultants" class="inline-flex items-center gap-2 bg-orange-400 hover:bg-orange-500 text-white px-8 py-4 rounded-lg font-bold uppercase tracking-wider transition-colors">
                         Meet Consultants <i data-lucide="arrow-right" class="w-5 h-5"></i>
                     </a>
@@ -286,44 +255,6 @@
                 </div>
             </div>
 
-            <!-- Right: 3D Cards -->
-            <div class="hero-3d-container reveal delay-300">
-                <!-- Card 1: eBooks -->
-                <div class="hero-3d-card card-1" data-3d-card="1">
-                    <div class="hero-3d-glow"></div>
-                    <div class="hero-3d-content">
-                        <div>
-                            <span class="hero-3d-icon">📚</span>
-                            <div class="hero-3d-text">eBooks Library</div>
-                        </div>
-                        <p class="text-sm text-purple-200">500+ Resources</p>
-                    </div>
-                </div>
-
-                <!-- Card 2: iTest -->
-                <div class="hero-3d-card card-2" data-3d-card="2" style="position: absolute; transform: translateX(-120px) translateY(60px);">
-                    <div class="hero-3d-glow"></div>
-                    <div class="hero-3d-content">
-                        <div>
-                            <span class="hero-3d-icon">✏️</span>
-                            <div class="hero-3d-text">iTest Platform</div>
-                        </div>
-                        <p class="text-sm text-purple-200">Create & Proctor</p>
-                    </div>
-                </div>
-
-                <!-- Card 3: Consultation -->
-                <div class="hero-3d-card card-3" data-3d-card="3" style="position: absolute; transform: translateX(120px) translateY(60px);">
-                    <div class="hero-3d-glow"></div>
-                    <div class="hero-3d-content">
-                        <div>
-                            <span class="hero-3d-icon">🎓</span>
-                            <div class="hero-3d-text">Consultation</div>
-                        </div>
-                        <p class="text-sm text-purple-200">Expert Guidance</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </section>
@@ -331,94 +262,55 @@
 <!-- ========== SERVICES GRID ========== -->
 <section class="py-20 bg-white">
     <div class="container mx-auto px-6">
-        <div class="grid md:grid-cols-3 gap-8 mb-20">
-            <!-- Service 1: Ebooks Library -->
-            <div class="bg-gray-50 rounded-lg overflow-hidden shadow-lg reveal hover:shadow-xl transition-shadow">
-                <div class="bg-gradient-to-br from-[#2F1341] to-[#4A1F5C] overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-150784272343-583f20270319?w=600&q=80" alt="eBooks Library" class="service-card-img w-full hover:scale-110 transition-transform duration-500">
+        <div class="sprout-cards">
+            <!-- Service 1: eBooks Library -->
+            <div class="sprout-card reveal">
+                <img class="sprout-card__img" src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=80" alt="eBooks Library">
+                <div class="sprout-card__title">
+                    eBooks Library
+                    <span class="sprout-card__arrow">→</span>
                 </div>
-                <div class="p-8">
-                    <h3 class="font-condensed text-2xl font-bold text-[#2F1341] mb-3">eBooks Library for JUPEB</h3>
-                    <p class="text-gray-600 mb-6 leading-relaxed">
-                        Access our comprehensive collection of JUPEB preparation materials, including subject-specific study guides, past question papers with detailed solutions, and faculty-focused revision resources.
-                    </p>
-                    <ul class="space-y-2 mb-6">
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="check-circle" class="w-5 h-5 text-[#2F1341] flex-shrink-0 mt-1"></i>
-                            <span class="text-sm text-gray-600">500+ curated past questions</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="check-circle" class="w-5 h-5 text-[#2F1341] flex-shrink-0 mt-1"></i>
-                            <span class="text-sm text-gray-600">Detailed worked solutions</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="check-circle" class="w-5 h-5 text-[#2F1341] flex-shrink-0 mt-1"></i>
-                            <span class="text-sm text-gray-600">Faculty-specific modules</span>
-                        </li>
-                    </ul>
-                    <a href="{{ url_for('search') }}" class="btn-primary px-6 py-2 rounded text-sm inline-flex items-center gap-2">
-                        Explore Library <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                    </a>
+                <div class="sprout-card__info">
+                    <div class="sprout-card__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#2F1341" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                        </svg>
+                    </div>
+                    <p class="sprout-card__text">500+ curated past questions with detailed solutions, faculty-specific modules, and comprehensive JUPEB preparation materials.</p>
                 </div>
             </div>
 
             <!-- Service 2: iTest Platform -->
-            <div class="bg-gray-50 rounded-lg overflow-hidden shadow-lg reveal delay-100 hover:shadow-xl transition-shadow">
-                <div class="bg-gradient-to-br from-[#B0522E] to-[#C86A3F] overflow-hidden">
-                    <img src="https://cdn.builder.io/api/v1/image/assets%2Ffc536d4b807e44e2b49bced22f2943e8%2F80902a2966dd43d1afcda9c816eca7b6?format=webp&width=800&height=1200" alt="iTest Platform" class="service-card-img w-full hover:scale-110 transition-transform duration-500">
+            <div class="sprout-card reveal delay-100">
+                <img class="sprout-card__img" src="https://cdn.builder.io/api/v1/image/assets%2F7d601fb3c5894cc5929dc4ac79b52152%2Feaeb890b5e564e959cd03d3496aa1a10?format=webp&width=800&height=1200" alt="iTest Platform">
+                <div class="sprout-card__title">
+                    iTest Platform
+                    <span class="sprout-card__arrow">→</span>
                 </div>
-                <div class="p-8">
-                    <h3 class="font-condensed text-2xl font-bold text-[#2F1341] mb-3">iTest Platform</h3>
-                    <p class="text-gray-600 mb-6 leading-relaxed">
-                        An innovative online platform for creating, proctoring, and taking exams. Teachers create and manage classes, students take curated practice exams for supported national exams like JAMB, JUPEB, and more.
-                    </p>
-                    <ul class="space-y-2 mb-6">
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="check-circle" class="w-5 h-5 text-[#2F1341] flex-shrink-0 mt-1"></i>
-                            <span class="text-sm text-gray-600">Create and manage exams</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="check-circle" class="w-5 h-5 text-[#2F1341] flex-shrink-0 mt-1"></i>
-                            <span class="text-sm text-gray-600">Real-time grading & analytics</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="check-circle" class="w-5 h-5 text-[#2F1341] flex-shrink-0 mt-1"></i>
-                            <span class="text-sm text-gray-600">Class organization & tracking</span>
-                        </li>
-                    </ul>
-                    <a href="https://itest-seven.vercel.app/home" target="_blank" class="btn-primary px-6 py-2 rounded text-sm inline-flex items-center gap-2">
-                        Visit iTest <i data-lucide="external-link" class="w-4 h-4"></i>
-                    </a>
+                <div class="sprout-card__info">
+                    <div class="sprout-card__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#2F1341" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </div>
+                    <p class="sprout-card__text">Create and manage exams, track student performance, and access real-time grading with class organization and analytics tools.</p>
                 </div>
             </div>
 
             <!-- Service 3: JUPEB Consultation -->
-            <div class="bg-gray-50 rounded-lg overflow-hidden shadow-lg reveal delay-200 hover:shadow-xl transition-shadow">
-                <div class="bg-gradient-to-br from-[#2F1341] to-[#4A1F5C] overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80" alt="JUPEB Consultation" class="service-card-img w-full hover:scale-110 transition-transform duration-500">
+            <div class="sprout-card reveal delay-200">
+                <img class="sprout-card__img" src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80" alt="JUPEB Consultation">
+                <div class="sprout-card__title">
+                    Consultation
+                    <span class="sprout-card__arrow">→</span>
                 </div>
-                <div class="p-8">
-                    <h3 class="font-condensed text-2xl font-bold text-[#2F1341] mb-3">JUPEB Consultation</h3>
-                    <p class="text-gray-600 mb-6 leading-relaxed">
-                        Connect with our team of experienced educational consultants. Get personalized guidance, exam strategies, and subject-specific advice from professionals who understand the JUPEB landscape.
-                    </p>
-                    <ul class="space-y-2 mb-6">
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="check-circle" class="w-5 h-5 text-[#2F1341] flex-shrink-0 mt-1"></i>
-                            <span class="text-sm text-gray-600">Expert consultants</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="check-circle" class="w-5 h-5 text-[#2F1341] flex-shrink-0 mt-1"></i>
-                            <span class="text-sm text-gray-600">Personalized strategies</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i data-lucide="check-circle" class="w-5 h-5 text-[#2F1341] flex-shrink-0 mt-1"></i>
-                            <span class="text-sm text-gray-600">WhatsApp consultation support</span>
-                        </li>
-                    </ul>
-                    <a href="#consultants" class="btn-primary px-6 py-2 rounded text-sm inline-flex items-center gap-2">
-                        Meet Our Team <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                    </a>
+                <div class="sprout-card__info">
+                    <div class="sprout-card__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#2F1341" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                    <p class="sprout-card__text">Expert consultants providing personalized exam guidance, subject-specific strategies, and WhatsApp consultation support.</p>
                 </div>
             </div>
         </div>
@@ -444,14 +336,13 @@
                     </div>
                 </div>
                 <div class="consultant-info">
-                    <div class="consultant-number">01</div>
                     <div class="consultant-name">Ajayi Ayomipo Olamipo</div>
                     <a href="https://wa.me/234813592473" class="consultant-contact" target="_blank">
                         <i data-lucide="phone" class="w-4 h-4"></i>
                         +234 813 5924 737
                     </a>
-                    <a href="https://wa.me/234813592473" class="contact-btn" target="_blank">
-                        Message on WhatsApp <i data-lucide="message-circle" class="w-4 h-4"></i>
+                    <a href="https://wa.me/234813592473" class="contact-btn" target="_blank" title="Message on WhatsApp">
+                        <i data-lucide="message-circle" class="w-6 h-6"></i>
                     </a>
                 </div>
             </div>
@@ -465,14 +356,13 @@
                     </div>
                 </div>
                 <div class="consultant-info">
-                    <div class="consultant-number">02</div>
                     <div class="consultant-name">Jomiloju Ayo-Yusuf</div>
                     <a href="https://wa.me/2349136719724" class="consultant-contact" target="_blank">
                         <i data-lucide="phone" class="w-4 h-4"></i>
                         +234 913 671 9724
                     </a>
-                    <a href="https://wa.me/2349136719724" class="contact-btn" target="_blank">
-                        Message on WhatsApp <i data-lucide="message-circle" class="w-4 h-4"></i>
+                    <a href="https://wa.me/2349136719724" class="contact-btn" target="_blank" title="Message on WhatsApp">
+                        <i data-lucide="message-circle" class="w-6 h-6"></i>
                     </a>
                 </div>
             </div>
@@ -486,14 +376,13 @@
                     </div>
                 </div>
                 <div class="consultant-info">
-                    <div class="consultant-number">03</div>
                     <div class="consultant-name">Makinde Temiloluwa David</div>
                     <a href="https://wa.me/2347026622732" class="consultant-contact" target="_blank">
                         <i data-lucide="phone" class="w-4 h-4"></i>
                         +234 702 662 2732
                     </a>
-                    <a href="https://wa.me/2347026622732" class="contact-btn" target="_blank">
-                        Message on WhatsApp <i data-lucide="message-circle" class="w-4 h-4"></i>
+                    <a href="https://wa.me/2347026622732" class="contact-btn" target="_blank" title="Message on WhatsApp">
+                        <i data-lucide="message-circle" class="w-6 h-6"></i>
                     </a>
                 </div>
             </div>
@@ -511,37 +400,6 @@
 
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-    // 3D Hero Cards interaction
-    const heroCards = document.querySelectorAll('.hero-3d-card');
-    const heroContainer = document.querySelector('.hero-3d-container');
-
-    if (heroContainer) {
-        heroContainer.addEventListener('mousemove', (e) => {
-            const rect = heroContainer.getBoundingClientRect();
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-
-            const rotateX = (mouseY - centerY) / 10;
-            const rotateY = (centerX - mouseX) / 10;
-
-            heroCards.forEach(card => {
-                card.style.transform = `
-                    ${card.getAttribute('style')}
-                    rotateX(${rotateX}deg)
-                    rotateY(${rotateY}deg)
-                `;
-            });
-        });
-
-        heroContainer.addEventListener('mouseleave', () => {
-            heroCards.forEach(card => {
-                const originalTransform = card.getAttribute('style') || '';
-                card.style.transform = originalTransform.replace(/rotateX\([^)]*\)/g, '').replace(/rotateY\([^)]*\)/g, '');
-            });
-        });
-    }
 
     // Initialize VanillaTilt for consultant cards
     window.addEventListener('load', () => {

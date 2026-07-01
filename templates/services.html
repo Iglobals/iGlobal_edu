@@ -4,35 +4,36 @@
 
 {% block content %}
 <style>
-    /* Consultant card styles - matching "How We Compile the Books" from About page */
+    /* Consultant card styles - matching "How We Compile the Books" from About page with VanillaTilt */
     .consultant-card {
         position: relative;
-        overflow: hidden;
-        border-radius: 0.75rem;
+        overflow: visible;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transform-style: preserve-3d;
     }
 
     .consultant-card-img {
         position: relative;
         width: 100%;
-        height: 300px;
-        overflow: hidden;
+        height: 240px;
+        transform-style: preserve-3d;
+        margin-bottom: 1.25rem;
         border-radius: 0.75rem;
+        overflow: visible;
     }
 
     .consultant-card-img-bg {
         position: relative;
         width: 100%;
         height: 100%;
-        overflow: hidden;
+        overflow: visible;
         border-radius: 0.75rem;
     }
 
     .consultant-card-bg-image {
         position: absolute;
         bottom: 0; left: 0;
-        width: 100%; height: 100%;
+        width: 100%; height: 93%;
         object-fit: cover;
         z-index: 1;
         border-radius: 0.75rem;
@@ -43,7 +44,7 @@
         content: '';
         position: absolute;
         bottom: 0; left: 0;
-        width: 100%; height: 100%;
+        width: 100%; height: 93%;
         background: linear-gradient(to top, rgba(47,19,65,0.55) 0%, rgba(47,19,65,0.1) 60%, transparent 100%);
         z-index: 2;
         border-radius: 0.75rem;
@@ -54,10 +55,10 @@
         background: white;
         padding: 1.5rem;
         border-radius: 0.75rem;
-        margin-top: -1rem;
         position: relative;
         z-index: 3;
         transition: all 0.3s ease;
+        box-shadow: 0 4px 16px rgba(47,19,65,0.1);
     }
 
     .consultant-card:hover .consultant-info {
@@ -129,19 +130,43 @@
 </style>
 
 <!-- ========== HERO SECTION ========== -->
-<section class="relative min-h-[600px] flex items-center overflow-hidden bg-[#2F1341]">
-    <div class="absolute inset-0 opacity-15">
-        <img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1920&q=80" alt="Study" class="w-full h-full object-cover">
+<section class="relative min-h-[700px] flex items-center overflow-hidden bg-gradient-to-br from-[#2F1341] via-[#3D1E52] to-[#2F1341]">
+    <!-- Animated background elements -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+        <div class="absolute top-1/2 left-1/3 w-64 h-64 bg-orange-400/5 rounded-full blur-3xl"></div>
     </div>
-    <div class="container mx-auto px-6 relative py-24" style="z-index: 2;">
-        <div class="max-w-3xl">
-            <span class="text-purple-200 text-sm uppercase tracking-wider font-semibold mb-4 block reveal">OUR SERVICES</span>
-            <h1 class="font-condensed text-5xl md:text-7xl font-bold text-white mb-6 leading-tight reveal">
-                Comprehensive Educational Solutions
+
+    <!-- Grid pattern overlay -->
+    <div class="absolute inset-0 opacity-5">
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="0.5"/>
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
+    </div>
+
+    <div class="container mx-auto px-6 relative py-32" style="z-index: 2;">
+        <div class="max-w-4xl">
+            <span class="text-orange-300 text-sm uppercase tracking-widest font-bold mb-6 block reveal inline-block px-4 py-2 bg-white/10 rounded-full">Comprehensive Solutions</span>
+            <h1 class="font-condensed text-6xl md:text-7xl lg:text-8xl font-bold text-white mb-8 leading-tight reveal">
+                Empower Your <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-300 to-orange-200">Educational Journey</span>
             </h1>
-            <p class="text-xl text-purple-100 mb-8 leading-relaxed max-w-2xl reveal delay-100">
-                iGlobals offers a complete suite of educational services designed to empower students across all faculties with the tools and support they need to succeed.
+            <p class="text-xl text-purple-100 mb-12 leading-relaxed max-w-2xl reveal delay-100">
+                Access cutting-edge learning tools, expert consultation, and comprehensive exam preparation resources designed to unlock your full potential.
             </p>
+            <div class="flex flex-wrap gap-4 reveal delay-200">
+                <a href="#consultants" class="inline-flex items-center gap-2 bg-orange-400 hover:bg-orange-500 text-white px-8 py-4 rounded-lg font-bold uppercase tracking-wider transition-colors">
+                    Meet Consultants <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </a>
+                <a href="{{ url_for('search') }}" class="inline-flex items-center gap-2 border-2 border-white text-white hover:bg-white hover:text-[#2F1341] px-8 py-4 rounded-lg font-bold uppercase tracking-wider transition-colors">
+                    Browse Resources <i data-lucide="book-open" class="w-5 h-5"></i>
+                </a>
+            </div>
         </div>
     </div>
 </section>
@@ -152,8 +177,8 @@
         <div class="grid md:grid-cols-3 gap-8 mb-20">
             <!-- Service 1: Ebooks Library -->
             <div class="bg-gray-50 rounded-lg overflow-hidden shadow-lg reveal hover:shadow-xl transition-shadow">
-                <div class="h-48 bg-gradient-to-br from-[#2F1341] to-[#4A1F5C] flex items-center justify-center">
-                    <i data-lucide="book-open" class="w-16 h-16 text-white"></i>
+                <div class="h-48 bg-gradient-to-br from-[#2F1341] to-[#4A1F5C] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-150784272343-583f20270319?w=600&q=80" alt="eBooks Library" class="w-full h-full object-cover hover:scale-110 transition-transform duration-500">
                 </div>
                 <div class="p-8">
                     <h3 class="font-condensed text-2xl font-bold text-[#2F1341] mb-3">eBooks Library for JUPEB</h3>
@@ -182,8 +207,8 @@
 
             <!-- Service 2: iTest Platform -->
             <div class="bg-gray-50 rounded-lg overflow-hidden shadow-lg reveal delay-100 hover:shadow-xl transition-shadow">
-                <div class="h-48 bg-gradient-to-br from-[#B0522E] to-[#C86A3F] flex items-center justify-center">
-                    <i data-lucide="edit-3" class="w-16 h-16 text-white"></i>
+                <div class="h-48 bg-gradient-to-br from-[#B0522E] to-[#C86A3F] overflow-hidden">
+                    <img src="https://cdn.builder.io/api/v1/image/assets%2Ffc536d4b807e44e2b49bced22f2943e8%2F80902a2966dd43d1afcda9c816eca7b6?format=webp&width=800&height=1200" alt="iTest Platform" class="w-full h-full object-cover hover:scale-110 transition-transform duration-500">
                 </div>
                 <div class="p-8">
                     <h3 class="font-condensed text-2xl font-bold text-[#2F1341] mb-3">iTest Platform</h3>
@@ -212,8 +237,8 @@
 
             <!-- Service 3: JUPEB Consultation -->
             <div class="bg-gray-50 rounded-lg overflow-hidden shadow-lg reveal delay-200 hover:shadow-xl transition-shadow">
-                <div class="h-48 bg-gradient-to-br from-[#2F1341] to-[#4A1F5C] flex items-center justify-center">
-                    <i data-lucide="users" class="w-16 h-16 text-white"></i>
+                <div class="h-48 bg-gradient-to-br from-[#2F1341] to-[#4A1F5C] overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80" alt="JUPEB Consultation" class="w-full h-full object-cover hover:scale-110 transition-transform duration-500">
                 </div>
                 <div class="p-8">
                     <h3 class="font-condensed text-2xl font-bold text-[#2F1341] mb-3">JUPEB Consultation</h3>
@@ -254,10 +279,10 @@
 
         <div class="grid md:grid-cols-3 gap-8">
             <!-- Consultant 1: Ajayi Ayomipo -->
-            <div class="consultant-card reveal delay-100">
+            <div class="consultant-card reveal delay-100 js-tilt" data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="600">
                 <div class="consultant-card-img">
                     <div class="consultant-card-img-bg">
-                        <img src="https://cdn.builder.io/api/v1/image/assets%2Ffc536d4b807e44e2b49bced22f2943e8%2F6d6abb03c3684082aae2e181e0f7330f?format=webp&width=800&height=1200" 
+                        <img src="https://cdn.builder.io/api/v1/image/assets%2Ffc536d4b807e44e2b49bced22f2943e8%2F6d6abb03c3684082aae2e181e0f7330f?format=webp&width=800&height=1200"
                              alt="Ajayi Ayomipo Olamipo" class="consultant-card-bg-image">
                     </div>
                 </div>
@@ -275,10 +300,10 @@
             </div>
 
             <!-- Consultant 2: Jomiloju Ayo-Yusuf -->
-            <div class="consultant-card reveal delay-200">
+            <div class="consultant-card reveal delay-200 js-tilt" data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="600">
                 <div class="consultant-card-img">
                     <div class="consultant-card-img-bg">
-                        <img src="https://cdn.builder.io/api/v1/image/assets%2Ffc536d4b807e44e2b49bced22f2943e8%2F8ff2ab7399c34940ab6c4f99fa7d4c87?format=webp&width=800&height=1200" 
+                        <img src="https://cdn.builder.io/api/v1/image/assets%2Ffc536d4b807e44e2b49bced22f2943e8%2F8ff2ab7399c34940ab6c4f99fa7d4c87?format=webp&width=800&height=1200"
                              alt="Jomiloju Ayo-Yusuf" class="consultant-card-bg-image">
                     </div>
                 </div>
@@ -296,10 +321,10 @@
             </div>
 
             <!-- Consultant 3: Makinde Temiloluwa -->
-            <div class="consultant-card reveal delay-300">
+            <div class="consultant-card reveal delay-300 js-tilt" data-tilt-max="12" data-tilt-speed="400" data-tilt-perspective="600">
                 <div class="consultant-card-img">
                     <div class="consultant-card-img-bg">
-                        <img src="https://cdn.builder.io/api/v1/image/assets%2Ffc536d4b807e44e2b49bced22f2943e8%2F47aeda3467aa46b89797361f3db4b45e?format=webp&width=800&height=1200" 
+                        <img src="https://cdn.builder.io/api/v1/image/assets%2Ffc536d4b807e44e2b49bced22f2943e8%2F47aeda3467aa46b89797361f3db4b45e?format=webp&width=800&height=1200"
                              alt="Makinde Temiloluwa David" class="consultant-card-bg-image">
                     </div>
                 </div>
@@ -319,6 +344,7 @@
     </div>
 </section>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js"></script>
 <script>
     lucide.createIcons();
 
@@ -327,5 +353,14 @@
     }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Initialize VanillaTilt for consultant cards
+    window.addEventListener('load', () => {
+        if (typeof VanillaTilt !== 'undefined') {
+            VanillaTilt.init(document.querySelectorAll('.js-tilt'), {
+                max: 12, speed: 400, perspective: 600, glare: false
+            });
+        }
+    });
 </script>
 {% endblock %}

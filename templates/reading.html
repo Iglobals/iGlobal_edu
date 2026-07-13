@@ -217,6 +217,19 @@
     .nav-btn:hover { background: #e9d5ff; }
     .nav-btn:disabled { opacity: 0.25; cursor: not-allowed; background: transparent; }
     .page-counter { font-size: 0.82rem; font-weight: 700; color: #374151; }
+    .page-jump { display: flex; align-items: center; gap: 0.35rem; }
+    .page-jump-label { font-size: 0.72rem; font-weight: 700; color: #6b7280; }
+    .page-jump-input { width: 3.25rem; padding: 0.3rem 0.4rem; border: 1px solid #d1d5db; border-radius: 0.35rem; color: #374151; font-size: 0.78rem; text-align: center; }
+    .page-jump-input:focus { outline: 2px solid #e9d5ff; border-color: var(--ig-purple); }
+    .page-jump-button { padding: 0.3rem 0.55rem; border: none; border-radius: 0.35rem; color: white; background: var(--ig-purple); cursor: pointer; font-size: 0.72rem; font-weight: 700; }
+    .page-jump-button:hover { background: var(--ig-purple-light); }
+    @media(max-width: 640px) {
+        .page-nav { padding: 0 0.65rem; }
+        .nav-btn { padding: 0.4rem 0.6rem; }
+        .nav-btn span { display: none; }
+        .page-counter { display: none; }
+        .page-jump-label { display: none; }
+    }
 
     .star { color: #d1d5db; cursor: pointer; transition: color 0.2s; }
     .star.active { color: #fbbf24; }
@@ -363,6 +376,11 @@
                     <span>Previous</span>
                 </button>
                 <span class="page-counter">Page <span id="currentPageNum">1</span> of <span id="totalPageNum">1</span></span>
+                <form class="page-jump" onsubmit="jumpToPage(event)">
+                    <label for="pageJumpInput" class="page-jump-label">Go to page</label>
+                    <input id="pageJumpInput" class="page-jump-input" type="number" min="1" value="1" inputmode="numeric" aria-label="Page number in current chapter">
+                    <button class="page-jump-button" type="submit">Go</button>
+                </form>
                 <button class="nav-btn" id="nextBtn" onclick="nextPage()">
                     <span>Next</span>
                     <i data-lucide="chevron-right" class="w-4 h-4"></i>
@@ -570,6 +588,9 @@ function renderPage() {
             `Ch.${chapterIndex + 1} p.${subPage + 1}`;
         document.getElementById('totalPageNum').textContent =
             `${bookData.totalChapters} ch.`;
+        const pageJumpInput = document.getElementById('pageJumpInput');
+        pageJumpInput.max = subPages.length;
+        pageJumpInput.value = subPage + 1;
 
         const chName = (bookData.chapters || [])[chapterIndex] || `Chapter ${chapterIndex + 1}`;
         document.getElementById('pageHeaderChapter').textContent = chName;
@@ -610,6 +631,18 @@ async function prevPage() {
         subPage = subPages.length - 1;
         renderPage();
     }
+}
+
+function jumpToPage(event) {
+    event.preventDefault();
+    const pageJumpInput = document.getElementById('pageJumpInput');
+    const requestedPage = Number.parseInt(pageJumpInput.value, 10);
+    if (!Number.isInteger(requestedPage) || requestedPage < 1 || requestedPage > subPages.length) {
+        pageJumpInput.value = subPage + 1;
+        return;
+    }
+    subPage = requestedPage - 1;
+    renderPage();
 }
 
 // ── Chapter list ───────────────────────────────────────────────────────────
@@ -690,6 +723,7 @@ function addNote() {
 
 // ── Keyboard ───────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
+    if (e.target.matches('input, textarea, select')) return;
     if (e.key === 'ArrowRight') nextPage();
     if (e.key === 'ArrowLeft')  prevPage();
     if (e.key === 'Escape') { closePanelDesktop(); closeChapterDrawer(); }

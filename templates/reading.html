@@ -216,20 +216,21 @@
     }
     .nav-btn:hover { background: #e9d5ff; }
     .nav-btn:disabled { opacity: 0.25; cursor: not-allowed; background: transparent; }
-    .page-counter { font-size: 0.82rem; font-weight: 700; color: #374151; }
-    .page-jump { display: flex; align-items: center; gap: 0.35rem; }
-    .page-jump-label { font-size: 0.72rem; font-weight: 700; color: #6b7280; }
-    .page-jump-input { width: 3.25rem; padding: 0.3rem 0.4rem; border: 1px solid #d1d5db; border-radius: 0.35rem; color: #374151; font-size: 0.78rem; text-align: center; }
-    .page-jump-input:focus { outline: 2px solid #e9d5ff; border-color: var(--ig-purple); }
-    .page-jump-button { padding: 0.3rem 0.55rem; border: none; border-radius: 0.35rem; color: white; background: var(--ig-purple); cursor: pointer; font-size: 0.72rem; font-weight: 700; }
-    .page-jump-button:hover { background: var(--ig-purple-light); }
-    @media(max-width: 640px) {
-        .page-nav { padding: 0 0.65rem; }
-        .nav-btn { padding: 0.4rem 0.6rem; }
-        .nav-btn span { display: none; }
-        .page-counter { display: none; }
-        .page-jump-label { display: none; }
+    .page-counter {
+        font-size: 0.82rem; font-weight: 700; color: #374151;
+        display: flex; align-items: center; gap: 0.35rem;
     }
+    .page-jump-input {
+        width: 3.4em; text-align: center;
+        border: 1.5px solid #d1c4d8; border-radius: 5px;
+        padding: 2px 3px; font-weight: 700; color: #374151;
+        font-size: 0.82rem; font-family: inherit;
+        outline: none; transition: border-color 0.2s;
+        -moz-appearance: textfield;
+    }
+    .page-jump-input:focus { border-color: var(--ig-purple); }
+    .page-jump-input::-webkit-outer-spin-button,
+    .page-jump-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
     .star { color: #d1d5db; cursor: pointer; transition: color 0.2s; }
     .star.active { color: #fbbf24; }
@@ -375,12 +376,13 @@
                     <i data-lucide="chevron-left" class="w-4 h-4"></i>
                     <span>Previous</span>
                 </button>
-                <span class="page-counter">Page <span id="currentPageNum">1</span> of <span id="totalPageNum">1</span></span>
-                <form class="page-jump" onsubmit="jumpToPage(event)">
-                    <label for="pageJumpInput" class="page-jump-label">Go to page</label>
-                    <input id="pageJumpInput" class="page-jump-input" type="number" min="1" value="1" inputmode="numeric" aria-label="Page number in current chapter">
-                    <button class="page-jump-button" type="submit">Go</button>
-                </form>
+                <span class="page-counter">
+                    Page
+                    <input id="pageJumpInput" class="page-jump-input" type="text" inputmode="numeric"
+                        value="1" onkeydown="if(event.key==='Enter'){ this.blur(); handlePageJumpInput(); }"
+                        onblur="handlePageJumpInput()" />
+                    of <span id="totalPageNum">1</span>
+                </span>
                 <button class="nav-btn" id="nextBtn" onclick="nextPage()">
                     <span>Next</span>
                     <i data-lucide="chevron-right" class="w-4 h-4"></i>
@@ -394,15 +396,21 @@
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/security.js') }}"></script>
 <script>
+// bookData.chapters may be either an array of plain title strings (legacy)
+// or an array of {title, ...} objects. Normalized below so the rest of the
+// code can rely on chapterTitle(i).
 const bookData = {
     id: {{ book.id }},
     chapters: {{ book.chapters | tojson }},
     totalChapters: {{ (book.chapters or []) | length }}
-    // content is NOT embedded — fetched on demand from /api/book/<id>/chapter/<n>
 };
+// content is NOT embedded — fetched on demand from /api/book/<id>/chapter/<n>
 
-// ── Config ─────────────────────────────────────────────────────────────────
-const WORDS_PER_PAGE = 200;
+function chapterTitle(idx) {
+    const ch = (bookData.chapters || [])[idx];
+    if (ch == null) return `Chapter ${idx + 1}`;
+    return typeof ch === 'string' ? ch : (ch.title || `Chapter ${idx + 1}`);
+}
 
 // ── State ──────────────────────────────────────────────────────────────────
 let chapterIndex  = {{ page - 1 }};
@@ -414,6 +422,12 @@ let currentRating = 0;
 
 // Cache fetched chapter HTML so we don't re-fetch on back navigation
 const chapterCache = {};
+
+// Real (measured) sub-page counts per chapter — accurate and fixed once a
+// chapter has been paginated at the current font size/viewport. Page numbers
+// are scoped to the active chapter only; there is no whole-book total, since
+// that would require fetching every chapter up front.
+const chapterPageCounts = {};
 
 // ── Chapter fetch ──────────────────────────────────────────────────────────
 async function fetchChapter(idx) {
@@ -429,10 +443,41 @@ async function fetchChapter(idx) {
     }
 }
 
+// Shows the best info we have for chapter idx's page count right away —
+// the real cached count if this chapter was paginated before, otherwise a
+// pending placeholder — so the counter never looks blank while a fetch is
+// in flight. renderPage() overwrites this with the real count once ready.
+function showPendingPageCount(idx) {
+    const totalEl = document.getElementById('totalPageNum');
+    const jumpInput = document.getElementById('pageJumpInput');
+    totalEl.textContent = chapterPageCounts[idx] !== undefined ? chapterPageCounts[idx] : '…';
+    if (document.activeElement !== jumpInput) jumpInput.value = 1;
+}
+
+// ── Heading detection ────────────────────────────────────────────────────
+// A "heading" for pagination purposes is either a real <h1>-<h4>, or a short
+// paragraph whose entire text is wrapped in a single <strong>/<b> — the
+// pattern docx/Quill exports commonly use for section headings like
+// "1. ALGEBRA" instead of a real heading tag.
+function isHeadingLike(node) {
+    if (!node || node.nodeType !== 1) return false;
+    const tag = node.tagName.toLowerCase();
+    if (['h1', 'h2', 'h3', 'h4'].includes(tag)) return true;
+    if (tag === 'p') {
+        const text = node.textContent.trim();
+        if (!text || text.length > 90) return false;
+        const boldEls = node.querySelectorAll('strong, b');
+        if (boldEls.length === 1 && boldEls[0].textContent.trim() === text) return true;
+    }
+    return false;
+}
+
 // ── Pagination ────────────────────────────────────────────────────────────
 // Pre-processes HTML so tables and images are always top-level nodes,
 // then measures each node against the page height. Tables/images that
 // don't fit alongside text get their own page naturally in the flow.
+// Text-heavy blocks that overflow get split at a word boundary so trailing
+// space on a page is used instead of either clipping text or leaving a gap.
 function paginateChapter(htmlContent) {
     const el = document.getElementById('pageContent');
     const pageH = el.clientHeight;
@@ -441,7 +486,7 @@ function paginateChapter(htmlContent) {
     const tmp = document.createElement('div');
     tmp.innerHTML = htmlContent;
 
-    // ── 1. Parse Markdown Tables ──
+    // ── 1a. Parse Markdown Tables ──
     // Convert markdown tables in <pre> or <p> tags back to HTML tables
     tmp.querySelectorAll('pre, p').forEach(el => {
         let text = el.innerText || el.textContent;
@@ -472,12 +517,12 @@ function paginateChapter(htmlContent) {
         }
     });
 
-    // ── 2. Unwrap blocks from <p> tags ──
+    // ── 1b. Unwrap blocks from <p> tags ──
     // Quill wraps img and pre in <p>. We need them as top-level nodes for pagination.
     tmp.querySelectorAll('p').forEach(p => {
         const hasBlock = p.querySelector('img, pre, table');
         if (!hasBlock) return;
-        
+
         const frag = document.createDocumentFragment();
         Array.from(p.childNodes).forEach(child => {
             if (child.tagName === 'IMG' || child.tagName === 'PRE' || child.tagName === 'TABLE') {
@@ -491,7 +536,7 @@ function paginateChapter(htmlContent) {
                 last.appendChild(child);
             }
         });
-        
+
         Array.from(frag.childNodes).forEach(child => {
             if (child.tagName === 'P' && child.textContent.trim() === '' && child.innerHTML.trim() === '') {
                 frag.removeChild(child);
@@ -536,32 +581,199 @@ function paginateChapter(htmlContent) {
         img.style.objectFit = 'contain';
     });
 
-    // ── 3. Collect top-level nodes ──
+    // ── 2. Collect top-level nodes ──
     const nodes = Array.from(tmp.childNodes).filter(n =>
         n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim())
     );
 
-    // ── 3. Paginate: fill pages until overflow, then start a new page ──
+    // ── 3. Measure-then-decide pagination with text-level splitting ──
     const pages = [];
+    const MIN_PAGE_FILL = 0.35;
+
     while (nodes.length > 0) {
         el.innerHTML = '';
         let lastFit = 0;
+        let lastHeight = 0;
+        let splitNode = null; // If set, contains partial node for current page
+
         for (let i = 0; i < nodes.length; i++) {
-            el.appendChild(nodes[i].cloneNode(true));
-            void el.offsetHeight;
-            if (el.scrollHeight > pageH + 2) {
-                lastFit = i === 0 ? 1 : i; // single oversized node gets its own page
-                break;
+            const testNode = nodes[i].cloneNode(true);
+            el.appendChild(testNode);
+            void el.offsetHeight; // force layout
+
+            const currentHeight = el.scrollHeight;
+            const overflow = currentHeight > pageH + 2;
+
+            if (overflow) {
+                const currentFillRatio = lastHeight / pageH;
+                const nodeTag = nodes[i].tagName?.toLowerCase();
+                const isLargeBlock = nodeTag === 'table' || nodeTag === 'img' || nodeTag === 'pre';
+
+                if (i === 0) {
+                    // First node overflows on an otherwise empty page
+                    if (isLargeBlock) {
+                        // Indivisible block must take the whole page
+                        lastFit = 1;
+                        break;
+                    }
+                    // Try to split this text node so at least part of it fits
+                    const split = splitTextNode(nodes[i], pageH, el);
+                    if (split) {
+                        splitNode = split.firstPart;
+                        nodes[i] = split.remainder;
+                        lastFit = 0;
+                    } else {
+                        lastFit = 1;
+                    }
+                    break;
+                } else if (currentFillRatio >= MIN_PAGE_FILL) {
+                    // Page already has a decent amount of content — break before node[i]
+                    lastFit = i;
+                    break;
+                } else {
+                    // Page is underfilled — try to squeeze more in before giving up
+                    if (isLargeBlock) {
+                        lastFit = i;
+                        break;
+                    }
+                    // Re-render everything up to i, then try splitting node i
+                    el.innerHTML = '';
+                    for (let j = 0; j < i; j++) {
+                        el.appendChild(nodes[j].cloneNode(true));
+                    }
+                    const split = splitTextNode(nodes[i], pageH, el);
+                    if (split) {
+                        splitNode = split.firstPart;
+                        nodes[i] = split.remainder;
+                    }
+                    lastFit = i;
+                    break;
+                }
+            } else {
+                lastFit = i + 1;
+                lastHeight = currentHeight;
             }
-            lastFit = i + 1;
         }
-        const w = document.createElement('div');
-        for (let i = 0; i < lastFit; i++) w.appendChild(nodes[i].cloneNode(true));
-        pages.push(w.innerHTML);
+
+        // ── Orphaned heading guard ──
+        // Don't let a page end on a heading with little or no content beneath
+        // it. If less than ~2 lines of the following block would actually fit
+        // on this page, push the heading itself to the next page instead so
+        // it stays paired with its content. Doesn't apply when the following
+        // content is a wrapped block (table/image/figure) — those already
+        // get their own page-break handling above.
+        let headingPushedToNext = false;
+        if (lastFit > 0 && !splitNode) {
+            const lastIncludedNode = nodes[lastFit - 1];
+            const nextNode = nodes[lastFit];
+
+            if (isHeadingLike(lastIncludedNode) && nextNode && nextNode.nodeType === 1) {
+                const nextTag = nextNode.tagName.toLowerCase();
+                const isWrappedBlock = ['table', 'img', 'figure'].includes(nextTag) ||
+                    (nextTag === 'div' && nextNode.querySelector && nextNode.querySelector('table, img'));
+
+                if (!isWrappedBlock) {
+                    el.innerHTML = '';
+                    for (let j = 0; j < lastFit; j++) el.appendChild(nodes[j].cloneNode(true));
+                    void el.offsetHeight;
+                    const remainingSpace = pageH - el.scrollHeight;
+
+                    const style = window.getComputedStyle(el);
+                    let lineHeight = parseFloat(style.lineHeight);
+                    if (isNaN(lineHeight)) lineHeight = parseFloat(style.fontSize) * 1.4;
+                    const twoLineHeight = lineHeight * 2;
+
+                    if (remainingSpace < twoLineHeight) {
+                        lastFit -= 1; // heading moves to the next page along with its content
+                        headingPushedToNext = true;
+                    }
+                }
+            }
+        }
+
+        if (lastFit === 0 && !splitNode && !headingPushedToNext) lastFit = 1;
+
+        // Build the page from the nodes that fit, plus any split partial node
+        const pageWrapper = document.createElement('div');
+        for (let i = 0; i < lastFit; i++) {
+            pageWrapper.appendChild(nodes[i].cloneNode(true));
+        }
+        if (splitNode) {
+            pageWrapper.appendChild(splitNode);
+        }
+        pages.push(pageWrapper.innerHTML);
         nodes.splice(0, lastFit);
     }
+
     el.innerHTML = '';
     return pages.length ? pages : [htmlContent];
+}
+
+// ── Split a text-heavy block at a word boundary so it fits the remaining space ──
+function splitTextNode(node, pageH, containerEl) {
+    const tag = node.tagName?.toLowerCase();
+
+    // Only split text-heavy blocks (p, blockquote, li, div with text, headings)
+    if (!['p', 'blockquote', 'li', 'div', 'h1', 'h2', 'h3', 'h4'].includes(tag)) {
+        return null;
+    }
+
+    const textContent = node.textContent || '';
+    if (textContent.length < 50) {
+        return null; // too short to split meaningfully
+    }
+
+    // Binary search for the furthest split point that still fits pageH
+    let low = 0;
+    let high = textContent.length;
+    let bestSplit = 0;
+
+    while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+
+        // Snap to the nearest word boundary
+        let splitPoint = mid;
+        while (splitPoint < textContent.length &&
+               !/[\s\-—.,!?;:]/.test(textContent[splitPoint])) {
+            splitPoint++;
+        }
+        if (splitPoint >= textContent.length) {
+            splitPoint = mid;
+            while (splitPoint > 0 &&
+                   !/[\s\-—.,!?;:]/.test(textContent[splitPoint])) {
+                splitPoint--;
+            }
+        }
+
+        const testNode = node.cloneNode(false);
+        testNode.textContent = textContent.substring(0, splitPoint);
+
+        const tempContainer = containerEl.cloneNode(true);
+        tempContainer.appendChild(testNode);
+
+        if (tempContainer.scrollHeight <= pageH + 2) {
+            bestSplit = splitPoint;
+            low = splitPoint + 1;
+        } else {
+            high = splitPoint - 1;
+        }
+    }
+
+    if (bestSplit < 50) {
+        return null; // couldn't find a meaningful split
+    }
+
+    const firstPart = node.cloneNode(false);
+    firstPart.textContent = textContent.substring(0, bestSplit).trim();
+
+    const remainder = node.cloneNode(false);
+    remainder.textContent = textContent.substring(bestSplit).trim();
+
+    if (remainder.textContent.length < 20) {
+        return null; // remainder too small to bother splitting off
+    }
+
+    return { firstPart, remainder };
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
@@ -581,20 +793,17 @@ function renderPage() {
         document.getElementById('prevBtn').disabled = isFirst;
         document.getElementById('nextBtn').disabled = isLast;
 
-        // Global page counter: sum of sub-pages in previous chapters + current sub-page
-        // We track this simply as chapter * avg — exact count needs all chapters loaded.
-        // Instead show "Chapter X, Page Y"
-        document.getElementById('currentPageNum').textContent =
-            `Ch.${chapterIndex + 1} p.${subPage + 1}`;
-        document.getElementById('totalPageNum').textContent =
-            `${bookData.totalChapters} ch.`;
-        const pageJumpInput = document.getElementById('pageJumpInput');
-        pageJumpInput.max = subPages.length;
-        pageJumpInput.value = subPage + 1;
+        // Chapter-scoped page counter — exact, since subPages.length is the
+        // real measured count for the chapter currently loaded.
+        const jumpInput = document.getElementById('pageJumpInput');
+        if (document.activeElement !== jumpInput) {
+            jumpInput.value = subPage + 1;
+        }
+        document.getElementById('totalPageNum').textContent = subPages.length;
 
-        const chName = (bookData.chapters || [])[chapterIndex] || `Chapter ${chapterIndex + 1}`;
+        const chName = chapterTitle(chapterIndex);
         document.getElementById('pageHeaderChapter').textContent = chName;
-        document.getElementById('pageHeaderNum').textContent = '';
+        document.getElementById('pageHeaderNum').textContent = `Page ${subPage + 1} of ${subPages.length}`;
 
         const pct = ((chapterIndex + (subPage + 1) / Math.max(subPages.length, 1)) / bookData.totalChapters) * 96 + 2;
         document.getElementById('progressFill').style.width = pct + '%';
@@ -612,8 +821,15 @@ function renderPage() {
 async function loadChapter(idx) {
     chapterIndex = idx;
     subPage = 0;
+
+    // If this chapter was paginated before, its count is already known and
+    // accurate — show it immediately. Otherwise show a pending state rather
+    // than a stale/guessed number while the fetch is in flight.
+    showPendingPageCount(idx);
+
     const html = await fetchChapter(idx);
     subPages = paginateChapter(html);
+    chapterPageCounts[idx] = subPages.length; // real, fixed count for this chapter at this layout
     renderPage();
 }
 
@@ -625,31 +841,42 @@ async function nextPage() {
 async function prevPage() {
     if (subPage > 0) { subPage--; renderPage(); }
     else if (chapterIndex > 0) {
-        chapterIndex--;
+        const idx = chapterIndex - 1;
+        showPendingPageCount(idx);
+        chapterIndex = idx;
         const html = await fetchChapter(chapterIndex);
         subPages = paginateChapter(html);
+        chapterPageCounts[chapterIndex] = subPages.length;
         subPage = subPages.length - 1;
         renderPage();
     }
 }
 
-function jumpToPage(event) {
-    event.preventDefault();
-    const pageJumpInput = document.getElementById('pageJumpInput');
-    const requestedPage = Number.parseInt(pageJumpInput.value, 10);
-    if (!Number.isInteger(requestedPage) || requestedPage < 1 || requestedPage > subPages.length) {
-        pageJumpInput.value = subPage + 1;
-        return;
-    }
-    subPage = requestedPage - 1;
+// ── Jump to a specific page within the current chapter ──────────────────────
+// Page numbers are chapter-scoped: "Page X of Y" is always relative to the
+// chapter currently open, so no chapter fetch is needed to jump — it's an
+// instant re-render.
+function goToPageInChapter(targetPage) {
+    targetPage = Math.max(1, Math.min(Math.round(targetPage), subPages.length));
+    subPage = targetPage - 1;
     renderPage();
+}
+
+function handlePageJumpInput() {
+    const input = document.getElementById('pageJumpInput');
+    const val = parseInt(input.value, 10);
+    if (!isNaN(val)) {
+        goToPageInChapter(val);
+    } else {
+        input.value = subPage + 1; // reset on invalid entry
+    }
 }
 
 // ── Chapter list ───────────────────────────────────────────────────────────
 function renderChapters() {
     const html = (bookData.chapters || []).map((ch, i) =>
         `<div class="ch-item ${i === chapterIndex ? 'active' : ''}" onclick="loadChapter(${i})">
-            <span style="opacity:0.35;font-size:0.72rem;font-weight:700;margin-right:0.4rem;">${String(i+1).padStart(2,'0')}</span>${ch}
+            <span style="opacity:0.35;font-size:0.72rem;font-weight:700;margin-right:0.4rem;">${String(i+1).padStart(2,'0')}</span>${chapterTitle(i)}
         </div>`
     ).join('');
     document.getElementById('chapterListDesktop').innerHTML = html;
@@ -660,8 +887,14 @@ function renderChapters() {
 async function changeFontSize(dir) {
     fontSize = Math.max(11, Math.min(22, fontSize + dir * 1.5));
     document.getElementById('pageContent').style.fontSize = fontSize + 'px';
+
+    // Page heights change with font size, so previously-measured real counts
+    // are no longer accurate — clear them and let estimates take over again.
+    Object.keys(chapterPageCounts).forEach(k => delete chapterPageCounts[k]);
+
     const html = await fetchChapter(chapterIndex);
     subPages = paginateChapter(html);
+    chapterPageCounts[chapterIndex] = subPages.length;
     subPage = 0;
     renderPage();
 }
@@ -723,7 +956,9 @@ function addNote() {
 
 // ── Keyboard ───────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-    if (e.target.matches('input, textarea, select')) return;
+    const active = document.activeElement;
+    const typing = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+    if (typing) return; // don't hijack arrow keys while editing the page-jump field or notes
     if (e.key === 'ArrowRight') nextPage();
     if (e.key === 'ArrowLeft')  prevPage();
     if (e.key === 'Escape') { closePanelDesktop(); closeChapterDrawer(); }
@@ -743,8 +978,12 @@ let resizeTimer;
 window.addEventListener('resize', async () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(async () => {
+        // Layout changed — measured page counts are stale, fall back to estimates again
+        Object.keys(chapterPageCounts).forEach(k => delete chapterPageCounts[k]);
+
         const html = await fetchChapter(chapterIndex);
         subPages = paginateChapter(html);
+        chapterPageCounts[chapterIndex] = subPages.length;
         subPage = Math.min(subPage, subPages.length - 1);
         renderPage();
     }, 300);

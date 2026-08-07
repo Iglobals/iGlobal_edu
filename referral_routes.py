@@ -1,19 +1,19 @@
 import random
 import string
 import os
-import secrets
 from functools import wraps
 from flask import (render_template, request, redirect, url_for,
-                   flash, session, make_response, jsonify)
-from werkzeug.security import generate_password_hash, check_password_hash
+                   flash, make_response, jsonify)
+from flask_login import current_user
 from app import app
 from extensions import db
 from models import ReferralAgent, ReferralCommission, Book, Purchase, REFERRAL_COOKIE_DAYS, ApprovedAgent
 
-AGENT_SESSION_KEY = 'agent_id'
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────
+# Being an agent is a role on top of the normal ICA-authenticated identity,
+# not a separate login. See auth_routes.sync_agent_profile — an approved
+# email gets its ReferralAgent profile created automatically on ICA login.
 
 def generate_ref_code():
     chars = string.ascii_letters + string.digits
@@ -23,18 +23,22 @@ def generate_ref_code():
             return code
 
 
-def agent_login_required(f):
+def current_agent():
+    if not current_user.is_authenticated:
+        return None
+    return ReferralAgent.query.filter_by(user_id=current_user.id).first()
+
+
+def agent_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if AGENT_SESSION_KEY not in session:
-            return redirect(url_for('agent_login'))
+        if not current_user.is_authenticated:
+            return redirect(url_for('login', next=request.path))
+        if not current_agent():
+            flash('Your email is not authorized as an agent. Please contact iglobalsedu@gmail.com to get access.', 'danger')
+            return redirect(url_for('index'))
         return f(*args, **kwargs)
     return decorated
-
-
-def current_agent():
-    aid = session.get(AGENT_SESSION_KEY)
-    return ReferralAgent.query.get(aid) if aid else None
 
 
 # ── Cookie tracking ───────────────────────────────────────────────────────
@@ -62,80 +66,15 @@ def referral_redirect(ref_code):
     return resp
 
 
-# ── Agent auth ────────────────────────────────────────────────────────────
-
-@app.route('/agents/register', methods=['GET', 'POST'])
-def agent_register():
-    if request.method == 'POST':
-        username   = request.form.get('username', '').strip()
-        first_name = request.form.get('first_name', '').strip()
-        email      = request.form.get('email', '').strip().lower()
-        password   = request.form.get('password', '')
-        confirm    = request.form.get('confirm_password', '')
-
-        if not all([username, first_name, email, password]):
-            flash('All fields are required.', 'danger')
-        elif ReferralAgent.query.filter_by(email=email).first():
-            flash('An agent account with that email already exists.', 'danger')
-        elif ReferralAgent.query.filter_by(username=username).first():
-            flash('That username is taken.', 'danger')
-        elif len(password) < 6:
-            flash('Password must be at least 6 characters.', 'danger')
-        elif password != confirm:
-            flash('Passwords do not match.', 'danger')
-        elif not ApprovedAgent.query.filter_by(email=email).first():
-            flash('Your email is not authorized. Please contact iglobalsedu@gmail.com to get access.', 'danger')
-        else:
-            agent = ReferralAgent(
-                username=username,
-                first_name=first_name,
-                email=email,
-                password_hash=generate_password_hash(password),
-                ref_code=generate_ref_code()
-            )
-            db.session.add(agent)
-            db.session.commit()
-            session[AGENT_SESSION_KEY] = agent.id
-            return redirect(url_for('agent_dashboard'))
-
-    return render_template('referral/register.html', google_enabled=_GOOGLE_ENABLED)
-
-
-@app.route('/agents/login', methods=['GET', 'POST'])
-def agent_login():
-    if AGENT_SESSION_KEY in session:
-        return redirect(url_for('agent_dashboard'))
-
-    if request.method == 'POST':
-        email    = request.form.get('email', '').strip().lower()
-        password = request.form.get('password', '')
-        agent    = ReferralAgent.query.filter_by(email=email).first()
-
-        if not agent:
-            flash('No agent account found with that email.', 'danger')
-        elif not check_password_hash(agent.password_hash, password):
-            flash('Incorrect password.', 'danger')
-        elif not agent.is_active:
-            flash('Your account has been deactivated. Contact support.', 'danger')
-        else:
-            session[AGENT_SESSION_KEY] = agent.id
-            return redirect(url_for('agent_dashboard'))
-
-    return render_template('referral/login.html', google_enabled=_GOOGLE_ENABLED)
-
-
-@app.route('/agents/logout')
-def agent_logout():
-    session.pop(AGENT_SESSION_KEY, None)
-    return redirect(url_for('agent_login'))
-
-
 # ── Agent dashboard ───────────────────────────────────────────────────────
 
 @app.route('/agents/dashboard')
-@agent_login_required
+@agent_required
 def agent_dashboard():
     agent = current_agent()
+    if not agent.is_active:
+        flash('Your agent account has been deactivated. Contact support.', 'danger')
+        return redirect(url_for('index'))
     commissions = ReferralCommission.query.filter_by(agent_id=agent.id).order_by(
         ReferralCommission.created_at.desc()).all()
 
@@ -161,7 +100,6 @@ def agent_dashboard():
 
 @app.route('/admin/referrals')
 def admin_referrals():
-    from flask_login import current_user
     if not current_user.is_authenticated or not current_user.is_admin:
         return redirect(url_for('index'))
 
@@ -185,7 +123,6 @@ def admin_referrals():
 
 @app.route('/admin/referrals/<int:commission_id>/mark-paid', methods=['POST'])
 def admin_mark_paid(commission_id):
-    from flask_login import current_user
     if not current_user.is_authenticated or not current_user.is_admin:
         return jsonify({'error': 'forbidden'}), 403
 
@@ -197,7 +134,6 @@ def admin_mark_paid(commission_id):
 
 @app.route('/admin/referrals/agent/<int:agent_id>/mark-all-paid', methods=['POST'])
 def admin_mark_all_paid(agent_id):
-    from flask_login import current_user
     if not current_user.is_authenticated or not current_user.is_admin:
         return jsonify({'error': 'forbidden'}), 403
 
@@ -220,66 +156,3 @@ def agent_books_list():
             'price': b.price_naira
         })
     return jsonify(result)
-
-
-# ── Google OAuth for agents ───────────────────────────────────────────────
-
-_GOOGLE_ENABLED = bool(
-    os.environ.get('GOOGLE_CLIENT_ID', '') and
-    os.environ.get('GOOGLE_CLIENT_ID', '') != 'your-google-client-id-here'
-)
-
-
-@app.route('/agents/auth/google')
-def agent_google_login():
-    if not _GOOGLE_ENABLED:
-        flash('Google sign-in is temporarily unavailable. Please use email and password.', 'warning')
-        return redirect(url_for('agent_login'))
-    from routes import google
-    redirect_uri = url_for('agent_google_callback', _external=True)
-    return google.authorize_redirect(redirect_uri)
-
-
-@app.route('/agents/auth/google/callback')
-def agent_google_callback():
-    if not _GOOGLE_ENABLED:
-        return redirect(url_for('agent_login'))
-    try:
-        from routes import google
-        token = google.authorize_access_token()
-        user_info = token.get('userinfo')
-        if not user_info:
-            flash('Google authentication failed.', 'danger')
-            return redirect(url_for('agent_login'))
-
-        email = user_info.get('email')
-        name  = user_info.get('given_name') or user_info.get('name', email.split('@')[0])
-        username = email.split('@')[0]
-
-        agent = ReferralAgent.query.filter_by(email=email).first()
-        if not agent:
-            # Check if approved
-            if not ApprovedAgent.query.filter_by(email=email).first():
-                flash('Your email is not authorized. Please contact iglobalsedu@gmail.com to get access.', 'danger')
-                return redirect(url_for('agent_login'))
-
-            # Auto-generate unique username
-            base = username
-            i = 1
-            while ReferralAgent.query.filter_by(username=username).first():
-                username = f'{base}{i}'; i += 1
-            agent = ReferralAgent(
-                username=username,
-                first_name=name,
-                email=email,
-                password_hash=generate_password_hash(secrets.token_hex(16)),
-                ref_code=generate_ref_code()
-            )
-            db.session.add(agent)
-            db.session.commit()
-
-        session[AGENT_SESSION_KEY] = agent.id
-        return redirect(url_for('agent_dashboard'))
-    except Exception:
-        flash('Google sign-in failed. Please try again or use email and password.', 'danger')
-        return redirect(url_for('agent_login'))

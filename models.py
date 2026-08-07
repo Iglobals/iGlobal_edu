@@ -11,12 +11,10 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
+    ica_sub = db.Column(db.String(255), unique=True, nullable=True)   # iGlobals Central Auth subject id
     full_name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
-    session_token = db.Column(db.String(64), nullable=True)   # single-device enforcement
-    locked_ip = db.Column(db.String(45), nullable=True)       # IP-based device lock
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     reviews = db.relationship('Review', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -24,7 +22,7 @@ class User(UserMixin, db.Model):
     purchases = db.relationship('Purchase', backref='user', lazy=True, cascade='all, delete-orphan')
     notes = db.relationship('Note', backref='user', lazy=True, cascade='all, delete-orphan')
     library_items = db.relationship('LibraryItem', backref='user', lazy=True, cascade='all, delete-orphan')
-    otp_codes = db.relationship('OTPCode', backref='user', lazy=True, cascade='all, delete-orphan')
+    agent_profile = db.relationship('ReferralAgent', backref='user', lazy=True, uselist=False)
 
 
 class Book(db.Model):
@@ -111,17 +109,6 @@ class Note(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-class OTPCode(db.Model):
-    __tablename__ = 'otp_codes'
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    code = db.Column(db.String(6), nullable=False)
-    expires_at = db.Column(db.DateTime, nullable=False)
-    used = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-
 # ── Referral System ───────────────────────────────────────────────────────
 
 REFERRAL_COMMISSION_RATE = 0.30   # 30% — change here to update globally
@@ -139,10 +126,11 @@ class ReferralAgent(db.Model):
     __tablename__ = 'referral_agents'
 
     id            = db.Column(db.Integer, primary_key=True)
-    username      = db.Column(db.String(50), unique=True, nullable=False)
+    # Nullable: pre-existing agent rows are only linked to their ICA identity
+    # the next time that agent logs in (see auth_routes.sync_agent_profile).
+    user_id       = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), unique=True, nullable=True)
     first_name    = db.Column(db.String(80), nullable=False)
     email         = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
     ref_code      = db.Column(db.String(7), unique=True, nullable=False)
     is_active     = db.Column(db.Boolean, default=True)
     created_at    = db.Column(db.DateTime, default=datetime.utcnow)

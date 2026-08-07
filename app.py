@@ -28,6 +28,12 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 app.config['PAYSTACK_PUBLIC_KEY'] = os.environ.get('PAYSTACK_PUBLIC_KEY', '')
 app.config['PAYSTACK_SECRET_KEY'] = os.environ.get('PAYSTACK_SECRET_KEY', '')
 
+# iGlobals Central Auth (ICA) configuration
+app.config['ICA_BASE_URL'] = os.environ.get('ICA_BASE_URL')
+app.config['ICA_CLIENT_ID'] = os.environ.get('ICA_CLIENT_ID')
+app.config['ICA_CLIENT_SECRET'] = os.environ.get('ICA_CLIENT_SECRET')
+app.config['ICA_REDIRECT_URI'] = os.environ.get('ICA_REDIRECT_URI', 'http://localhost:5000/auth/callback')
+
 # Cloudinary configuration
 import cloudinary
 cloudinary.config(
@@ -43,7 +49,7 @@ login_manager.init_app(app)
 migrate = Migrate(app, db)
 
 # Import models AFTER initializing db and login_manager
-from models import User, Book, Review, Favorite, Purchase, Note, LibraryItem, OTPCode
+from models import User, Book, Review, Favorite, Purchase, Note, LibraryItem
 
 # User loader for Flask-Login (must be AFTER importing User model)
 @login_manager.user_loader
@@ -52,6 +58,7 @@ def load_user(user_id):
 
 # Import routes AFTER importing models
 from routes import *
+import auth_routes
 import admin_routes
 import referral_routes
 

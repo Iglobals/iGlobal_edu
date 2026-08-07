@@ -261,16 +261,6 @@ def admin_delete_approved_agent(agent_id):
     return redirect(url_for('admin_approved_agents'))
 
 
-@app.route('/admin/users/<int:user_id>/unlock-ip', methods=['POST'])
-@login_required
-@admin_required
-def admin_unlock_ip(user_id):
-    user = User.query.get_or_404(user_id)
-    user.locked_ip = None
-    db.session.commit()
-    flash(f'IP lock cleared for {user.full_name}. They can now log in from any device.', 'success')
-    return redirect(url_for('admin_user_detail', user_id=user_id))
-
 def process_whole_content(content):
     """
     Process whole content and try to split into chapters automatically.

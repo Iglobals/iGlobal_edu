@@ -33,6 +33,14 @@ self.addEventListener('fetch', event => {
     // Skip non-GET requests (e.g. POST to login)
     if (event.request.method !== 'GET') return;
 
+    // Never intercept full-page navigations. fetch() transparently follows
+    // server-side redirects (login, logout, "add to library first", etc.),
+    // and handing a redirected response back to a navigation request is
+    // rejected by the browser outright - the navigation just silently fails,
+    // which looks exactly like clicking Logout and having the page "refresh"
+    // without actually logging out. Let the browser handle these directly.
+    if (event.request.mode === 'navigate') return;
+
     // Use Network First, falling back to Cache for most HTML / API requests
     // This ensures they always get the latest content if online.
     event.respondWith(

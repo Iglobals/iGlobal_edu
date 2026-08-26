@@ -209,6 +209,11 @@ def callback():
 
 @app.route('/logout')
 def logout():
+    # logout_user() already pops the session's login keys AND - critically -
+    # notices the remember_token cookie on this request and marks it for
+    # deletion (session['_remember'] = 'clear', consumed by Flask-Login's own
+    # after_request hook). A follow-up session.clear() used to wipe that flag
+    # out before Flask-Login could read it, so the remember cookie survived
+    # logout and silently logged the user back in on their very next request.
     logout_user()
-    session.clear()
     return redirect(url_for('index'))

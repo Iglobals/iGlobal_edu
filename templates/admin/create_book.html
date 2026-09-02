@@ -338,7 +338,12 @@
             if (data.error) { alert(data.error); return; }
 
             docxChapters = data.chapters;
-            docxContents = data.contents;
+            // Multi-page chapters (manual Word page breaks detected - see
+            // docx_pages.py) are joined with a visible divider for now,
+            // same as edit_book.html - this editor doesn't expose
+            // individual pages as separate editable units yet.
+            const PAGE_DIVIDER = '<hr class="docx-page-break" title="Manual page break detected in the source document">';
+            docxContents = data.pages.map(pages => (pages || ['']).join(PAGE_DIVIDER));
 
             if (data.warnings && data.warnings.length) {
                 const w = document.getElementById('docxWarnings');

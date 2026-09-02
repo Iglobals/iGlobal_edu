@@ -134,8 +134,13 @@ def admin_edit_book(book_id):
 
         flash(f'Book "{book.title}" updated successfully!', 'success')
         return redirect(url_for('admin_books'))
-    
-    return render_template('admin/edit_book.html', book=book)
+
+    # One HTML string per chapter (pages concatenated) - matches what the
+    # editor UI works with today. See mongo_books.py for why real per-page
+    # data now exists in storage even though this editor doesn't expose
+    # individual pages as separate editable units yet.
+    chapter_html_list = [mongo_books.get_chapter_html(book.id, i) or '' for i in range(len(book.chapters or []))]
+    return render_template('admin/edit_book.html', book=book, chapter_html_list=chapter_html_list)
 
 @app.route('/admin/books/<int:book_id>/delete', methods=['POST'])
 @login_required
@@ -438,6 +443,13 @@ def admin_parse_docx():
         if len(file_bytes) == 0:
             return jsonify({'error': 'The uploaded file is empty. Please check the file and try again.'}), 400
 
+        # Manual page breaks (Ctrl+Enter in Word) aren't understood by
+        # mammoth at all - pre-mark them as plain-text sentinels first so
+        # they survive conversion and can be split on below. No-op (returns
+        # the same bytes) if the document has no manual page breaks.
+        from docx_pages import inject_page_break_sentinels
+        file_bytes = inject_page_break_sentinels(file_bytes)
+
         result = mammoth.convert_to_html(
             io.BytesIO(file_bytes),
             style_map=style_map,
@@ -489,14 +501,16 @@ def admin_parse_docx():
             pre.string = md_table
             table.replace_with(pre)
 
-        chapters, contents = [], []
+        from docx_pages import split_nodes_into_pages
+
+        chapters, pages_per_chapter = [], []
         current_title, current_nodes = None, []
 
         for tag in soup.children:
             if getattr(tag, 'name', None) == 'h1':
                 if current_title is not None:
                     chapters.append(current_title)
-                    contents.append(''.join(str(n) for n in current_nodes))
+                    pages_per_chapter.append(split_nodes_into_pages(current_nodes))
                 current_title = tag.get_text(strip=True)
                 current_nodes = []
             else:
@@ -505,10 +519,10 @@ def admin_parse_docx():
 
         if current_title is not None:
             chapters.append(current_title)
-            contents.append(''.join(str(n) for n in current_nodes))
+            pages_per_chapter.append(split_nodes_into_pages(current_nodes))
         elif current_nodes:
             chapters.append('Full Document')
-            contents.append(''.join(str(n) for n in current_nodes))
+            pages_per_chapter.append(split_nodes_into_pages(current_nodes))
 
         if not chapters:
             return jsonify({'error': 'No content was found in the document. Make sure the file has text and is not blank.'}), 400
@@ -521,7 +535,11 @@ def admin_parse_docx():
 
         return jsonify({
             'chapters': chapters,
-            'contents': contents,
+            # One entry per chapter, each a list of page HTML strings. A
+            # chapter with no manual page breaks in the source doc still
+            # comes back as a single-page list - callers should not assume
+            # docx import always produces exactly one page per chapter.
+            'pages': pages_per_chapter,
             'warnings': warnings
         })
 

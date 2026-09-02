@@ -37,13 +37,6 @@ class Book(db.Model):
     price_naira = db.Column(db.Float, default=0.0)
     is_free = db.Column(db.Boolean, default=False)
     chapters = db.Column(db.JSON)  # chapter TITLES only - content lives in Mongo, see mongo_books.py
-    # DEPRECATED as of the Mongo migration - no code reads/writes these two
-    # anymore (routes.py/admin_routes.py now go through mongo_books.py).
-    # Left in place, not dropped, so rolling back is a code revert, not a
-    # data-recovery exercise. Safe to drop in a later migration once the
-    # Mongo path has been running cleanly for a while.
-    content = db.Column(db.JSON)
-    preview_content = db.Column(db.JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     reviews = db.relationship('Review', backref='book', lazy=True, cascade='all, delete-orphan')

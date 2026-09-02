@@ -46,6 +46,8 @@
     .ql-editor blockquote { border-left: 4px solid #6B2D5C; margin: 0.75rem 0; padding: 0.4rem 0.8rem; color: #4b5563; background: #fdf4f8; font-style: italic; }
     .ql-editor ul, .ql-editor ol { padding-left: 1.4rem; margin-bottom: 0.65em; }
     .ql-editor img { max-width: 100%; border-radius: 4px; }
+    .ql-editor hr.docx-page-break { border: none; border-top: 2px dashed #6B2D5C; margin: 1.5em 0; position: relative; }
+    .ql-editor hr.docx-page-break::after { content: 'Page break detected in source document'; position: absolute; top: -0.7em; left: 1em; background: #fff; padding: 0 0.5em; font-size: 0.7em; color: #6B2D5C; font-weight: 600; }
     .ql-editor table { width:100%; border-collapse:collapse; margin:0.75em 0; font-size:0.9em; }
     .ql-editor th, .ql-editor td { padding:0.4rem 0.65rem; border:1px solid #e5e7eb; text-align:left; vertical-align:top; }
     .ql-editor th, .ql-editor tr:first-child td { background:#f3e8ff; font-weight:700; color:#2F1341; }
@@ -270,7 +272,7 @@
 
           <div class="chapter-body">
             <div class="chapter-editor"></div>
-            <textarea name="chapter_contents[]" class="hidden chapter-content">{{ book.content[i]|e if i < book.content|length else '' }}</textarea>
+            <textarea name="chapter_contents[]" class="hidden chapter-content">{{ chapter_html_list[i]|e if i < chapter_html_list|length else '' }}</textarea>
             <div class="table-preview-panel hidden">
                 <div class="table-preview-header">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
@@ -775,7 +777,18 @@ document.getElementById('modalDocxInput').addEventListener('change', function ()
             return;
         }
 
-        importedChapters = data.chapters.map((t, i) => ({ title: t, content: data.contents[i] || '' }));
+        // data.pages[i] is a list of page HTML strings per chapter (the docx
+        // parser now detects manual Word page breaks - see docx_pages.py).
+        // This editor doesn't yet expose individual pages as separate
+        // editable units, so multi-page chapters are joined into one blob
+        // with a visible divider marking where each detected break was -
+        // no content is lost, the page boundary just isn't separately
+        // editable/re-splittable here yet.
+        const PAGE_DIVIDER = '<hr class="docx-page-break" title="Manual page break detected in the source document">';
+        importedChapters = data.chapters.map((t, i) => ({
+            title: t,
+            content: (data.pages[i] || ['']).join(PAGE_DIVIDER),
+        }));
 
         if (data.warnings && data.warnings.length) {
             const w = document.getElementById('modalWarnings');

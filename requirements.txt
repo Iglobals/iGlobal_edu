@@ -5,6 +5,7 @@ Flask-Migrate==4.0.5
 iglobals-auth==1.0.0
 redis==5.0.1
 mammoth==1.6.0
+python-docx==1.1.2
 beautifulsoup4==4.12.3
 psycopg2-binary==2.9.9
 pymongo==4.9.2

@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+
+{% block title %}Go Pro | iGlobals{% endblock %}
+
+{% block content %}
+<section class="py-6 md:py-20 bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-3 md:px-6">
+        <div class="max-w-3xl mx-auto">
+            <div class="text-center mb-8">
+                <h1 class="font-condensed text-2xl md:text-3xl font-bold text-[#2F1341]">Go Pro</h1>
+                <p class="text-gray-500 mt-2 text-sm md:text-base">Unlock StudyNeat AI Deep Dive and iTest exams for your entire library - every book you own now, and every book you buy later.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {% for interval, plan in plans.items() %}
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col {{ 'border-2 border-[#00A4B4]' if interval == 'monthly' else 'border border-gray-100' }}">
+                    <h2 class="font-bold text-lg text-gray-900 capitalize">{{ interval }}</h2>
+                    <div class="text-3xl font-bold text-[#2F1341] mt-2 mb-4">₦{{ '{:,.0f}'.format(plan.price_ngn) }}<span class="text-sm text-gray-400 font-medium">/{{ 'mo' if interval == 'monthly' else 'yr' }}</span></div>
+                    <button onclick="subscribeTo('{{ plan.paystack_plan_code }}', {{ (plan.price_ngn * 100)|int }}, '{{ interval }}')"
+                        class="mt-auto w-full btn-primary py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        Subscribe {{ interval|capitalize }}
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+
+            <p class="text-center text-xs text-gray-400 mt-6 flex items-center justify-center gap-1">
+                <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                Secure recurring payment processed by Paystack - cancel anytime from Manage Subscription
+            </p>
+        </div>
+    </div>
+</section>
+
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script>
+    function subscribeTo(planCode, amountKobo, interval) {
+        const reference = 'IGS-SUB-' + Date.now();
+        const handler = PaystackPop.setup({
+            key: '{{ paystack_public_key }}',
+            email: '{{ current_user.email }}',
+            amount: amountKobo,
+            plan: planCode,
+            ref: reference,
+            metadata: {
+                user_id: {{ current_user.id }},
+                interval: interval,
+                purpose: 'subscription',
+                client_id: '{{ ica_client_id }}',
+            },
+            onClose: function() {},
+            callback: function(response) {
+                window.location.href = '/subscribe/verify/' + response.reference;
+            }
+        });
+        handler.openIframe();
+    }
+
+    lucide.createIcons();
+</script>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+
+{% block title %}Manage Subscription | iGlobals{% endblock %}
+
+{% block content %}
+<section class="py-6 md:py-20 bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-3 md:px-6">
+        <div class="max-w-xl mx-auto">
+            <h1 class="font-condensed text-2xl md:text-3xl font-bold text-[#2F1341] mb-6">Manage Subscription</h1>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                <div class="mb-4 p-3 rounded-lg text-sm font-semibold {{ 'bg-red-100 text-red-800' if category == 'error' else 'bg-green-100 text-green-800' }}">{{ message }}</div>
+                {% endfor %}
+            {% endwith %}
+
+            {% if sub %}
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-5">
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="text-gray-500 text-sm">Plan</span>
+                    <span class="font-semibold text-sm">{{ sub.plan.interval|capitalize if sub.plan else '-' }}</span>
+                </div>
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="text-gray-500 text-sm">Status</span>
+                    <span class="font-semibold text-sm capitalize">{{ sub.status }}</span>
+                </div>
+                {% if sub.current_period_end %}
+                <div class="flex justify-between py-2">
+                    <span class="text-gray-500 text-sm">{{ 'Renews' if sub.status == 'active' else 'Access until' }}</span>
+                    <span class="font-semibold text-sm">{{ sub.current_period_end.strftime('%d %b %Y') }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if last_payment %}
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-5">
+                <div class="flex justify-between py-2 border-b border-gray-100">
+                    <span class="text-gray-500 text-sm">Last payment</span>
+                    <span class="font-semibold text-sm">₦{{ '{:,.0f}'.format(last_payment.amount_ngn) }}</span>
+                </div>
+                <div class="flex justify-between py-2">
+                    <span class="text-gray-500 text-sm">Paid on</span>
+                    <span class="font-semibold text-sm">{{ last_payment.paid_at.strftime('%d %b %Y') if last_payment.paid_at else '-' }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if sub.status == 'active' %}
+            <form method="POST" action="{{ url_for('cancel_subscription') }}" onsubmit="return confirm('Cancel your subscription? You will keep Pro access until the current period ends.');">
+                <button type="submit" class="w-full py-3 rounded-lg text-sm font-bold bg-red-100 text-red-700">Cancel subscription</button>
+            </form>
+            {% endif %}
+            {% else %}
+            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                <p class="text-gray-500 mb-4">You're not subscribed to Pro yet.</p>
+                <a href="{{ url_for('subscribe') }}" class="btn-primary inline-block py-3 px-6 rounded-lg text-sm font-bold">Go Pro</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from functools import wraps
 from app import app, db
 from models import User, Book, Review, Purchase, ApprovedAgent
+import mongo_books
 from datetime import datetime
 import re
 import io
@@ -77,14 +78,14 @@ def admin_create_book():
             # Get chapters and content arrays
             chapter_titles = request.form.getlist('chapter_titles[]')
             chapter_contents = request.form.getlist('chapter_contents[]')
-            
+
             chapters = [title.strip() for title in chapter_titles if title.strip()]
             content = [content.strip() for content in chapter_contents if content.strip()]
         else:
             # Whole content - try to split by chapters automatically
             whole_content = request.form.get('whole_content', '')
             chapters, content = process_whole_content(whole_content)
-        
+
         book = Book(
             title=title,
             author=author,
@@ -94,13 +95,13 @@ def admin_create_book():
             price_naira=price_naira,
             is_free=is_free,
             chapters=chapters,
-            content=content,
-            preview_content=content[:2] if content else []
         )
-        
+
         db.session.add(book)
-        db.session.commit()
-        
+        db.session.commit()  # need book.id before writing to Mongo
+
+        mongo_books.replace_all_chapters(book.id, content)
+
         flash(f'Book "{title}" created successfully!', 'success')
         return redirect(url_for('admin_books'))
     
@@ -124,13 +125,13 @@ def admin_edit_book(book_id):
         # Update chapters and content
         chapter_titles = request.form.getlist('chapter_titles[]')
         chapter_contents = request.form.getlist('chapter_contents[]')
-        
+
         book.chapters = [title.strip() for title in chapter_titles if title.strip()]
-        book.content = [content.strip() for content in chapter_contents if content.strip()]
-        book.preview_content = book.content[:2]
-        
+        content = [content.strip() for content in chapter_contents if content.strip()]
+
         db.session.commit()
-        
+        mongo_books.replace_all_chapters(book.id, content)
+
         flash(f'Book "{book.title}" updated successfully!', 'success')
         return redirect(url_for('admin_books'))
     
@@ -142,10 +143,11 @@ def admin_edit_book(book_id):
 def admin_delete_book(book_id):
     book = Book.query.get_or_404(book_id)
     title = book.title
-    
+
     db.session.delete(book)
     db.session.commit()
-    
+    mongo_books.delete_book(book_id)
+
     flash(f'Book "{title}" deleted successfully!', 'success')
     return redirect(url_for('admin_books'))
 
@@ -166,14 +168,18 @@ def admin_book_view(book_id):
 def admin_get_chapter(book_id, chapter_index):
     """Admin-only chapter fetch — no purchase check needed."""
     book = db.session.query(
-        Book.id, Book.content
+        Book.id, Book.chapters
     ).filter(Book.id == book_id).first_or_404()
 
-    content = book.content or []
-    if chapter_index < 0 or chapter_index >= len(content):
+    total = len(book.chapters or [])
+    if chapter_index < 0 or chapter_index >= total:
         return jsonify({'error': 'Chapter not found'}), 404
 
-    resp = jsonify({'html': content[chapter_index], 'total': len(content)})
+    html = mongo_books.get_chapter_html(book_id, chapter_index)
+    if html is None:
+        return jsonify({'error': 'Chapter not found'}), 404
+
+    resp = jsonify({'html': html, 'total': total})
     resp.headers['Cache-Control'] = 'private, max-age=3600'
     return resp
 

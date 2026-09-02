@@ -279,6 +279,10 @@
             </div>
         </div>
         <div class="flex items-center gap-1.5 flex-shrink-0">
+            <a href="{{ url_for('studyneat_launch', book_id=book.id) }}" class="topbar-btn" title="Use AI Deep Dive">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">Use AI Deep Dive</span>
+            </a>
             <button class="topbar-btn" onclick="changeFontSize(-1)">A<i data-lucide="minus" class="w-3 h-3"></i></button>
             <button class="topbar-btn" onclick="changeFontSize(1)">A<i data-lucide="plus" class="w-3 h-3"></i></button>
             <button class="topbar-btn" onclick="toggleChapters()">

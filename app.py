@@ -6,7 +6,7 @@ Main application file
 from flask import Flask
 import os
 from dotenv import load_dotenv
-from extensions import db, login_manager
+from extensions import db, login_manager, init_mongo
 from flask_migrate import Migrate
 
 # Load environment variables
@@ -24,9 +24,23 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'max_overflow': 2,
 }
 
+# MongoDB - book/chapter/page CONTENT only (see mongo_books.py). Book metadata
+# (title, price, etc.) stays in Postgres above.
+app.config['MONGODB_URI'] = os.environ.get('MONGODB_URI')
+
 # Paystack configuration
 app.config['PAYSTACK_PUBLIC_KEY'] = os.environ.get('PAYSTACK_PUBLIC_KEY', '')
 app.config['PAYSTACK_SECRET_KEY'] = os.environ.get('PAYSTACK_SECRET_KEY', '')
+
+# ICA centralized Paystack webhook relay (see ica_webhook_routes.py) - the
+# secret ICA generated for THIS app specifically, from Settings > Clients >
+# this app > Payment webhooks in the ICA admin panel. Not Paystack's own key.
+app.config['ICA_WEBHOOK_RELAY_SECRET'] = os.environ.get('ICA_WEBHOOK_RELAY_SECRET', '')
+
+# StudyNeat partner SSO (AI features integration - see studyneat_client.py)
+app.config['STUDYNEAT_API_BASE_URL'] = os.environ.get('STUDYNEAT_API_BASE_URL', 'https://api.studyneat.xyz')
+app.config['STUDYNEAT_CLIENT_KEY'] = os.environ.get('STUDYNEAT_CLIENT_KEY', '')
+app.config['STUDYNEAT_CLIENT_SECRET'] = os.environ.get('STUDYNEAT_CLIENT_SECRET', '')
 
 # iGlobals Central Auth (ICA) configuration
 app.config['ICA_BASE_URL'] = os.environ.get('ICA_BASE_URL')
@@ -46,10 +60,11 @@ cloudinary.config(
 # Initialize extensions with app
 db.init_app(app)
 login_manager.init_app(app)
+init_mongo(app)
 migrate = Migrate(app, db)
 
 # Import models AFTER initializing db and login_manager
-from models import User, Book, Review, Favorite, Purchase, Note, LibraryItem
+from models import User, Book, Review, Favorite, Purchase, Note, LibraryItem, SubscriptionPlan, Subscription, SubscriptionPayment
 
 # User loader for Flask-Login (must be AFTER importing User model)
 @login_manager.user_loader
@@ -61,6 +76,9 @@ from routes import *
 import auth_routes
 import admin_routes
 import referral_routes
+import subscription_routes
+import studyneat_routes
+import ica_webhook_routes
 
 # Vercel handler
 def handler(request):

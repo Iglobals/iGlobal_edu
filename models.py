@@ -36,9 +36,13 @@ class Book(db.Model):
     image_url = db.Column(db.String(500))
     price_naira = db.Column(db.Float, default=0.0)
     is_free = db.Column(db.Boolean, default=False)
-    chapters = db.Column(db.JSON)
+    chapters = db.Column(db.JSON)  # chapter TITLES only - content lives in Mongo, see mongo_books.py
+    # DEPRECATED as of the Mongo migration - no code reads/writes these two
+    # anymore (routes.py/admin_routes.py now go through mongo_books.py).
+    # Left in place, not dropped, so rolling back is a code revert, not a
+    # data-recovery exercise. Safe to drop in a later migration once the
+    # Mongo path has been running cleanly for a while.
     content = db.Column(db.JSON)
-    # First 2 chapters only — served to unauthenticated preview visitors
     preview_content = db.Column(db.JSON)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -96,6 +100,77 @@ class LibraryItem(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     __table_args__ = (db.UniqueConstraint('user_id', 'book_id', name='unique_library_item'),)
+
+
+class SubscriptionPlan(db.Model):
+    """A purchasable Pro plan tier (monthly/annual). Price lives here, not in
+    code, so it can be changed without a deploy - see seed_subscription_plans.py."""
+    __tablename__ = 'subscription_plans'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+    interval = db.Column(db.String(20), nullable=False)  # 'monthly' | 'annual'
+    price_ngn = db.Column(db.Float, nullable=False)
+    price_usd = db.Column(db.Float)
+    paystack_plan_code = db.Column(db.String(100))
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    subscriptions = db.relationship('Subscription', backref='plan', lazy=True)
+
+
+class Subscription(db.Model):
+    """A user's Pro subscription - unlocks StudyNeat AI + iTest exam access
+    for their ENTIRE library (present and future book purchases), not scoped
+    to one book. Requires the user to already own at least one book before
+    they can subscribe (enforced in subscription_routes.py, not here)."""
+    __tablename__ = 'subscriptions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True)
+    plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plans.id'), nullable=False)
+    status = db.Column(db.String(20), default='active')  # active | cancelled | expired
+    paystack_customer_code = db.Column(db.String(100))
+    paystack_subscription_code = db.Column(db.String(100))
+    paystack_email_token = db.Column(db.String(255))  # required (with subscription_code) by Paystack's Disable Subscription API
+    current_period_end = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def is_active(self) -> bool:
+        """True only while status is active AND the paid period hasn't lapsed -
+        a cancelled subscription keeps access until current_period_end, same
+        as iTest's billing model."""
+        if self.status not in ('active', 'cancelled'):
+            return False
+        if self.current_period_end is None:
+            return False
+        return self.current_period_end > datetime.utcnow()
+
+
+def get_active_subscription(user_id):
+    """Single source of truth for 'does this user have Pro' - used by the
+    subscribe gate, the StudyNeat launch route, and reading.html's template
+    context alike, so the eligibility rule never drifts between call sites."""
+    sub = Subscription.query.filter_by(user_id=user_id).first()
+    if sub and sub.is_active():
+        return sub
+    return None
+
+
+class SubscriptionPayment(db.Model):
+    """Payment ledger for subscriptions - separate from Purchase, which is
+    one-off book buys. Mirrors iTest's Payment model/pattern."""
+    __tablename__ = 'subscription_payments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plans.id'))
+    provider = db.Column(db.String(20), default='paystack')
+    provider_ref = db.Column(db.String(100), unique=True, nullable=False)
+    amount_ngn = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(20), default='success')
+    paid_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class Note(db.Model):

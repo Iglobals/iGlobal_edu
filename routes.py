@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from app import app
 from extensions import db
 from models import User, Book, Review, Favorite, Purchase, Note, LibraryItem
+import mongo_books
 import requests
 import os
 from datetime import datetime
@@ -63,16 +64,15 @@ def search():
 
 @app.route('/preview/<int:book_id>')
 def preview(book_id):
-    # Only fetch metadata + preview_content — never touch full content column
+    # Metadata from Postgres; the first 2 chapters' HTML from Mongo (was
+    # Book.preview_content - see mongo_books.py for why content moved).
     book = db.session.query(
         Book.id, Book.title, Book.author, Book.category, Book.description,
-        Book.image_url, Book.price_naira, Book.is_free,
-        Book.chapters, Book.preview_content
+        Book.image_url, Book.price_naira, Book.is_free, Book.chapters
     ).filter(Book.id == book_id).first_or_404()
 
-    # preview_content holds first 2 chapters; chapters list gives their titles
     preview_chapters = (book.chapters or [])[:2]
-    preview_content  = book.preview_content or []
+    preview_content = [mongo_books.get_chapter_html(book_id, i) or '' for i in range(len(preview_chapters))]
 
     # Check if in library (if logged in)
     in_library = False
@@ -177,7 +177,7 @@ def reading(book_id):
 def get_chapter(book_id, chapter_index):
     """Return a single chapter's HTML. Only accessible to users with read access."""
     book = db.session.query(
-        Book.id, Book.is_free, Book.content
+        Book.id, Book.is_free, Book.chapters
     ).filter(Book.id == book_id).first_or_404()
 
     # Access check
@@ -188,11 +188,15 @@ def get_chapter(book_id, chapter_index):
         if not purchase:
             return jsonify({'error': 'Access denied'}), 403
 
-    content = book.content or []
-    if chapter_index < 0 or chapter_index >= len(content):
+    total = len(book.chapters or [])
+    if chapter_index < 0 or chapter_index >= total:
         return jsonify({'error': 'Chapter not found'}), 404
 
-    resp = jsonify({'html': content[chapter_index], 'total': len(content)})
+    html = mongo_books.get_chapter_html(book_id, chapter_index)
+    if html is None:
+        return jsonify({'error': 'Chapter not found'}), 404
+
+    resp = jsonify({'html': html, 'total': total})
     resp.headers['Cache-Control'] = 'private, max-age=3600'
     return resp
 
@@ -390,7 +394,12 @@ def initialize_payment():
                 'book_title': book.title,
                 'user_id': current_user.id,
                 'user_name': current_user.full_name,
-                'ref_code': request.cookies.get('igref', '')
+                'ref_code': request.cookies.get('igref', ''),
+                # Required for ICA's centralized webhook relay to route this
+                # event back to this app, and to this specific handler within
+                # it (see ica_webhook_routes.py / docs/PAYSTACK_WEBHOOK_RELAY.md).
+                'client_id': app.config.get('ICA_CLIENT_ID', ''),
+                'purpose': 'book_purchase',
             }
         }
         
@@ -463,14 +472,51 @@ def inject_user():
 
 
 # ── Paystack Webhook ──────────────────────────────────────────────────────
+# DEPRECATED as of the ICA centralized webhook relay - Paystack's dashboard
+# should point at ICA now, which relays to ica_webhook_routes.py instead of
+# here. Left in place (unused once that cutover happens) rather than deleted,
+# same rollback-safety reasoning as the Mongo migration. handle_book_charge_success()
+# below is the actual logic now, reused by ica_webhook_routes.py - this route
+# just calls it too so nothing breaks if Paystack is still pointed here.
 import hmac
 import hashlib
+
+
+def handle_book_charge_success(data: dict):
+    """The actual book-purchase-webhook logic, extracted so both the legacy
+    direct-from-Paystack route below AND the new ICA relay route can call it."""
+    reference = data.get('reference')
+    status = data.get('status')
+    if not reference or status != 'success':
+        return
+
+    purchase = Purchase.query.filter_by(payment_reference=reference).first()
+    if not purchase or purchase.payment_status == 'success':
+        return  # unknown reference, or already processed - idempotent
+
+    purchase.payment_status = 'success'
+
+    library_item = LibraryItem.query.filter_by(
+        user_id=purchase.user_id,
+        book_id=purchase.book_id
+    ).first()
+    if not library_item:
+        db.session.add(LibraryItem(
+            user_id=purchase.user_id,
+            book_id=purchase.book_id
+        ))
+
+    from models import attribute_referral
+    ref_code = (data.get('metadata') or {}).get('ref_code')
+    attribute_referral(purchase, ref_code)
+
+    db.session.commit()
+
 
 @app.route('/api/payment/webhook', methods=['POST'])
 def paystack_webhook():
     secret = os.environ.get('PAYSTACK_SECRET_KEY', '')
 
-    # 1. Verify signature
     sig = request.headers.get('x-paystack-signature', '')
     body = request.get_data()  # raw bytes — must be used before .get_json()
     expected = hmac.new(secret.encode(), body, hashlib.sha512).hexdigest()
@@ -478,36 +524,8 @@ def paystack_webhook():
     if not hmac.compare_digest(expected, sig):
         return jsonify({'status': 'invalid signature'}), 401
 
-    # 2. Acknowledge immediately (Paystack requires 200 fast)
     event = request.get_json(force=True, silent=True) or {}
-    event_type = event.get('event')
-
-    # 3. Handle charge.success
-    if event_type == 'charge.success':
-        data      = event.get('data', {})
-        reference = data.get('reference')
-        status    = data.get('status')
-
-        if reference and status == 'success':
-            purchase = Purchase.query.filter_by(payment_reference=reference).first()
-            if purchase and purchase.payment_status != 'success':
-                purchase.payment_status = 'success'
-
-                library_item = LibraryItem.query.filter_by(
-                    user_id=purchase.user_id,
-                    book_id=purchase.book_id
-                ).first()
-                if not library_item:
-                    db.session.add(LibraryItem(
-                        user_id=purchase.user_id,
-                        book_id=purchase.book_id
-                    ))
-
-                # Attribute referral — webhook carries metadata we stored at init
-                from models import attribute_referral
-                ref_code = (data.get('metadata') or {}).get('ref_code')
-                attribute_referral(purchase, ref_code)
-
-                db.session.commit()
+    if event.get('event') == 'charge.success':
+        handle_book_charge_success(event.get('data', {}))
 
     return jsonify({'status': 'ok'}), 200

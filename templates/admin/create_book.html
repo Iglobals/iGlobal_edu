@@ -165,6 +165,23 @@
                     <p id="docxFileName" class="text-xs text-gray-500 mt-2"></p>
                 </div>
 
+                <div class="flex items-center gap-2 my-3">
+                    <div class="flex-1 border-t border-gray-200"></div>
+                    <span class="text-xs text-gray-400">or</span>
+                    <div class="flex-1 border-t border-gray-200"></div>
+                </div>
+
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Paste a Google Docs link</label>
+                <div class="flex gap-2 mb-1">
+                    <input type="url" id="googleDocUrlInput" placeholder="https://docs.google.com/document/d/..."
+                        class="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#6B2D5C]">
+                    <button type="button" id="googleDocImportBtn"
+                        class="bg-[#6B2D5C] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[#8B4A7A] flex-shrink-0">
+                        Import
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 mb-3">The doc must be shared with the import service account first - see admin settings.</p>
+
                 <div id="docxProcessing" class="hidden text-center py-4">
                     <div class="inline-block w-6 h-6 border-2 border-[#6B2D5C] border-t-transparent rounded-full animate-spin mb-2"></div>
                     <p class="text-sm text-gray-500">Converting document…</p>
@@ -333,42 +350,69 @@
 
         fetch('{{ url_for("admin_parse_docx") }}', { method: 'POST', body: fd })
         .then(r => r.json())
-        .then(data => {
-            document.getElementById('docxProcessing').classList.add('hidden');
-            if (data.error) { alert(data.error); return; }
-
-            docxChapters = data.chapters;
-            // Multi-page chapters (manual Word page breaks detected - see
-            // docx_pages.py) are joined with a visible divider for now,
-            // same as edit_book.html - this editor doesn't expose
-            // individual pages as separate editable units yet.
-            const PAGE_DIVIDER = '<hr class="docx-page-break" title="Manual page break detected in the source document">';
-            docxContents = data.pages.map(pages => (pages || ['']).join(PAGE_DIVIDER));
-
-            if (data.warnings && data.warnings.length) {
-                const w = document.getElementById('docxWarnings');
-                w.textContent = 'Conversion notes: ' + data.warnings.join('; ');
-                w.classList.remove('hidden');
-            }
-
-            // Render editable chapter title list
-            const list = document.getElementById('docxChapterList');
-            list.innerHTML = docxChapters.map((title, i) => `
-                <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                    <span class="text-xs text-gray-400 font-mono w-6 flex-shrink-0">${i+1}</span>
-                    <input type="text" value="${title.replace(/"/g,'&quot;')}"
-                        class="flex-1 text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-[#6B2D5C]"
-                        onchange="docxChapters[${i}] = this.value">
-                </div>`).join('');
-
-            document.getElementById('docxChapterCount').textContent = docxChapters.length + ' chapters';
-            document.getElementById('docxPreview').classList.remove('hidden');
-        })
+        .then(handleDocxData)
         .catch(() => {
             document.getElementById('docxProcessing').classList.add('hidden');
             alert('Upload failed. Please try again.');
         });
     }
+
+    // Shared by uploadDocx() above and the Google Docs import button below -
+    // the backend returns the same {chapters, pages, warnings} shape either
+    // way (a Google Doc is exported as .docx and run through the identical
+    // pipeline server-side - see process_docx_bytes() in admin_routes.py).
+    function handleDocxData(data) {
+        document.getElementById('docxProcessing').classList.add('hidden');
+        if (data.error) { alert(data.error); return; }
+
+        docxChapters = data.chapters;
+        // Multi-page chapters (manual Word/Google-Docs page breaks detected -
+        // see docx_pages.py) are joined with a visible divider for now -
+        // this editor doesn't expose individual pages as separate editable
+        // units yet.
+        const PAGE_DIVIDER = '<hr class="docx-page-break" title="Manual page break detected in the source document">';
+        docxContents = data.pages.map(pages => (pages || ['']).join(PAGE_DIVIDER));
+
+        if (data.warnings && data.warnings.length) {
+            const w = document.getElementById('docxWarnings');
+            w.textContent = 'Conversion notes: ' + data.warnings.join('; ');
+            w.classList.remove('hidden');
+        }
+
+        // Render editable chapter title list
+        const list = document.getElementById('docxChapterList');
+        list.innerHTML = docxChapters.map((title, i) => `
+            <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                <span class="text-xs text-gray-400 font-mono w-6 flex-shrink-0">${i+1}</span>
+                <input type="text" value="${title.replace(/"/g,'&quot;')}"
+                    class="flex-1 text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-[#6B2D5C]"
+                    onchange="docxChapters[${i}] = this.value">
+            </div>`).join('');
+
+        document.getElementById('docxChapterCount').textContent = docxChapters.length + ' chapters';
+        document.getElementById('docxPreview').classList.remove('hidden');
+    }
+
+    document.getElementById('googleDocImportBtn').addEventListener('click', function () {
+        const url = document.getElementById('googleDocUrlInput').value;
+        if (!url.trim()) return;
+
+        document.getElementById('docxProcessing').classList.remove('hidden');
+        document.getElementById('docxPreview').classList.add('hidden');
+        document.getElementById('docxWarnings').classList.add('hidden');
+
+        fetch('{{ url_for("admin_import_google_doc") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ doc_url: url }),
+        })
+        .then(r => r.json())
+        .then(handleDocxData)
+        .catch(() => {
+            document.getElementById('docxProcessing').classList.add('hidden');
+            alert('Import failed. Please try again.');
+        });
+    });
 
     // Before form submit, inject docx hidden fields if in docx mode
     document.getElementById('bookForm').addEventListener('submit', function(e) {

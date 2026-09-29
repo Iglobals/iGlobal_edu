@@ -23,7 +23,7 @@ flask run
 ### 3. Access the Platform
 - **Frontend**: http://localhost:5000
 - **Admin Panel**: http://localhost:5000/admin
-- **Default Admin**: admin@iglobals.com / admin123
+- Login is via ICA (iGlobals Central Auth), not a local password - sign in once, then flag your account as admin in the database. See `README.md`'s Quick Start step 7 for the full steps.
 
 ## 📚 Book Management
 
@@ -60,7 +60,7 @@ https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=600&q=80
 ## 👤 User Flow
 
 ### New User:
-1. **Sign Up** → Create account
+1. **Sign In** → via ICA (account is created automatically on first login)
 2. **Browse** → Search page (no login required)
 3. **Preview** → Click any book to see details
 4. **Add to Library** → Click "Add to Library" button

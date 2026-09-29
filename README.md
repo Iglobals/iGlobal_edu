@@ -51,12 +51,13 @@ A comprehensive educational platform for JUPEB exam preparation with secure cont
 ## Tech Stack
 
 - **Backend**: Flask 3.0
-- **Database**: PostgreSQL
-- **ORM**: SQLAlchemy
-- **Authentication**: Flask-Login
+- **Database**: PostgreSQL (users, books metadata, purchases, subscriptions) + MongoDB (book/chapter content, see `mongo_books.py`)
+- **ORM**: SQLAlchemy (Postgres side)
+- **Authentication**: [iGlobals Central Auth (ICA)](../Iglobals-CAuth) via the `iglobals-auth` SDK - **not** Flask-Login/password-based; see `auth_routes.py`. Redis holds OAuth PKCE state across the redirect (optional locally - falls back to in-process memory if `REDIS_URL` is unset)
 - **Frontend**: Tailwind CSS, Lucide Icons
 - **Rich Text Editor**: Quill.js
-- **Payment**: Paystack API
+- **Payment**: Paystack API, via ICA's centralized webhook relay (one shared Paystack account across the whole iGlobals ecosystem - see `ica_webhook_routes.py` and `Iglobals-CAuth/docs/PAYSTACK_WEBHOOK_RELAY.md`). Two independent flows share this: one-off book purchases and Pro subscriptions.
+- **Other integrations**: Google Docs API (importing book content, `google_docs_client.py`), Cloudinary (image hosting), StudyNeat (AI study-help handoff, `studyneat_client.py`), a referral/commission system (`referral_routes.py`)
 
 ## Project Structure
 
@@ -122,13 +123,24 @@ pip install -r requirements.txt
 ```
 
 ### 4. Configure Environment
-Create `.env` file (copy from `.env.example`):
+Create `.env` file (copy from `.env.example`) - see that file for the full list with comments, but at minimum for local auth/payment testing:
 ```env
 SECRET_KEY=your-secret-key-here
 DATABASE_URL=postgresql://postgres:your_password@localhost/iglobals_db
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/iglobals_edu
+
+# Auth is via ICA, not a local password - point this at your local
+# Iglobals-CAuth instance (see its own README for setup) and register this
+# app as a client there first (CLIENT_REGISTRATION_GUIDE.md in that repo)
+ICA_BASE_URL=http://localhost:3000
+ICA_CLIENT_ID=your-ica-client-id
+ICA_CLIENT_SECRET=your-ica-client-secret
+ICA_REDIRECT_URI=http://localhost:5000/auth/callback
+
 PAYSTACK_PUBLIC_KEY=pk_test_your_key
 PAYSTACK_SECRET_KEY=sk_test_your_key
 ```
+`REDIS_URL`, Google Docs, Cloudinary, and StudyNeat vars are only needed if you're testing those specific features - the app runs without them locally.
 
 ### 5. Initialize Database
 ```cmd
@@ -147,26 +159,14 @@ python seed_data.py
 ```
 
 ### 7. Create Admin User
-```cmd
-python
-```
-```python
-from app import app, db
-from models import User
-from werkzeug.security import generate_password_hash
+There's no local signup form or password - every user account is created automatically the first time someone completes ICA login (see `sync_user()` in `auth_routes.py`), with `is_admin` defaulting to `False`. To make an account an admin:
 
-with app.app_context():
-    admin = User(
-        full_name='Admin User',
-        email='admin@iglobals.com',
-        password_hash=generate_password_hash('admin123'),
-        is_admin=True
-    )
-    db.session.add(admin)
-    db.session.commit()
-    print("Admin created: admin@iglobals.com / admin123")
-exit()
-```
+1. Log into the app once through the normal "Sign in" flow (this creates your `User` row via ICA).
+2. Grant admin directly in the database:
+   ```sql
+   UPDATE users SET is_admin = true WHERE email = 'you@example.com';
+   ```
+   (There's no admin-grant script or UI in this app yet - unlike ICA's `add-admin-email.js`, this is still a raw SQL step.)
 
 ### 8. Run Application
 ```cmd
@@ -175,19 +175,20 @@ python app.py
 
 Visit:
 - **Main Site**: http://localhost:5000
-- **Admin Panel**: http://localhost:5000/admin
-  - Email: `admin@iglobals.com`
-  - Password: `admin123`
+- **Admin Panel**: http://localhost:5000/admin (sign in with the account you just promoted to admin above)
 
 ## Database Models
 
 ### User
 - `id`: Primary key
+- `ica_sub`: Unique subject id from iGlobals Central Auth (this is the actual identity - there is no local password)
 - `full_name`: User's full name
 - `email`: Unique email address
-- `password_hash`: Hashed password
-- `is_admin`: Boolean (admin flag)
+- `is_admin`: Boolean (admin flag) - set manually, see Quick Start step 7
 - `created_at`: Registration date
+
+### SubscriptionPlan / Subscription / SubscriptionPayment
+Pro-tier subscription models, mirroring the same pattern iTest uses for its own billing. `Subscription` tracks the active plan per user; `SubscriptionPayment` is the payment ledger (includes `paystack_email_token`, needed for Paystack's Disable Subscription API). Kept separate from `Purchase` below since a user can have both a Pro subscription and one-off book purchases.
 
 ### Book
 - `id`: Primary key
@@ -325,7 +326,6 @@ Visit:
   - Configure Paystack webhooks
   - Add rate limiting
   - Implement logging
-- Change default admin password immediately
 - Never commit `.env` file
 
 ## Database Interaction
@@ -369,7 +369,10 @@ with app.app_context():
 ```
 
 ### Admin can't login
-Make sure admin user was created with `is_admin=True`
+Login itself goes through ICA, not a local password - if that succeeds but you land back without admin access, the account just hasn't been flagged yet. Confirm with `SELECT is_admin FROM users WHERE email = '...'` and see Quick Start step 7 if it's still `false`.
+
+### ICA login redirects back with an error
+Check that this app is actually registered as a client in your local ICA instance, with `ICA_REDIRECT_URI` here matching one of that client's registered `redirect_uris` exactly (protocol/host/port/path all count) - see `Iglobals-CAuth/CLIENT_REGISTRATION_GUIDE.md`.
 
 ### Payment not working
 - Check Paystack keys in .env

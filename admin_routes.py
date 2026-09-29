@@ -386,26 +386,29 @@ def _fix_interrupted_lists(soup):
     fix_in_parent(soup)
 
 
-@app.route('/admin/books/parse-docx', methods=['POST'])
-@login_required
-@admin_required
-def admin_parse_docx():
+class DocxProcessingError(Exception):
+    """Carries a user-facing error message, same wording as before this was
+    extracted into a shared function - see process_docx_bytes()."""
+    pass
+
+
+def process_docx_bytes(file_bytes: bytes) -> dict:
     """
-    Accepts a .docx upload, converts to HTML with mammoth,
-    splits on <h1> tags — each H1 = chapter title, content between = chapter body.
-    Returns JSON: { chapters: [...], contents: [...], warnings: [...] }
+    Converts raw .docx bytes to HTML with mammoth, splits on <h1> tags (each
+    H1 = chapter title) and on manual page breaks within each chapter (see
+    docx_pages.py). Shared by both the direct file-upload route
+    (admin_parse_docx) and the Google Docs import route (admin_import_google_doc)
+    below - a Google Doc exported as .docx is just another .docx file by the
+    time it gets here, same pipeline either way.
+
+    Returns {chapters, pages, warnings}. Raises DocxProcessingError with a
+    user-facing message on any failure.
     """
     try:
         import mammoth
         from bs4 import BeautifulSoup
     except ImportError:
-        return jsonify({'error': 'Server is missing required libraries (mammoth / beautifulsoup4). Ask your developer to run: pip install mammoth beautifulsoup4'}), 500
-
-    f = request.files.get('docx_file')
-    if not f:
-        return jsonify({'error': 'No file was received. Please choose a .docx file and try again.'}), 400
-    if not f.filename.lower().endswith('.docx'):
-        return jsonify({'error': f'"{f.filename}" is not a Word document. Only .docx files are supported (not .doc, .pdf, or .odt).'}), 400
+        raise DocxProcessingError('Server is missing required libraries (mammoth / beautifulsoup4). Ask your developer to run: pip install mammoth beautifulsoup4')
 
     style_map = """
         p[style-name='Heading 1'] => h1:fresh
@@ -438,11 +441,10 @@ def admin_parse_docx():
             except Exception:
                 return {}
 
-    try:
-        file_bytes = f.read()
-        if len(file_bytes) == 0:
-            return jsonify({'error': 'The uploaded file is empty. Please check the file and try again.'}), 400
+    if len(file_bytes) == 0:
+        raise DocxProcessingError('The uploaded file is empty. Please check the file and try again.')
 
+    try:
         # Manual page breaks (Ctrl+Enter in Word) aren't understood by
         # mammoth at all - pre-mark them as plain-text sentinels first so
         # they survive conversion and can be split on below. No-op (returns
@@ -458,10 +460,10 @@ def admin_parse_docx():
     except Exception as e:
         err = str(e).lower()
         if 'zip' in err or 'bad magic' in err or 'not a zip' in err:
-            return jsonify({'error': 'The file appears to be corrupted or is not a valid .docx file. Try re-saving it in Word as "Word Document (.docx)" and upload again.'}), 400
+            raise DocxProcessingError('The file appears to be corrupted or is not a valid .docx file. Try re-saving it in Word as "Word Document (.docx)" and upload again.')
         if 'password' in err or 'encrypted' in err:
-            return jsonify({'error': 'This document is password-protected. Remove the password in Word (File → Info → Protect Document) and try again.'}), 400
-        return jsonify({'error': f'Could not read the document: {str(e)}'}), 500
+            raise DocxProcessingError('This document is password-protected. Remove the password in Word (File → Info → Protect Document) and try again.')
+        raise DocxProcessingError(f'Could not read the document: {str(e)}')
 
     try:
         soup = BeautifulSoup(result.value, 'html.parser')
@@ -525,7 +527,7 @@ def admin_parse_docx():
             pages_per_chapter.append(split_nodes_into_pages(current_nodes))
 
         if not chapters:
-            return jsonify({'error': 'No content was found in the document. Make sure the file has text and is not blank.'}), 400
+            raise DocxProcessingError('No content was found in the document. Make sure the file has text and is not blank.')
 
         # Filter mammoth warnings — skip the tr/td/th ones we know are harmless
         warnings = [
@@ -533,7 +535,7 @@ def admin_parse_docx():
             if not any(x in w.message for x in ['tr =>', 'td =>', 'th =>'])
         ]
 
-        return jsonify({
+        return {
             'chapters': chapters,
             # One entry per chapter, each a list of page HTML strings. A
             # chapter with no manual page breaks in the source doc still
@@ -541,7 +543,59 @@ def admin_parse_docx():
             # docx import always produces exactly one page per chapter.
             'pages': pages_per_chapter,
             'warnings': warnings
-        })
+        }
 
+    except DocxProcessingError:
+        raise
     except Exception as e:
-        return jsonify({'error': f'Document was read but could not be processed: {str(e)}'}), 500
+        raise DocxProcessingError(f'Document was read but could not be processed: {str(e)}')
+
+
+@app.route('/admin/books/parse-docx', methods=['POST'])
+@login_required
+@admin_required
+def admin_parse_docx():
+    """
+    Accepts a .docx upload and returns its parsed chapters/pages - see
+    process_docx_bytes() for the actual conversion logic.
+    Returns JSON: { chapters: [...], pages: [[...], ...], warnings: [...] }
+    """
+    f = request.files.get('docx_file')
+    if not f:
+        return jsonify({'error': 'No file was received. Please choose a .docx file and try again.'}), 400
+    if not f.filename.lower().endswith('.docx'):
+        return jsonify({'error': f'"{f.filename}" is not a Word document. Only .docx files are supported (not .doc, .pdf, or .odt).'}), 400
+
+    try:
+        result = process_docx_bytes(f.read())
+        return jsonify(result)
+    except DocxProcessingError as e:
+        status = 500 if 'missing required libraries' in str(e) else 400
+        return jsonify({'error': str(e)}), status
+
+
+@app.route('/admin/books/import-google-doc', methods=['POST'])
+@login_required
+@admin_required
+def admin_import_google_doc():
+    """
+    Same output shape as admin_parse_docx (chapters/pages/warnings) - pulls
+    the doc as .docx via the Drive API first, then runs it through the exact
+    same process_docx_bytes() pipeline. See google_docs_client.py.
+    """
+    data = request.get_json(silent=True) or {}
+    doc_url = data.get('doc_url', '')
+    if not doc_url.strip():
+        return jsonify({'error': 'Paste a Google Docs link first.'}), 400
+
+    from google_docs_client import GoogleDocsImportError, export_doc_as_docx
+
+    try:
+        file_bytes = export_doc_as_docx(doc_url)
+        result = process_docx_bytes(file_bytes)
+        return jsonify(result)
+    except GoogleDocsImportError as e:
+        return jsonify({'error': str(e)}), 400
+    except DocxProcessingError as e:
+        status = 500 if 'missing required libraries' in str(e) else 400
+        return jsonify({'error': str(e)}), status

@@ -329,6 +329,24 @@
           </button>
           <p id="modalFileName" class="text-xs text-gray-400 mt-2"></p>
         </div>
+
+        <div class="flex items-center gap-2 my-3">
+          <div class="flex-1 border-t border-gray-200"></div>
+          <span class="text-xs text-gray-400">or</span>
+          <div class="flex-1 border-t border-gray-200"></div>
+        </div>
+
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Paste a Google Docs link</label>
+        <div class="flex gap-2">
+          <input type="url" id="modalGoogleDocUrl" placeholder="https://docs.google.com/document/d/..."
+            class="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-[#6B2D5C]">
+          <button type="button" id="modalGoogleDocBtn"
+            class="bg-[#6B2D5C] text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-[#8B4A7A] flex-shrink-0">
+            Import
+          </button>
+        </div>
+        <p class="text-xs text-gray-400 mt-1.5">The doc must be shared with the import service account first - see admin settings.</p>
+
         <div id="modalProcessing" class="hidden text-center py-3">
           <div class="inline-block w-5 h-5 border-2 border-[#6B2D5C] border-t-transparent rounded-full animate-spin mr-2"></div>
           <span class="text-sm text-gray-500">Converting…</span>
@@ -752,6 +770,55 @@ function showModalError(msg) {
     w.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+// Shared by both the file-upload path and the Google Docs path below - the
+// backend returns the same {chapters, pages, warnings} shape either way,
+// since a Google Doc is exported as .docx and run through the identical
+// process_docx_bytes() pipeline server-side.
+function handleDocxParseSuccess(data) {
+    document.getElementById('modalProcessing').classList.add('hidden');
+    if (data.error) {
+        showModalError(data.error);
+        return;
+    }
+
+    // data.pages[i] is a list of page HTML strings per chapter (the docx
+    // parser detects manual Word/Google-Docs page breaks - see docx_pages.py).
+    // This editor doesn't yet expose individual pages as separate editable
+    // units, so multi-page chapters are joined into one blob with a visible
+    // divider marking where each detected break was - no content is lost,
+    // the page boundary just isn't separately editable/re-splittable here yet.
+    const PAGE_DIVIDER = '<hr class="docx-page-break" title="Manual page break detected in the source document">';
+    importedChapters = data.chapters.map((t, i) => ({
+        title: t,
+        content: (data.pages[i] || ['']).join(PAGE_DIVIDER),
+    }));
+
+    if (data.warnings && data.warnings.length) {
+        const w = document.getElementById('modalWarnings');
+        w.textContent = 'Notes: ' + data.warnings.join('; ');
+        w.classList.remove('hidden');
+    }
+
+    document.getElementById('importPosition').max = existingChapters.length + 1;
+    document.getElementById('importPosition').value = 1;
+
+    document.getElementById('step2').classList.remove('hidden');
+    document.getElementById('applyImportBtn').classList.remove('hidden');
+    updatePreview();
+}
+
+function handleDocxParseFailure(err) {
+    document.getElementById('modalProcessing').classList.add('hidden');
+    const msg = err && err.message ? err.message : null;
+    if (msg && msg.includes('Failed to fetch')) {
+        showModalError('Network error — the request timed out or your connection dropped. Check your internet and try again.');
+    } else if (msg) {
+        showModalError(msg);
+    } else {
+        showModalError('Something went wrong. Please try again.');
+    }
+}
+
 document.getElementById('modalDocxInput').addEventListener('change', function () {
     const file = this.files[0];
     if (!file) return;
@@ -770,51 +837,31 @@ document.getElementById('modalDocxInput').addEventListener('change', function ()
         }
         return r.json();
     })
-    .then(data => {
-        document.getElementById('modalProcessing').classList.add('hidden');
-        if (data.error) {
-            showModalError(data.error);
-            return;
-        }
+    .then(handleDocxParseSuccess)
+    .catch(handleDocxParseFailure);
+});
 
-        // data.pages[i] is a list of page HTML strings per chapter (the docx
-        // parser now detects manual Word page breaks - see docx_pages.py).
-        // This editor doesn't yet expose individual pages as separate
-        // editable units, so multi-page chapters are joined into one blob
-        // with a visible divider marking where each detected break was -
-        // no content is lost, the page boundary just isn't separately
-        // editable/re-splittable here yet.
-        const PAGE_DIVIDER = '<hr class="docx-page-break" title="Manual page break detected in the source document">';
-        importedChapters = data.chapters.map((t, i) => ({
-            title: t,
-            content: (data.pages[i] || ['']).join(PAGE_DIVIDER),
-        }));
+document.getElementById('modalGoogleDocBtn').addEventListener('click', function () {
+    const url = document.getElementById('modalGoogleDocUrl').value;
+    if (!url.trim()) return;
 
-        if (data.warnings && data.warnings.length) {
-            const w = document.getElementById('modalWarnings');
-            w.textContent = 'Notes: ' + data.warnings.join('; ');
-            w.classList.remove('hidden');
-        }
+    document.getElementById('modalProcessing').classList.remove('hidden');
+    document.getElementById('step2').classList.add('hidden');
+    document.getElementById('applyImportBtn').classList.add('hidden');
 
-        // Set max position
-        document.getElementById('importPosition').max = existingChapters.length + 1;
-        document.getElementById('importPosition').value = 1;
-
-        document.getElementById('step2').classList.remove('hidden');
-        document.getElementById('applyImportBtn').classList.remove('hidden');
-        updatePreview();
+    fetch('{{ url_for("admin_import_google_doc") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doc_url: url }),
     })
-    .catch(err => {
-        document.getElementById('modalProcessing').classList.add('hidden');
-        const msg = err && err.message ? err.message : null;
-        if (msg && msg.includes('Failed to fetch')) {
-            showModalError('Network error — the upload timed out or your connection dropped. Check your internet and try again.');
-        } else if (msg) {
-            showModalError(msg);
-        } else {
-            showModalError('Something went wrong during the upload. Please try again.');
+    .then(r => {
+        if (!r.ok) {
+            return r.json().then(d => { throw new Error(d.error || `Server error (${r.status})`); });
         }
-    });
+        return r.json();
+    })
+    .then(handleDocxParseSuccess)
+    .catch(handleDocxParseFailure);
 });
 
 document.getElementById('importAction').addEventListener('change', function () {

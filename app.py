@@ -15,7 +15,19 @@ load_dotenv()
 # Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://localhost/iglobals_db')
+database_url = os.environ.get('DATABASE_URL', 'postgresql://localhost/iglobals_db')
+# Force the psycopg2 driver explicitly - requirements.txt only installs
+# psycopg2-binary, but a bare "postgresql://" URL (what Neon and most hosted
+# Postgres providers hand you by default) lets SQLAlchemy pick its own
+# default driver, and recent SQLAlchemy versions default that to psycopg
+# (v3), which isn't installed at all - crashes with
+# "ModuleNotFoundError: No module named 'psycopg'" at engine creation,
+# even though the actually-installed driver (psycopg2) would have worked fine.
+if database_url.startswith('postgresql://'):
+    database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+elif database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql+psycopg2://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,       # test connection before using it — drops stale ones

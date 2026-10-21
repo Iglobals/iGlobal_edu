@@ -37,6 +37,11 @@ class Book(db.Model):
     price_naira = db.Column(db.Float, default=0.0)
     is_free = db.Column(db.Boolean, default=False)
     chapters = db.Column(db.JSON)  # chapter TITLES only - content lives in Mongo, see mongo_books.py
+    # JUPEB exam-access package (see exam_packages.py). exam_keys are iTest
+    # exam keys; a null/0 add-on price means no exam package is offered.
+    # Package price = price_naira + exam_addon_price_naira.
+    exam_keys = db.Column(db.JSON, default=list)
+    exam_addon_price_naira = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     reviews = db.relationship('Review', backref='book', lazy=True, cascade='all, delete-orphan')
@@ -79,9 +84,53 @@ class Purchase(db.Model):
     amount_paid = db.Column(db.Float, nullable=False)
     payment_reference = db.Column(db.String(100), unique=True)
     payment_status = db.Column(db.String(20), default='pending')
+    # 'book' | 'book_exam' - amount_paid is the server-computed price of this
+    # package. Exam access bought later goes in ExamAccessPurchase instead.
+    package = db.Column(db.String(20), nullable=False, default='book', server_default='book')
+    exam_access_granted_at = db.Column(db.DateTime, nullable=True)   # iTest confirmed the grant
+    exam_access_last_error = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     __table_args__ = (db.UniqueConstraint('user_id', 'book_id', name='unique_purchase'),)
+
+
+class ExamAccessPurchase(db.Model):
+    """An exam-access UPGRADE for a book the user already owns as 'book' only.
+    Separate table because purchases has unique (user_id, book_id) and the
+    upgrade needs its own Paystack reference / amount / status. One row per
+    (user, book), reused while pending - same pattern as Purchase."""
+    __tablename__ = 'exam_access_purchases'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    book_id = db.Column(db.Integer, db.ForeignKey('books.id', ondelete='CASCADE'), nullable=False)
+    amount_paid = db.Column(db.Float, nullable=False)
+    payment_reference = db.Column(db.String(100), unique=True)
+    payment_status = db.Column(db.String(20), default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    exam_access_granted_at = db.Column(db.DateTime, nullable=True)
+    exam_access_last_error = db.Column(db.Text, nullable=True)
+
+    user = db.relationship('User', backref=db.backref('exam_access_purchases', lazy=True, cascade='all, delete-orphan'))
+    book = db.relationship('Book', backref=db.backref('exam_access_purchases', lazy=True, cascade='all, delete-orphan'))
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'book_id', name='unique_exam_access_purchase'),)
+
+
+def get_exam_access(user_id, book_id):
+    """(source, record) for the user's exam access to this book, where source
+    is 'purchase' (bought as book_exam) or 'upgrade', or (None, None).
+    Only successful payments count; record.exam_access_granted_at says
+    whether iTest has confirmed it yet."""
+    p = Purchase.query.filter_by(user_id=user_id, book_id=book_id,
+                                 payment_status='success', package='book_exam').first()
+    if p:
+        return 'purchase', p
+    u = ExamAccessPurchase.query.filter_by(user_id=user_id, book_id=book_id,
+                                           payment_status='success').first()
+    if u:
+        return 'upgrade', u
+    return None, None
 
 
 class LibraryItem(db.Model):

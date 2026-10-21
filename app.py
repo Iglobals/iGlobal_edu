@@ -54,6 +54,12 @@ app.config['STUDYNEAT_API_BASE_URL'] = os.environ.get('STUDYNEAT_API_BASE_URL', 
 app.config['STUDYNEAT_CLIENT_KEY'] = os.environ.get('STUDYNEAT_CLIENT_KEY', '')
 app.config['STUDYNEAT_CLIENT_SECRET'] = os.environ.get('STUDYNEAT_CLIENT_SECRET', '')
 
+# iTest exam-access webhook — e-library fires this after a book + exam purchase.
+# ITEST_WEBHOOK_SECRET here must equal iTest's IGS_WEBHOOK_SECRET.
+# If blank, exam grants are left pending and retried later (no break in payment).
+app.config['ITEST_BASE_URL'] = os.environ.get('ITEST_BASE_URL', '')
+app.config['ITEST_WEBHOOK_SECRET'] = os.environ.get('ITEST_WEBHOOK_SECRET', '')
+
 # iGlobals Central Auth (ICA) configuration
 app.config['ICA_BASE_URL'] = os.environ.get('ICA_BASE_URL')
 app.config['ICA_CLIENT_ID'] = os.environ.get('ICA_CLIENT_ID')

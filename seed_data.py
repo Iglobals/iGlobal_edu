@@ -1,6 +1,7 @@
 from app import app
 from extensions import db
 from models import Book
+from exam_packages import parse_title_exam_package
 
 def get_preface_content():
     return '''<div class="preface">
@@ -205,6 +206,10 @@ def seed_books():
     
     # Add chapters and content to each book
     for book in all_books:
+        # JUPEB exam-access package inferred from the title (see exam_packages.py) -
+        # single subject: 1 exam key + N1,000 add-on; THREE-IN-ONE: 3 keys + N2,000.
+        book['exam_keys'], book['exam_addon_price_naira'] = parse_title_exam_package(book['title'])
+
         if 'THREE-IN-ONE' in book['title']:
             # Combination books have more chapters
             book['chapters'] = [

@@ -261,10 +261,17 @@
             <a href="{{ url_for('library', filter='added') }}" class="{% if filter_type == 'added' or not filter_type %}active{% endif %}">Added Books</a>
             <a href="{{ url_for('library', filter='your_books') }}" class="{% if filter_type == 'your_books' %}active{% endif %}">Your Books</a>
             <a href="{{ url_for('library', filter='favorites') }}" class="{% if filter_type == 'favorites' %}active{% endif %}">Favorites</a>
+            {% if itest_exams_url %}
+            <a href="{{ itest_exams_url }}" target="_blank" rel="noopener"
+               style="margin-left:auto;display:flex;align-items:center;gap:6px;color:#2F1341;font-weight:700;"
+               title="Practice JUPEB exams on iTest">
+                <i data-lucide="graduation-cap" class="w-4 h-4"></i> Take Mock Exam
+            </a>
+            {% endif %}
         </nav>
 
         <!-- Library grid -->
-        <div class="books-grid">
+
             {% for book in books %}
             <div class="book-card">
                 <div class="card-inner">
@@ -278,9 +285,9 @@
                     <span class="book-price {% if book.is_free %}free{% endif %}">
                         {% if book.is_free %}Free{% else %}₦{{ "{:,.0f}".format(book.price_naira) }}{% endif %}
                     </span>
-                    
+
                     {% if filter_type == 'added' or not filter_type %}
-                        <!-- Added Books: Preview + Purchase/View -->
+                        <!-- Added Books: Preview + Purchase/Read -->
                         {% if book.is_purchased %}
                             <a href="{{ url_for('reading', book_id=book.id) }}" class="action-btn read-btn" title="Read Now">
                                 <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
@@ -297,6 +304,7 @@
                         </a>
                     {% endif %}
                 </div>
+
                 <div class="card-actions">
                     <a href="{{ url_for('preview', book_id=book.id) }}">
                         <i data-lucide="eye" class="w-3.5 h-3.5"></i> Preview
@@ -324,6 +332,7 @@
                         </button>
                     {% endif %}
                 </div>
+
             </div>
             {% endfor %}
         </div>

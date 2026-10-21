@@ -112,8 +112,7 @@ def library():
     # Columns needed for book cards — never pull content/chapters
     _book_cols = (
         Book.id, Book.title, Book.author, Book.category,
-        Book.image_url, Book.price_naira, Book.is_free,
-        Book.exam_keys, Book.exam_addon_price_naira
+        Book.image_url, Book.price_naira, Book.is_free
     )
 
     # Opportunistic retry of this user's exam grants iTest hasn't confirmed

@@ -7,7 +7,7 @@ from flask import (render_template, request, redirect, url_for,
 from flask_login import current_user
 from app import app
 from extensions import db
-from models import ReferralAgent, ReferralCommission, Book, Purchase, REFERRAL_COOKIE_DAYS, ApprovedAgent
+from models import ReferralAgent, ReferralCommission, Book, Purchase, REFERRAL_COOKIE_DAYS, ApprovedAgent, REFERRAL_COMMISSION_RATE
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────
@@ -85,10 +85,27 @@ def agent_dashboard():
 
     # Build referral link base from env, fallback to request host
     base_url = os.environ.get('APP_BASE_URL', request.host_url.rstrip('/'))
+    
+    # For institutional agents, get list of buyers
+    buyers_list = []
+    if agent.agent_type == 'institutional':
+        from models import User
+        # Get unique buyers with their purchase details
+        for comm in commissions:
+            buyer = User.query.get(comm.buyer_id)
+            if buyer:
+                buyers_list.append({
+                    'email': buyer.email,
+                    'full_name': buyer.full_name or 'N/A',
+                    'purchase_date': comm.created_at,
+                    'book_title': Book.query.get(comm.book_id).title if Book.query.get(comm.book_id) else 'Unknown',
+                    'amount': comm.amount_earned / REFERRAL_COMMISSION_RATE  # Original purchase amount
+                })
 
     return render_template('referral/dashboard.html',
                            agent=agent,
                            commissions=commissions,
+                           buyers_list=buyers_list,
                            total_earned=total_earned,
                            total_paid=total_paid,
                            total_unpaid=total_unpaid,

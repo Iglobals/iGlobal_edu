@@ -249,6 +249,7 @@ class ReferralAgent(db.Model):
     first_name    = db.Column(db.String(80), nullable=False)
     email         = db.Column(db.String(120), unique=True, nullable=False)
     ref_code      = db.Column(db.String(7), unique=True, nullable=False)
+    agent_type    = db.Column(db.String(20), default='regular', nullable=False)  # 'regular' or 'institutional'
     is_active     = db.Column(db.Boolean, default=True)
     created_at    = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -266,6 +267,9 @@ class ReferralCommission(db.Model):
     amount_earned = db.Column(db.Float, nullable=False)   # price_naira * rate
     is_paid    = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships for easy querying
+    buyer = db.relationship('User', foreign_keys=[buyer_id], backref='referral_purchases')
 
 
 def attribute_referral(purchase, ref_code):

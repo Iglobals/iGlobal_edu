@@ -192,6 +192,46 @@
         </div>
         {% endif %}
 
+        <!-- Institutional Agent: Buyer List -->
+        {% if agent.agent_type == 'institutional' and buyers_list %}
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden border-2 border-purple-100">
+            <div class="px-5 py-4 border-b border-gray-100 bg-purple-50">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="building-2" class="w-5 h-5 text-[#2F1341]"></i>
+                    <h2 class="font-condensed font-bold text-lg text-[#2F1341]">Your Referral Buyers</h2>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Students who purchased through your institution's referral link</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                        <tr>
+                            <th class="px-4 py-3 text-left">Student Name</th>
+                            <th class="px-4 py-3 text-left">Email</th>
+                            <th class="px-4 py-3 text-left">Book</th>
+                            <th class="px-4 py-3 text-left">Purchase Date</th>
+                            <th class="px-4 py-3 text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        {% for buyer in buyers_list %}
+                        <tr class="hover:bg-purple-50/30">
+                            <td class="px-4 py-3 font-medium text-gray-800">{{ buyer.full_name }}</td>
+                            <td class="px-4 py-3 text-gray-600">{{ buyer.email }}</td>
+                            <td class="px-4 py-3 text-gray-600 text-sm">{{ buyer.book_title }}</td>
+                            <td class="px-4 py-3 text-gray-500">{{ buyer.purchase_date.strftime('%b %d, %Y') }}</td>
+                            <td class="px-4 py-3 text-right font-semibold text-gray-700">₦{{ "{:,.0f}".format(buyer.amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-500">
+                Total: {{ buyers_list|length }} student{{ 's' if buyers_list|length != 1 else '' }}
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 </div>
 

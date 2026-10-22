@@ -43,14 +43,14 @@
         display: flex;
         flex-direction: column;
     }
-    .book-card-bg.bg-yellow {
-        background: linear-gradient(135deg, #FEF08A 0%, #FCD34D 100%);
+    .book-card-bg.bg-purple {
+        background: linear-gradient(135deg, #E9D5FF 0%, #C084FC 100%);
+    }
+    .book-card-bg.bg-green {
+        background: linear-gradient(135deg, #D1FAE5 0%, #6EE7B7 100%);
     }
     .book-card-bg.bg-blue {
         background: linear-gradient(135deg, #DBEAFE 0%, #93C5FD 100%);
-    }
-    .book-card-bg.bg-pink {
-        background: linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%);
     }
     .featured-book-image {
         width: 100%;
@@ -331,7 +331,7 @@
         </div>
 
         <div class="grid md:grid-cols-3 gap-8">
-            {% set bg_colors = ['bg-yellow', 'bg-blue', 'bg-pink'] %}
+            {% set bg_colors = ['bg-purple', 'bg-green', 'bg-blue'] %}
             {% for book in featured_books %}
             <div class="featured-book-card reveal delay-{{ loop.index }}00">
                 <div class="book-card-bg {{ bg_colors[loop.index0] }}">

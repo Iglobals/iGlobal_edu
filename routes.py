@@ -5,7 +5,7 @@ from extensions import db
 from models import User, Book, Review, Favorite, Purchase, Note, LibraryItem
 import mongo_books
 import exam_packages
-from exam_packages import PACKAGE_BOOK, PACKAGES
+from exam_packages import PACKAGE_BOOK, PACKAGE_BOOK_EXAM, PACKAGES
 import itest_client
 import payments
 import requests

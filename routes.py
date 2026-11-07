@@ -282,22 +282,39 @@ def toggle_favorite(book_id):
 def add_review(book_id):
     book = Book.query.get_or_404(book_id)
     data = request.get_json()
-    
+
     rating = data.get('rating')
     comment = data.get('comment', '')
-    
+
     if not rating or rating < 1 or rating > 5:
         return jsonify({'error': 'Invalid rating'}), 400
-    
+
+    # One review per user per book — edit in place if one already exists.
+    existing = Review.query.filter_by(user_id=current_user.id, book_id=book_id).first()
+    if existing:
+        existing.rating = rating
+        existing.comment = comment
+        db.session.commit()
+        return jsonify({
+            'status': 'updated',
+            'review': {
+                'id': existing.id,
+                'user_name': current_user.full_name,
+                'rating': existing.rating,
+                'comment': existing.comment,
+                'created_at': existing.created_at.strftime('%Y-%m-%d'),
+            }
+        })
+
     review = Review(
         user_id=current_user.id,
         book_id=book_id,
         rating=rating,
-        comment=comment
+        comment=comment,
     )
     db.session.add(review)
     db.session.commit()
-    
+
     return jsonify({
         'status': 'success',
         'review': {
@@ -305,7 +322,7 @@ def add_review(book_id):
             'user_name': current_user.full_name,
             'rating': review.rating,
             'comment': review.comment,
-            'created_at': review.created_at.strftime('%Y-%m-%d')
+            'created_at': review.created_at.strftime('%Y-%m-%d'),
         }
     })
 
@@ -313,17 +330,49 @@ def add_review(book_id):
 @login_required
 def like_review(review_id):
     review = Review.query.get_or_404(review_id)
-    review.likes += 1
-    db.session.commit()
-    return jsonify({'status': 'success', 'likes': review.likes})
+    # Toggle: session key tracks whether this user has already liked this review.
+    key = f'liked_{review_id}'
+    if session.get(key):
+        # Un-like
+        review.likes = max(0, review.likes - 1)
+        db.session.commit()
+        session.pop(key)
+        # Also clear dislike if they switch
+        dislike_key = f'disliked_{review_id}'
+        return jsonify({'status': 'success', 'likes': review.likes, 'liked': False})
+    else:
+        # Like (and cancel any dislike)
+        review.likes += 1
+        dislike_key = f'disliked_{review_id}'
+        if session.get(dislike_key):
+            review.dislikes = max(0, review.dislikes - 1)
+            session.pop(dislike_key)
+        db.session.commit()
+        session[key] = True
+        return jsonify({'status': 'success', 'likes': review.likes, 'dislikes': review.dislikes, 'liked': True})
+
 
 @app.route('/api/review/<int:review_id>/dislike', methods=['POST'])
 @login_required
 def dislike_review(review_id):
     review = Review.query.get_or_404(review_id)
-    review.dislikes += 1
-    db.session.commit()
-    return jsonify({'status': 'success', 'dislikes': review.dislikes})
+    key = f'disliked_{review_id}'
+    if session.get(key):
+        # Un-dislike
+        review.dislikes = max(0, review.dislikes - 1)
+        db.session.commit()
+        session.pop(key)
+        return jsonify({'status': 'success', 'dislikes': review.dislikes, 'disliked': False})
+    else:
+        # Dislike (and cancel any like)
+        review.dislikes += 1
+        like_key = f'liked_{review_id}'
+        if session.get(like_key):
+            review.likes = max(0, review.likes - 1)
+            session.pop(like_key)
+        db.session.commit()
+        session[key] = True
+        return jsonify({'status': 'success', 'likes': review.likes, 'dislikes': review.dislikes, 'disliked': True})
 
 @app.route('/api/note/<int:book_id>', methods=['POST'])
 @login_required

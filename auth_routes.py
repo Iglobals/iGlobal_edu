@@ -43,24 +43,85 @@ def get_redis():
     return _redis_client if _redis_client else None
 
 
+def _get_mongo_oauth_col():
+    try:
+        from flask import current_app
+        if hasattr(current_app, 'mongo') and current_app.mongo is not None:
+            return current_app.mongo['oauth_states']
+    except Exception:
+        pass
+    try:
+        if hasattr(app, 'mongo') and app.mongo is not None:
+            return app.mongo['oauth_states']
+    except Exception:
+        pass
+    return None
+
+
 def store_oauth_state(state, code_verifier, next_url=None):
     payload = f"{code_verifier}|{next_url or ''}"
+    
+    # 1. MongoDB (primary across serverless instances)
+    col = _get_mongo_oauth_col()
+    if col is not None:
+        try:
+            col.update_one(
+                {'state': state},
+                {'$set': {
+                    'state': state,
+                    'payload': payload,
+                    'expires_at': datetime.utcnow() + timedelta(minutes=30),
+                    'created_at': datetime.utcnow()
+                }},
+                upsert=True
+            )
+        except Exception:
+            pass
+
+    # 2. Redis
     redis_client = get_redis()
     if redis_client:
-        # Extended to 30 minutes to accommodate first-time ICA login/signup
-        redis_client.setex(f"oauth_state:{state}", timedelta(minutes=30), payload)
-    else:
-        _memory_store[state] = {'payload': payload, 'expires_at': datetime.utcnow() + timedelta(minutes=30)}
+        try:
+            redis_client.setex(f"oauth_state:{state}", timedelta(minutes=30), payload)
+        except Exception:
+            pass
+
+    # 3. In-memory
+    _memory_store[state] = {'payload': payload, 'expires_at': datetime.utcnow() + timedelta(minutes=30)}
 
 
 def get_oauth_state(state):
+    if not state:
+        return None
+
+    # 1. MongoDB
+    col = _get_mongo_oauth_col()
+    if col is not None:
+        try:
+            doc = col.find_one({
+                'state': state,
+                'expires_at': {'$gt': datetime.utcnow()}
+            })
+            if doc and doc.get('payload'):
+                code_verifier, _, next_url = doc['payload'].partition('|')
+                return {'code_verifier': code_verifier, 'next_url': next_url or None}
+        except Exception:
+            pass
+
+    # 2. Redis
     redis_client = get_redis()
     if redis_client:
-        payload = redis_client.get(f"oauth_state:{state}")
-    else:
-        data = _memory_store.get(state)
-        payload = data['payload'] if data and data['expires_at'] > datetime.utcnow() else None
+        try:
+            payload = redis_client.get(f"oauth_state:{state}")
+            if payload:
+                code_verifier, _, next_url = payload.partition('|')
+                return {'code_verifier': code_verifier, 'next_url': next_url or None}
+        except Exception:
+            pass
 
+    # 3. Memory
+    data = _memory_store.get(state)
+    payload = data['payload'] if data and data['expires_at'] > datetime.utcnow() else None
     if not payload:
         return None
     code_verifier, _, next_url = payload.partition('|')
@@ -68,11 +129,23 @@ def get_oauth_state(state):
 
 
 def delete_oauth_state(state):
+    if not state:
+        return
+    col = _get_mongo_oauth_col()
+    if col is not None:
+        try:
+            col.delete_one({'state': state})
+        except Exception:
+            pass
+
     redis_client = get_redis()
     if redis_client:
-        redis_client.delete(f"oauth_state:{state}")
-    else:
-        _memory_store.pop(state, None)
+        try:
+            redis_client.delete(f"oauth_state:{state}")
+        except Exception:
+            pass
+
+    _memory_store.pop(state, None)
 
 
 def get_ica_client():

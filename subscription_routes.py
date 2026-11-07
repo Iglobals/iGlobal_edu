@@ -28,6 +28,41 @@ from paystack_client import PaystackError
 logger = logging.getLogger(__name__)
 
 INTERVAL_TO_DAYS = {"monthly": 30, "annual": 365}
+PAYSTACK_INTERVAL = {"monthly": "monthly", "annual": "annually"}
+
+
+def _ensure_live_plan(plan):
+    """Ensure the plan's paystack_plan_code exists on the current Paystack integration.
+    If missing or invalid (e.g. created on test keys, but now on live keys), auto-create
+    the plan on Paystack and update the database."""
+    if not current_app.config.get('PAYSTACK_SECRET_KEY'):
+        return plan.paystack_plan_code
+
+    need_create = False
+    if not plan.paystack_plan_code:
+        need_create = True
+    else:
+        try:
+            paystack_client.get_plan(plan.paystack_plan_code)
+        except PaystackError as err:
+            logger.warning("Paystack plan %s not valid on current key: %s. Recreating...", plan.paystack_plan_code, err)
+            need_create = True
+
+    if need_create:
+        try:
+            p_interval = PAYSTACK_INTERVAL.get(plan.interval, "monthly")
+            created = paystack_client.create_plan(
+                name=f"Pro {plan.interval.capitalize()}",
+                amount_kobo=int(plan.price_ngn * 100),
+                interval=p_interval
+            )
+            plan.paystack_plan_code = created["plan_code"]
+            db.session.commit()
+            logger.info("Auto-created Paystack plan for interval %s: %s", plan.interval, plan.paystack_plan_code)
+        except Exception as e:
+            logger.error("Failed to auto-create Paystack plan: %s", e)
+
+    return plan.paystack_plan_code
 
 
 @app.route('/subscribe')
@@ -38,7 +73,11 @@ def subscribe():
         flash('Buy at least one book before subscribing to Pro - the plan applies to books you own.', 'warning')
         return redirect(url_for('library'))
 
-    plans = {p.interval: p for p in SubscriptionPlan.query.filter_by(is_active=True).all()}
+    plan_rows = SubscriptionPlan.query.filter_by(is_active=True).all()
+    for p in plan_rows:
+        _ensure_live_plan(p)
+
+    plans = {p.interval: p for p in plan_rows}
     return render_template(
         'subscribe.html', plans=plans,
         paystack_public_key=current_app.config['PAYSTACK_PUBLIC_KEY'],
@@ -139,6 +178,16 @@ def _apply_successful_charge(data: dict):
         return
 
     plan_row = SubscriptionPlan.query.filter_by(interval=interval).first()
+    if not plan_row:
+        logger.error("Paystack subscribe charge.success for reference=%s matched no active plan tier.", reference)
+        return
+
+    expected_kobo = int(plan_row.price_ngn * 100)
+    paid_kobo = int(data.get("amount") or 0)
+    if paid_kobo < expected_kobo or (data.get("currency") and data.get("currency") != "NGN"):
+        logger.error("Rejected underpaid subscription charge %s: paid %s %s, expected %s kobo",
+                     reference, paid_kobo, data.get("currency"), expected_kobo)
+        return
 
     sub = Subscription.query.filter_by(user_id=user.id).first()
     if sub is None:

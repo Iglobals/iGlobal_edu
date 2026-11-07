@@ -55,6 +55,10 @@ def create_plan(name: str, amount_kobo: int, interval: str) -> dict:
     })
 
 
+def get_plan(plan_code: str) -> dict:
+    return _request("GET", f"/plan/{plan_code}")
+
+
 def verify_transaction(reference: str) -> dict:
     return _request("GET", f"/transaction/verify/{reference}")
 

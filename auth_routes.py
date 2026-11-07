@@ -47,9 +47,10 @@ def store_oauth_state(state, code_verifier, next_url=None):
     payload = f"{code_verifier}|{next_url or ''}"
     redis_client = get_redis()
     if redis_client:
-        redis_client.setex(f"oauth_state:{state}", timedelta(minutes=10), payload)
+        # Extended to 30 minutes to accommodate first-time ICA login/signup
+        redis_client.setex(f"oauth_state:{state}", timedelta(minutes=30), payload)
     else:
-        _memory_store[state] = {'payload': payload, 'expires_at': datetime.utcnow() + timedelta(minutes=10)}
+        _memory_store[state] = {'payload': payload, 'expires_at': datetime.utcnow() + timedelta(minutes=30)}
 
 
 def get_oauth_state(state):

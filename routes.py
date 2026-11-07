@@ -492,6 +492,8 @@ def initialize_payment():
             'user_name': current_user.full_name,
             'exam_keys': list(book.exam_keys or []) if package == PACKAGE_BOOK_EXAM else [],
         })
+        # Ensure no 'plan' field exists for one-off purchases - only subscriptions need it
+        metadata.pop('plan', None)
         response = _paystack_initialize(email=current_user.email, amount_kobo=amount_kobo,
                                         reference=reference, metadata=metadata)
 

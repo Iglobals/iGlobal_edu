@@ -30,6 +30,9 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
+    // Skip non-HTTP(S) schemes (e.g. chrome-extension://)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+
     // Skip non-GET requests (e.g. POST to login)
     if (event.request.method !== 'GET') return;
 
@@ -64,9 +67,7 @@ self.addEventListener('fetch', event => {
             if (cachedResponse) {
                 return cachedResponse;
             }
-            
-            // If offline and requesting an HTML page that's not in cache, we could return a fallback offline page
-            // But for now, we just let it fail gracefully
+            return Response.error();
         })
     );
 });

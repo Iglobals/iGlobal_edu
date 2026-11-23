@@ -400,7 +400,7 @@
                     console.log('Service Worker registered:', reg);
                     // Proactively cache main pages if online
                     if (navigator.onLine) {
-                        const pagesToCache = ['/', '/about', '/search', '/library'];
+                        const pagesToCache = ['/', '/about', '/search'{% if current_user.is_authenticated %}, '/library'{% endif %}];
                         pagesToCache.forEach(url => {
                             fetch(url).then(response => {
                                 if (response.ok) {

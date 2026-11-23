@@ -249,16 +249,25 @@ def login():
 
 @app.route('/auth/callback')
 def callback():
+    error = request.args.get('error')
+    if error:
+        error_desc = request.args.get('error_description') or error
+        app.logger.warning('ICA callback returned OAuth error: %s', error_desc)
+        flash('Login was cancelled or failed. Please try again.', 'danger')
+        return redirect(url_for('index'))
+
     state = request.args.get('state')
     state_data = get_oauth_state(state)
     if not state_data:
+        app.logger.warning('ICA callback missing or expired OAuth state: %s', state)
         flash('Your login attempt expired. Please try again.', 'danger')
-        return redirect(url_for('login'))
+        return redirect(url_for('index'))
 
     code = request.args.get('code')
     if not code:
+        app.logger.warning('ICA callback missing authorization code')
         flash('Login was cancelled or failed. Please try again.', 'danger')
-        return redirect(url_for('login'))
+        return redirect(url_for('index'))
 
     try:
         client = get_ica_client()
@@ -275,10 +284,11 @@ def callback():
         return redirect(state_data['next_url'] or url_for('library'))
     except UnverifiedEmailConflict:
         flash('An account with this email already exists. Please verify this email address with iGlobals Central Auth before signing in, so we can safely match it to your existing account.', 'danger')
-        return redirect(url_for('login'))
+        return redirect(url_for('index'))
     except Exception:
+        app.logger.exception('ICA callback failed')
         flash('Sign-in failed. Please try again.', 'danger')
-        return redirect(url_for('login'))
+        return redirect(url_for('index'))
 
 
 @app.route('/logout')

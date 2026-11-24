@@ -89,19 +89,26 @@ def preview(book_id):
     preview_chapters = (book.chapters or [])[:2]
     preview_content = [mongo_books.get_chapter_html(book_id, i) or '' for i in range(len(preview_chapters))]
 
-    # Check if in library (if logged in)
+    # Check if in library / purchased (if logged in)
     in_library = False
+    is_purchased = False
     if current_user.is_authenticated:
         in_library = LibraryItem.query.filter_by(user_id=current_user.id, book_id=book_id).first() is not None
+        is_purchased = Purchase.query.filter_by(
+            user_id=current_user.id, book_id=book_id, payment_status='success'
+        ).first() is not None
 
     resp = make_response(render_template('preview.html',
                          book=book,
                          preview_chapters=preview_chapters,
                          preview_content=preview_content,
                          in_library=in_library,
+                         is_purchased=is_purchased,
                          exam_offer=exam_offer))
-    # Cache preview for 10 minutes — same content for everyone
-    resp.headers['Cache-Control'] = 'public, max-age=600'
+    if current_user.is_authenticated:
+        resp.headers['Cache-Control'] = 'private, no-store'
+    else:
+        resp.headers['Cache-Control'] = 'public, max-age=600'
     return resp
 
 @app.route('/library')

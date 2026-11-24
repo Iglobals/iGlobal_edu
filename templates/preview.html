@@ -259,24 +259,38 @@
                     {% endif %}
                 </div>
                 
-                {% if current_user.is_authenticated %}
-                    {% if in_library %}
-                        <button class="add-library-btn added" disabled>
-                            <i data-lucide="check-circle" class="w-5 h-5"></i>
-                            In Your Library
-                        </button>
+                <div class="flex flex-wrap gap-3">
+                    {% if book.is_free or is_purchased %}
+                        <a href="{{ url_for('reading', book_id=book.id) }}" class="btn-primary px-6 py-3 rounded-lg font-bold inline-flex items-center gap-2">
+                            <i data-lucide="book-open" class="w-5 h-5"></i>
+                            Read Now
+                        </a>
                     {% else %}
-                        <button class="add-library-btn" onclick="addToLibrary({{ book.id }})">
-                            <i data-lucide="plus-circle" class="w-5 h-5"></i>
-                            Add to Library
-                        </button>
+                        <a href="{{ url_for('payment', book_id=book.id) }}" class="btn-primary px-6 py-3 rounded-lg font-bold inline-flex items-center gap-2">
+                            <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                            Buy Now — ₦{{ "{:,.0f}".format(book.price_naira) }}
+                        </a>
                     {% endif %}
-                {% else %}
-                    <a href="{{ url_for('login') }}" class="add-library-btn">
-                        <i data-lucide="log-in" class="w-5 h-5"></i>
-                        Login to Add
-                    </a>
-                {% endif %}
+
+                    {% if current_user.is_authenticated %}
+                        {% if in_library %}
+                            <button class="add-library-btn added" disabled>
+                                <i data-lucide="check-circle" class="w-5 h-5"></i>
+                                In Your Library
+                            </button>
+                        {% else %}
+                            <button class="add-library-btn" onclick="addToLibrary({{ book.id }})">
+                                <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                                Add to Library
+                            </button>
+                        {% endif %}
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="add-library-btn">
+                            <i data-lucide="log-in" class="w-5 h-5"></i>
+                            Login to Add
+                        </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -308,6 +322,18 @@
 
         <!-- Action Buttons -->
         <div class="flex flex-wrap gap-4 mb-12">
+            {% if book.is_free or is_purchased %}
+                <a href="{{ url_for('reading', book_id=book.id) }}" class="btn-primary px-8 py-4 rounded-lg font-bold text-lg inline-flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-5 h-5"></i>
+                    Read Now
+                </a>
+            {% else %}
+                <a href="{{ url_for('payment', book_id=book.id) }}" class="btn-primary px-8 py-4 rounded-lg font-bold text-lg inline-flex items-center gap-2">
+                    <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                    Buy Now — ₦{{ "{:,.0f}".format(book.price_naira) }}
+                </a>
+            {% endif %}
+
             {% if current_user.is_authenticated %}
                 {% if in_library %}
                     <button class="add-library-btn added" disabled>
@@ -354,24 +380,45 @@
         <!-- CTA -->
         <div class="text-center bg-white rounded-lg shadow-md p-12">
             <h3 class="font-condensed text-3xl font-bold text-[#2F1341] mb-4">Want to Read More?</h3>
-            <p class="text-gray-600 mb-6 text-lg">Add this book to your library to access the full content</p>
+            <p class="text-gray-600 mb-6 text-lg">
+                {% if book.is_free or is_purchased %}
+                    Open the full book to continue reading
+                {% else %}
+                    Buy this book to unlock all chapters and lifetime access
+                {% endif %}
+            </p>
             
-            {% if current_user.is_authenticated %}
-                {% if in_library %}
-                    <a href="{{ url_for('library', filter='added') }}" class="btn-primary px-8 py-4 rounded-lg font-bold text-lg">
-                        Go to Library
+            <div class="flex flex-wrap justify-center gap-4">
+                {% if book.is_free or is_purchased %}
+                    <a href="{{ url_for('reading', book_id=book.id) }}" class="btn-primary px-8 py-4 rounded-lg font-bold text-lg inline-flex items-center gap-2">
+                        <i data-lucide="book-open" class="w-5 h-5"></i>
+                        Read Now
                     </a>
                 {% else %}
-                    <button class="add-library-btn" onclick="addToLibrary({{ book.id }})">
-                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
-                        Add to Library
-                    </button>
+                    <a href="{{ url_for('payment', book_id=book.id) }}" class="btn-primary px-8 py-4 rounded-lg font-bold text-lg inline-flex items-center gap-2">
+                        <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                        Buy Now — ₦{{ "{:,.0f}".format(book.price_naira) }}
+                    </a>
                 {% endif %}
-            {% else %}
-                <a href="{{ url_for('login') }}" class="btn-primary px-8 py-4 rounded-lg font-bold text-lg">
-                    Login to Continue
-                </a>
-            {% endif %}
+
+                {% if current_user.is_authenticated %}
+                    {% if in_library %}
+                        <a href="{{ url_for('library', filter='added') }}" class="add-library-btn added">
+                            Go to Library
+                        </a>
+                    {% else %}
+                        <button class="add-library-btn" onclick="addToLibrary({{ book.id }})">
+                            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                            Add to Library
+                        </button>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="add-library-btn">
+                        <i data-lucide="log-in" class="w-5 h-5"></i>
+                        Login to Add
+                    </a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </section>
